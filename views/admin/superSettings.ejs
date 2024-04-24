@@ -1,0 +1,35 @@
+<main>
+    <h1>Super Admin Dashboard</h1>
+    
+    <!-- Form to Create Admin Credentials -->
+    <div class="credentials-form-container">
+        <h2>Create Admin Credentials</h2>
+        <form id="createAdminForm">
+            <div class="form-group">
+                <label for="adminUsername">Username:</label>
+                <input type="text" id="adminUsername" name="adminUsername" required>
+            </div>
+            <div class="form-group">
+                <label for="adminPassword">Password:</label>
+                <input type="password" id="adminPassword" name="adminPassword" required>
+            </div>
+            <div class="form-group">
+                <label for="adminRole">Role:</label>
+                <select id="adminRole" name="adminRole" required>
+                    <option value="admin">Admin</option>
+                    <option value="superAdmin">Super Admin</option>
+                </select>
+            </div>
+            <button type="submit">Create</button>
+        </form>
+    </div>
+
+    <!-- Container for Displaying Created Credentials -->
+    <div class="created-credentials-container">
+        <h2>Created Credentials</h2>
+        <div id="credentialsList">
+            <!-- Created credentials will be displayed here -->
+            <p>No credentials created yet.</p>
+        </div>
+    </div>
+</main>

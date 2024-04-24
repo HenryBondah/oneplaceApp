@@ -1,0 +1,38 @@
+
+    
+    <main>
+        <a href="/admin/superDashboard">Super Admin</a> 
+
+        <h1>Welcome to the ONEPLACE Admin Dashboard</h1>
+        
+        <!-- Container for Applications -->
+        <div class="applications-container">
+            <h2>Applications</h2>
+            <div id="formList" class="form-list">
+                <% if (applications && applications.length > 0) { %>
+                    <% applications.forEach(function(application) { %>
+                        <div class="application-summary">
+                            <!-- Application summary details -->
+                            <p>Application: <%= application.name %></p>
+                            <p>Status: <%= application.status %></p>
+                            <!-- Add more application details as needed -->
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <p>No applications available.</p>
+                <% } %>
+            </div>
+        
+            <div id="formDetails" class="form-details" style="display: none;">
+                <!-- Detailed form view will be shown here -->
+            </div>
+        </div>
+
+        <!-- Button to Action Page -->
+        <div class="action-button-container">
+            <button onclick="window.location.href='/admin/action-page';">Action Page</button>           
+        </div>
+        <br>
+
+    </main>
+

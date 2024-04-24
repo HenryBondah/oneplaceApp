@@ -1,0 +1,17 @@
+
+<div class="attendance-container">
+    <div class="date-display">Date: <%= new Date().toLocaleDateString() %></div>
+    <ul class="student-list">
+        <!-- Example students, dynamically generate this list server-side or with JS -->
+        <li class="student-item">
+            <label for="student-1">John Doe</label>
+            <input type="checkbox" id="student-1" name="student-1">
+        </li>
+        <li class="student-item">
+            <label for="student-2">Jane Smith</label>
+            <input type="checkbox" id="student-2" name="student-2">
+        </li>
+        <!-- Add more students as needed -->
+    </ul>
+    <button class="submit-btn">Submit Attendance</button>
+</div>

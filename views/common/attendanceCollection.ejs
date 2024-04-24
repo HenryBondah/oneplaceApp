@@ -1,0 +1,18 @@
+    <h1>Mark Attendance for <%= date %></h1>
+    <form action="/mark-attendance" method="POST">
+        <label for="studentName">Student Name:</label>
+        <input type="text" id="studentName" name="studentName" required>
+        <label for="attendance">Attendance:</label>
+        <select id="attendance" name="attendance" required>
+            <option value="Present">Present</option>
+            <option value="Absent">Absent</option>
+        </select>
+        <button type="submit">Mark Attendance</button>
+    </form>
+
+    <h2>Attendance Records:</h2>
+    <ul>
+        <% attendances.forEach(function(record) { %>
+            <li><%= record.date %> - <%= record.name %> - <%= record.status %></li>
+        <% }) %>
+    </ul>

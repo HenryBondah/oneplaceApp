@@ -1,0 +1,74 @@
+
+    <style>
+        .hidden {
+            display: none;
+        }
+        .toggle-arrow {
+            cursor: pointer;
+            user-select: none;
+        }
+        /* Add additional styles as needed */
+    </style>
+</head>
+<body>
+
+    <main class="management-container">
+        <h1>Management Tools</h1>
+        <ul class="management-links">
+            <li><a href="/common/addClass">Add Class</a></li>
+            <li><a href="/common/addStudent">Add Student</a></li>
+            <li><a href="/common/createEmployee">Create Employee Account</a></li>
+            <li><a href="/account/accountPersonalization">Personalize Organization Space</a></li>
+        </ul>
+        
+        <div class="toggle-container">
+            <h2>Employee Accounts <span id="toggleArrow" class="toggle-arrow">&#9650;</span></h2>
+            <div id="employeeAccountsContainer" class="employee-accounts-container hidden">
+                <div class="employee-account">
+                    <p>Name: John Doe</p>
+                    <p>Account Credentials: example@domain.com</p>
+                </div>
+                <!-- More employee accounts dynamically added here -->
+            </div>
+        </div>
+
+        <div class="class-edit-container">
+            <!-- Class edit container content -->
+            <h2>Edit Class</h2>
+                <label for="classSelect">Select Class:</label>
+                <select id="classSelect" name="classSelect">
+                    <option value="">Please select a class</option>
+                    <option value="class1">Class 1</option>
+                </select>
+    
+                <div id="studentsList" class="students-list" style="display:none;">
+                    <ul>
+                        <li>John Doe - <a href="/common/editStudent/#">Edit</a> | <a href="/common/deleteStudent/#">Delete</a></li>
+                        <li>Jane Smith - <a href="/common/editStudent/#">Edit</a> | <a href="/common/deleteStudent/#">Delete</a></li>
+                        <li>Bob Johnson - <a href="/common/editStudent/#">Edit</a> | <a href="/common/deleteStudent/#">Delete</a></li>
+                    </ul>
+                </div>
+        </div>
+    </main>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('classSelect').addEventListener('change', function() {
+                var studentsListDiv = document.getElementById('studentsList');
+                studentsListDiv.style.display = this.value ? 'block' : 'none';
+            });
+        });
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleArrow = document.getElementById('toggleArrow');
+            const employeeAccountsContainer = document.getElementById('employeeAccountsContainer');
+
+            toggleArrow.addEventListener('click', function() {
+                const isHidden = employeeAccountsContainer.classList.contains('hidden');
+                employeeAccountsContainer.classList.toggle('hidden');
+                toggleArrow.innerHTML = isHidden ? '&#9660;' : '&#9650;'; // Toggle arrow direction
+            });
+        });
+    </script>
+</body>
+</html>

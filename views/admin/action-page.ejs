@@ -1,0 +1,17 @@
+
+    
+    <div id="applicationList" class="application-list">
+        <% if(applications && applications.length > 0) { %>
+            <% applications.forEach(function(application, index) { %>
+                <div class="application-summary">
+                    <p>Application #<%= index + 1 %>: <%= application.orgName %></p>
+                    <p>Status: <%= application.status || 'Pending' %></p>
+                    <%= application.reviewTimestamp ? `<p>Reviewed on: ${new Date(application.reviewTimestamp).toLocaleString()}</p>` : '' %>
+                    <button onclick="location.href='/application/details/<%= application.id %>'">View Details</button>
+                    <button onclick="location.href='/application/delete/<%= application.id %>'">Delete</button>
+                </div>
+            <% }); %>
+        <% } else { %>
+            <p>No applications to display.</p>
+        <% } %>
+    </div>

@@ -1,0 +1,19 @@
+<main class="delete-student-container">
+    <h1>Delete Student</h1>
+    <div class="student-info">
+        <p><strong>Name:</strong> John Doe</p>
+        <p><strong>Age:</strong> 12</p>
+        <p><strong>Hometown:</strong> Springfield</p>
+        <p><strong>Date of Birth:</strong> January 1, 2010</p>
+        <p><strong>Guardian Name:</strong> Jane Doe</p>
+    </div>
+  
+    <form action="/student/delete/confirm" method="POST">
+        <div class="warning-message">
+            <p><strong>Warning:</strong> This action cannot be reversed.</p>
+        </div>
+        <input type="hidden" name="studentId" value="STUDENT_ID"> <!-- Replace STUDENT_ID with actual ID -->
+        <button type="submit" class="delete-btn">Delete</button>
+    </form>
+</main>
+
