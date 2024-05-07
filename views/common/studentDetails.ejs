@@ -1,0 +1,50 @@
+<main class="student-details-container">
+    <h1>Student Details: <%= student.first_name %> <%= student.last_name %></h1>
+    <% if (student.image_url) { %>
+        <div>
+            <img src="<%= student.image_url %>" alt="Student Image" style="max-width: 200px; height: auto;">
+        </div>
+    <% } %>
+
+    <ul>
+        <li>First Name: <%= student.first_name %></li>
+        <li>Last Name: <%= student.last_name %></li>
+        <li>Age: <%= student.age %></li>
+        <li>Height: <%= student.height %> cm</li>
+        <li>Hometown: <%= student.hometown %></li>
+        <li>Class Room: <%= student.class_name %></li>
+    </ul>
+
+    <h2>Guardians</h2>
+    <% guardians.forEach(function(guardian) { %>
+        <div>
+            <h3><%= guardian.first_name %> <%= guardian.last_name %></h3>
+            <p>Address: <%= guardian.address %></p>
+            <p>Phone: <%= guardian.phone %></p>
+            <p>Hometown: <%= guardian.hometown %></p>
+        </div>
+    <% }); %>
+
+    <h2>Subjects and Grades</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Subject</th>
+                <th>Grade</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% subjects.forEach(function(subject) { %>
+                <tr>
+                    <td><%= subject.subject_name %></td>
+                    <td><%= subject.grade %></td>
+                </tr>
+            <% }); %>
+            <% if (subjects.length === 0) { %>
+                <tr><td colspan="2">No subjects assigned.</td></tr>
+            <% } %>
+        </tbody>
+    </table>
+
+    <button onclick="window.print();">Print this page</button>
+</main>

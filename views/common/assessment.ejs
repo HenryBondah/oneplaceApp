@@ -1,33 +1,136 @@
-
-    <div class="assessment-container">
-        <table>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title><%= title %></title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1><%= title %></h1>
+    <table id="assessmentTable">
+        <thead>
             <tr>
                 <th>Student Name</th>
-                <th>Test 1</th>
-                <th>Test 2</th>
-                <th>Test 3</th>
-                <th>Mock 1</th>
-                <th>Exams</th>
+                <!-- Dynamically inserted test headers will appear here -->
+                <th>Total Percentage</th>
             </tr>
-            <!-- Example student row, dynamically generate rows based on data -->
-            <tr>
-                <td>John Doe</td>
-                <td><input type="text" name="test1-johndoe"></td>
-                <td><input type="text" name="test2-johndoe"></td>
-                <td><input type="text" name="test3-johndoe"></td>
-                <td><input type="text" name="mock1-johndoe"></td>
-                <td><input type="text" name="exams-johndoe"></td>
+        </thead>
+        <tbody>
+            <% students.forEach(student => { %>
+                <tr data-student-id="<%= student.student_id %>">
+                    <td><%= student.first_name %> <%= student.last_name %></td>
+                    <!-- Score inputs will be inserted dynamically before Total Percentage -->
+                    <td class="total-percentage">0%</td>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
 
-            </tr>
-            <tr>
-                <td>Henry Dean</td>
-                <td><input type="text" name="test1-johndoe"></td>
-                <td><input type="text" name="test2-johndoe"></td>
-                <td><input type="text" name="test3-johndoe"></td>
-                <td><input type="text" name="mock1-johndoe"></td>
-                <td><input type="text" name="exams-johndoe"></td>
-            </tr>
-            <!-- Repeat for more students -->
-        </table>
-        <button class="submit-btn">Submit Assessment</button>
-    </div>
+    <!-- Form to Add Test -->
+    <form id="addTestForm" style="display:none;">
+        <input type="text" id="newTestName" placeholder="Test Name" required>
+        <input type="number" id="newTestWeight" placeholder="Weight (%)" required>
+        <input type="hidden" name="classId" value="<%= classId %>">
+        <input type="hidden" name="subjectId" value="<%= subjectId %>">
+        <button type="submit">Create Test</button>
+    </form>
+    <button onclick="document.getElementById('addTestForm').style.display='block';">Add Test</button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadExistingTests();
+        
+            const addTestForm = document.getElementById('addTestForm');
+            addTestForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                createTest();
+            });
+        
+            function loadExistingTests() {
+                const classId = document.getElementsByName('classId')[0].value;
+                const subjectId = document.getElementsByName('subjectId')[0].value;
+                fetch(`/common/getAssessments?classId=${classId}&subjectId=${subjectId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(test => {
+                            addTestColumn(test.title, test.weight, test.assessment_id);
+                        });
+                    })
+                    .catch(error => console.error('Error loading assessments:', error));
+            }
+        
+            function createTest() {
+                const testName = document.getElementById('newTestName').value.trim();
+                const testWeight = parseFloat(document.getElementById('newTestWeight').value);
+                const classId = document.getElementsByName('classId')[0].value;
+                const subjectId = document.getElementsByName('subjectId')[0].value;
+        
+                fetch('/createTest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ testName, testWeight, classId, subjectId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Test created:', data);
+                    alert('Test created successfully!');
+                    addTestColumn(data.title, data.weight, data.assessment_id);
+                    document.getElementById('newTestName').value = '';
+                    document.getElementById('newTestWeight').value = '';
+                    document.getElementById('addTestForm').style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error creating test:', error);
+                    alert('Failed to create test: ' + error.message);
+                });
+            }
+        
+            function addTestColumn(testName, testWeight, assessmentId) {
+                const headerRow = document.querySelector('#assessmentTable thead tr');
+                const newHeader = document.createElement('th');
+                newHeader.textContent = `${testName} (${testWeight}%)`;
+                headerRow.appendChild(newHeader);
+        
+                const rows = document.querySelectorAll('#assessmentTable tbody tr');
+                rows.forEach(row => {
+                    const newCell = document.createElement('td');
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.min = '0';
+                    input.max = '100';
+                    input.className = 'score-input';
+                    input.dataset.assessmentId = assessmentId;
+                    input.dataset.studentId = row.dataset.studentId;
+                    input.addEventListener('change', function () {
+                        saveScore(input.dataset.studentId, input.dataset.assessmentId, input.value);
+                    });
+                    newCell.appendChild(input);
+                    row.appendChild(newCell);
+                });
+            }
+
+            function saveScore(studentId, assessmentId, score) {
+                axios.post('/common/saveScores', {
+                    studentId: studentId,
+                    assessmentId: assessmentId,
+                    score: score
+                }).then(response => {
+                    console.log('Score saved:', response.data);
+                    updateTotalPercentage();
+                }).catch(error => {
+                    console.error('Error saving score:', error);
+                });
+            }
+
+            function updateTotalPercentage() {
+                document.querySelectorAll('tr[data-student-id]').forEach(row => {
+                    const scores = row.querySelectorAll('.score-input');
+                    const total = Array.from(scores).reduce((acc, score) => acc + (parseFloat(score.value) || 0), 0);
+                    const average = scores.length > 0 ? total / scores.length : 0;
+                    row.querySelector('.total-percentage').textContent = average.toFixed(2) + '%';
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-module.exports = function(app) {
+module.exports = function(app, db) {
     const flash = require('connect-flash');
     const session = require('express-session');
     
@@ -44,11 +44,27 @@ module.exports = function(app) {
         res.redirect('/account/account'); // Redirect to account details page
     });
     // Route for Account Personalization Page
-app.get('/account/accountPersonalization', (req, res) => {
-  res.render('account/accountPersonalization', {
-    title: 'Account Personalization'
-  });
-});
+    app.get('/account/personalization', async (req, res) => {
+        try {
+            const organizationId = req.session.organizationId; // Assuming this is stored in the session
+            const query = 'SELECT * FROM organizations WHERE organization_id = $1';
+            const result = await db.query(query, [organizationId]);
+
+            if (result.rows.length > 0) {
+                const orgDetails = result.rows[0];
+                res.render('account/accountPersonalization', {
+                    title: 'Personalize Your Account',
+                    orgDetails: orgDetails
+                });
+            } else {
+                res.status(404).send('Organization details not found.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    });
+    
 
     // Account Details Page Route
     app.get('/account/account', (req, res) => {

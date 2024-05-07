@@ -1,22 +1,67 @@
 
 
-    <div class="dashboard-container">
-        <div class="classes-container">
-            <h2>Classes</h2>
-            <!-- Classes will be dynamically inserted here -->
+<div class="dashboard-container">
+    <div class="classes-container">
+        <h2>Classes</h2>
+        <ul>
+            <% if (classes && classes.length > 0) { %>
+                <% classes.forEach(function(cls) { %>
+                    <li><a href="/common/classDashboard?classId=<%= cls.class_id %>"><%= cls.class_name %></a></li>
+                <% }); %>
+            <% } else { %>
+                <li>No classes found</li>
+            <% } %>
+        </ul>
+    </div>
+    
+    <div class="info-grid">
+        <div class="school-image-container">
+            <h2>Today's Date and Time</h2>
+            <div id="currentDate" class="date"></div>
+            <div id="currentTime" class="time"></div>
         </div>
-        <div class="info-grid">
-            <div class="school-image-container">
-                <h2>School Image</h2>
-                <img src="/public/images/" alt="School Image">
+        <% if (currentYear) { %>
+            <div class="school-year-info">
+                <h2>Current School Year: <%= currentYear.year_label %></h2>
+                <% terms.forEach(term => { %>
+                    <div>
+                        <strong><%= term.term_name %>:</strong>
+                        Start Date: <%= term.start_date.toISOString().split('T')[0] %>,
+                        End Date: <%= term.end_date.toISOString().split('T')[0] %>
+                    </div>
+                <% }); %>
             </div>
-            <div class="calendar-container">
-                <h2>Today's Date and Time</h2>
-                <div id="currentDate" class="date"></div>
-                <div id="currentTime" class="time"></div>
+        <% } else { %>
+            <div class="school-year-info">
+                <h2>No current school year information available.</h2>
             </div>
+        <% } %>
+    </div>
+           
         </div>
     </div>
+    <h2>Events</h2>
+    <ul>
+        <% if (events && events.length > 0) { %>
+            <% events.forEach(function(event) { %>
+                <li><%= event.name %> - <%= event.details %></li>
+            <% }); %>
+        <% } else { %>
+            <li>No events found</li>
+        <% } %>
+    </ul>
+    
+    <h2>Announcements</h2>
+    <ul>
+        <% if (announcements && announcements.length > 0) { %>
+            <% announcements.forEach(function(announcement) { %>
+                <li><%= announcement.message %></li>
+            <% }); %>
+        <% } else { %>
+            <li>No announcements found</li>
+        <% } %>
+    </ul>
+      
 
 </body>
 <script>
@@ -31,6 +76,60 @@
     updateDateTime(); // Update on load
     setInterval(updateDateTime, 1000); // Update every second
 </script>
+<script>
+    // Function to delete an event
+    function deleteEvent(eventId) {
+        fetch('/common/deleteEvent', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ eventId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Event deleted successfully!');
+                window.location.reload(); // Reload the page to update the list
+            } else {
+                alert('Failed to delete event: ' + data.message);
+            }
+        })
+        .catch(error => alert('Failed to delete event: ' + error));
+    }
+    
+    // Function to delete an announcement
+    function deleteAnnouncement(announcementId) {
+        fetch('/common/deleteAnnouncement', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ announcementId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Announcement deleted successfully!');
+                window.location.reload(); // Reload the page to update the list
+            } else {
+                alert('Failed to delete announcement: ' + data.message);
+            }
+        })
+        .catch(error => alert('Failed to delete announcement: ' + error));
+    }
 
+    function updateDateTime() {
+        const now = new Date();
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+        document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', dateOptions);
+        document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US', timeOptions);
+    }
+
+    updateDateTime(); // Update on load
+    setInterval(updateDateTime, 1000); // Update every second
+    </script>
+    
 
 </html>

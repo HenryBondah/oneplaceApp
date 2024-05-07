@@ -701,3 +701,19 @@ body, html {
       display: none;
   }
 }
+
+
+/* attendance  */
+.attendance-sheet-container {
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.attendance-sheet {
+  border-collapse: collapse;
+  width: 100%;
+}
+.attendance-sheet th, .attendance-sheet td {
+  border: 1px solid #ddd;
+  text-align: center;
+  padding: 8px;
+}

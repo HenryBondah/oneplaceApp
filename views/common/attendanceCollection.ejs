@@ -1,18 +1,135 @@
-    <h1>Mark Attendance for <%= date %></h1>
-    <form action="/mark-attendance" method="POST">
-        <label for="studentName">Student Name:</label>
-        <input type="text" id="studentName" name="studentName" required>
-        <label for="attendance">Attendance:</label>
-        <select id="attendance" name="attendance" required>
-            <option value="Present">Present</option>
-            <option value="Absent">Absent</option>
-        </select>
-        <button type="submit">Mark Attendance</button>
-    </form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title><%= title %></title>
+    <style>
+        .scrollable-table {
+            display: block;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        th, td {
+            text-align: center;
+            min-width: 70px; /* Ensures that the date and checkboxes have sufficient space */
+        }
+        th {
+            position: sticky;
+            top: 0;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1><%= title %></h1>
+    <% if (dates.length > 0) { %>
+        <div class="scrollable-table">
+            <table border="1" style="border-collapse: collapse; width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <% dates.forEach(date => { %>
+                            <th colspan="2">
+                                <%= date.split(' ')[0] %><br>
+                                <span style="font-size: smaller;"><%= date.split(' ')[1] %></span>
+                            </th>
+                        <% }); %>
+                        <th>Total Days Present</th>
+                    </tr>
+                    <tr>
+                        <td></td> <!-- Empty cell under "Name" -->
+                        <% dates.forEach(date => { %>
+                            <td>P</td>
+                            <td>A</td>
+                        <% }); %>
+                        <td></td> <!-- Empty cell under "Total Days Present" -->
+                    </tr>
+                </thead>
+                <tbody>
+                    <% students.forEach(student => { %>
+                        <tr>
+                            <td><%= student.name %></td>
+                            <% let totalPresent = 0; %>
+                            <% dates.forEach(date => { %>
+                                <td>
+                                    <input type="checkbox" 
+                                           <%= student.dates[date] && student.dates[date].status === 'Present' ? 'checked' : '' %> 
+                                           disabled>
+                                </td>
+                                <td>
+                                    <input type="checkbox" 
+                                           <%= student.dates[date] && student.dates[date].status === 'Absent' ? 'checked' : '' %> 
+                                           disabled>
+                                </td>
+                                <% if (student.dates[date] && student.dates[date].status === 'Present') { totalPresent++; } %>
+                            <% }); %>
+                            <td><%= totalPresent %> out of <%= dates.length %></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+            <div style="text-align: right; padding: 20px;">
+                <a href="#" id="editLink">Edit</a>
+                <a href="#" id="saveLink" class="disabled" onclick="event.preventDefault();">Save</a>
+            </div>
+        <% } else { %>
+            <p>No attendance records available.</p>
+        <% } %>
+        <div style="text-align: right; margin-bottom: 10px;">
+            <button onclick="window.print();">Print</button>
+        </div>
+        <script>
+            document.getElementById('editLink').addEventListener('click', function(event) {
+                event.preventDefault();
+                document.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox) {
+                    checkbox.disabled = false;
+                });
+                document.getElementById('saveLink').classList.remove('disabled');
+                document.getElementById('saveLink').onclick = saveChanges;
+            });
+    
+            function saveChanges(event) {
+                event.preventDefault();
+                document.querySelectorAll('input[type="checkbox"]').forEach(function(checkbox) {
+                    const studentId = checkbox.getAttribute('data-student-id');
+                    const date = checkbox.getAttribute('data-date');
+                    const status = checkbox.checked ? checkbox.getAttribute('data-status') : checkbox.getAttribute('data-status') === 'Present' ? 'Absent' : 'Present';
+                    
+                    fetch('/common/updateAttendance', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ studentId, date, status }),
+                    }).then(response => {
+                        if (response.ok) {
+                            console.log('Update successful');
+                        } else {
+                            console.error('Update failed');
+                        }
+                    });
+                });
 
-    <h2>Attendance Records:</h2>
-    <ul>
-        <% attendances.forEach(function(record) { %>
-            <li><%= record.date %> - <%= record.name %> - <%= record.status %></li>
-        <% }) %>
-    </ul>
+                 function loadExistingTests() {
+        const classId = document.getElementsByName('classId')[0].value;
+        const subjectId = document.getElementsByName('subjectId')[0].value;
+
+        fetch(`/common/getTests?classId=${classId}&subjectId=${subjectId}`)
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(test => {
+                    addTestColumn(test.title, test.weight);
+                });
+            })
+            .catch(error => console.error('Error loading tests:', error));
+    }
+    
+                document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.disabled = true;
+                });
+                document.getElementById('saveLink').classList.add('disabled');
+                document.getElementById('editLink').classList.remove('disabled');
+            }
+        </script>
+    </body>
+    </html>
