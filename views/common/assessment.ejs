@@ -1,136 +1,147 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title><%= title %></title>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-</head>
-<body>
-    <h1><%= title %></h1>
-    <table id="assessmentTable">
-        <thead>
-            <tr>
-                <th>Student Name</th>
-                <!-- Dynamically inserted test headers will appear here -->
-                <th>Total Percentage</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% students.forEach(student => { %>
-                <tr data-student-id="<%= student.student_id %>">
-                    <td><%= student.first_name %> <%= student.last_name %></td>
-                    <!-- Score inputs will be inserted dynamically before Total Percentage -->
-                    <td class="total-percentage">0%</td>
-                </tr>
-            <% }); %>
-        </tbody>
-    </table>
 
-    <!-- Form to Add Test -->
-    <form id="addTestForm" style="display:none;">
-        <input type="text" id="newTestName" placeholder="Test Name" required>
-        <input type="number" id="newTestWeight" placeholder="Weight (%)" required>
-        <input type="hidden" name="classId" value="<%= classId %>">
-        <input type="hidden" name="subjectId" value="<%= subjectId %>">
-        <button type="submit">Create Test</button>
-    </form>
-    <button onclick="document.getElementById('addTestForm').style.display='block';">Add Test</button>
+    <main>
+        <h1>Assessments for <%= className %></h1>
+        <h2>Subject: <%= subjectName %></h2>
+
+        <form id="addTestForm">
+            <h3>Add New Test</h3>
+            <div class="form-group">
+                <label for="testName">Test Name:</label>
+                <input type="text" id="testName" name="testName" required>
+            </div>
+            <div class="form-group">
+                <label for="testWeight">Test Weight:</label>
+                <input type="number" id="testWeight" name="testWeight" step="0.1" required>
+            </div>
+            <button type="submit">Add Test</button>
+        </form>
+
+        <hr>
+
+        <form id="saveScoresForm">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <% assessments.forEach(function(assessment) { %>
+                            <th>
+                                <%= assessment.title %> (<%= assessment.weight %>%)
+                            </th>
+                        <% }); %>
+                        <th>Total Percentage</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% students.forEach(function(student) { %>
+                        <tr>
+                            <td><%= student.first_name %> <%= student.last_name %></td>
+                            <% assessments.forEach(function(assessment) { %>
+                                <td>
+                                    <input type="number" name="scores[<%= student.student_id %>][<%= assessment.assessment_id %>]" min="0" max="100" step="0.1" value="<%= student.scores[assessment.assessment_id] || '' %>">
+                                </td>
+                            <% }); %>
+                            <td>
+                                <span class="total-percentage" id="total-percentage-<%= student.student_id %>"><%= student.total_percentage || 0 %></span>%
+                            </td>
+                            <td>
+                                <span class="grade" id="grade-<%= student.student_id %>"><%= student.grade || '' %></span>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+            <button type="submit">Save Scores</button>
+        </form>
+    </main>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            loadExistingTests();
-        
-            const addTestForm = document.getElementById('addTestForm');
-            addTestForm.addEventListener('submit', function(event) {
-                event.preventDefault();
-                createTest();
+        document.getElementById('addTestForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const testName = document.getElementById('testName').value;
+            const testWeight = document.getElementById('testWeight').value;
+            const classId = '<%= classId %>';
+            const subjectId = '<%= subjectId %>';
+
+            fetch('/createTest', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ testName, testWeight, classId, subjectId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.title) {
+                    alert('Test added successfully');
+                    location.reload();
+                } else {
+                    alert('Failed to add test');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        document.getElementById('saveScoresForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const scores = [];
+
+            for (let [key, value] of formData.entries()) {
+                const [studentId, assessmentId] = key.match(/\d+/g);
+                scores.push({ studentId: parseInt(studentId), assessmentId: parseInt(assessmentId), score: parseFloat(value) });
+            }
+
+            fetch('/common/saveScores', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ scores })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Failed to save scores.');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        // Function to calculate grade based on total percentage
+        function calculateGrade(percentage) {
+            if (percentage >= 90) return 'A';
+            if (percentage >= 80) return 'B';
+            if (percentage >= 70) return 'C';
+            if (percentage >= 60) return 'D';
+            return 'F';
+        }
+
+        // Function to update total percentage and grade
+        function updateTotalAndGrade(studentId, totalPercentage, grade) {
+            document.getElementById(`total-percentage-${studentId}`).textContent = totalPercentage.toFixed(2);
+            document.getElementById(`grade-${studentId}`).textContent = grade;
+        }
+
+        document.getElementById('saveScoresForm').addEventListener('change', function() {
+            const scores = [];
+            const assessments = <%- JSON.stringify(assessments) %>;
+            const students = <%- JSON.stringify(students) %>;
+
+            students.forEach(student => {
+                let totalPercentage = 0;
+                assessments.forEach(assessment => {
+                    const scoreInput = document.querySelector(`input[name="scores[${student.student_id}][${assessment.assessment_id}]"]`);
+                    if (scoreInput && scoreInput.value) {
+                        totalPercentage += parseFloat(scoreInput.value) * (assessment.weight / 100);
+                    }
+                });
+                const grade = calculateGrade(totalPercentage);
+                updateTotalAndGrade(student.student_id, totalPercentage, grade);
             });
-        
-            function loadExistingTests() {
-                const classId = document.getElementsByName('classId')[0].value;
-                const subjectId = document.getElementsByName('subjectId')[0].value;
-                fetch(`/common/getAssessments?classId=${classId}&subjectId=${subjectId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        data.forEach(test => {
-                            addTestColumn(test.title, test.weight, test.assessment_id);
-                        });
-                    })
-                    .catch(error => console.error('Error loading assessments:', error));
-            }
-        
-            function createTest() {
-                const testName = document.getElementById('newTestName').value.trim();
-                const testWeight = parseFloat(document.getElementById('newTestWeight').value);
-                const classId = document.getElementsByName('classId')[0].value;
-                const subjectId = document.getElementsByName('subjectId')[0].value;
-        
-                fetch('/createTest', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ testName, testWeight, classId, subjectId })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Test created:', data);
-                    alert('Test created successfully!');
-                    addTestColumn(data.title, data.weight, data.assessment_id);
-                    document.getElementById('newTestName').value = '';
-                    document.getElementById('newTestWeight').value = '';
-                    document.getElementById('addTestForm').style.display = 'none';
-                })
-                .catch(error => {
-                    console.error('Error creating test:', error);
-                    alert('Failed to create test: ' + error.message);
-                });
-            }
-        
-            function addTestColumn(testName, testWeight, assessmentId) {
-                const headerRow = document.querySelector('#assessmentTable thead tr');
-                const newHeader = document.createElement('th');
-                newHeader.textContent = `${testName} (${testWeight}%)`;
-                headerRow.appendChild(newHeader);
-        
-                const rows = document.querySelectorAll('#assessmentTable tbody tr');
-                rows.forEach(row => {
-                    const newCell = document.createElement('td');
-                    const input = document.createElement('input');
-                    input.type = 'number';
-                    input.min = '0';
-                    input.max = '100';
-                    input.className = 'score-input';
-                    input.dataset.assessmentId = assessmentId;
-                    input.dataset.studentId = row.dataset.studentId;
-                    input.addEventListener('change', function () {
-                        saveScore(input.dataset.studentId, input.dataset.assessmentId, input.value);
-                    });
-                    newCell.appendChild(input);
-                    row.appendChild(newCell);
-                });
-            }
-
-            function saveScore(studentId, assessmentId, score) {
-                axios.post('/common/saveScores', {
-                    studentId: studentId,
-                    assessmentId: assessmentId,
-                    score: score
-                }).then(response => {
-                    console.log('Score saved:', response.data);
-                    updateTotalPercentage();
-                }).catch(error => {
-                    console.error('Error saving score:', error);
-                });
-            }
-
-            function updateTotalPercentage() {
-                document.querySelectorAll('tr[data-student-id]').forEach(row => {
-                    const scores = row.querySelectorAll('.score-input');
-                    const total = Array.from(scores).reduce((acc, score) => acc + (parseFloat(score.value) || 0), 0);
-                    const average = scores.length > 0 ? total / scores.length : 0;
-                    row.querySelector('.total-percentage').textContent = average.toFixed(2) + '%';
-                });
-            }
         });
     </script>
-</body>
-</html>

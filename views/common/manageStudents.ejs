@@ -1,0 +1,9 @@
+<form action="/common/studentListByClass" method="get">
+    <select name="classId" required>
+        <option value="">Select a Class</option>
+        <% classes.forEach(cls => { %>
+            <option value="<%= cls.class_id %>"><%= cls.class_name %></option>
+        <% }); %>
+    </select>
+    <button type="submit">View Students</button>
+</form>

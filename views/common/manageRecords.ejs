@@ -1,5 +1,59 @@
 <body>
-    <h1>Manage School Years and Terms</h1>
+
+    <style>
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh; /* Adjust this to fit your header/footer size */
+            width: 100%;
+            margin-top: 20px; /* Space from header */
+            margin-bottom: 20px; /* Space from footer */
+        }
+
+        fieldset {
+            margin: 10px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 600px; /* Limit the width of fieldsets */
+        }
+
+        form, .delete-link {
+            margin-top: 10px;
+        }
+
+        .delete-link {
+            display: block;
+            color: red;
+            text-decoration: none;
+            margin-top: 5px;
+        }
+
+        .delete-link:hover {
+            text-decoration: underline;
+        }
+
+        button, select, input[type="text"] {
+            padding: 8px;
+            margin-top: 5px;
+        }
+
+        legend {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+    </style>
+
+    <div class="container">
+
+        <fieldset>
+            <h1>Manage School Years and Terms</h1>
+    
+            <legend>School Years</legend>
     <% schoolYears.forEach(function(year) { %>
         <form action="/common/updateSchoolYearAndTerms" method="post">
             <input type="hidden" name="yearId" value="<%= year.id %>">
@@ -33,8 +87,13 @@
 
         </form>
     <% }); %>
+</fieldset>
 
-    <h1>Manage Events</h1>
+
+    <fieldset>
+        <h1>Manage Events</h1>
+
+        <legend>Events</legend>
     <% events.forEach(function(event) { %>
         <form action="/common/updateEvent" method="post">
             <input type="hidden" name="id" value="<%= event.id %>">
@@ -45,10 +104,15 @@
             <a href="#" onclick="deleteEvent(<%= event.id %>)">Delete</a>
         </form>
     <% }); %>
+</fieldset>
 
 
 
-    <h1>Manage Announcements</h1>
+
+    <fieldset>
+        <h1>Manage Announcements</h1>
+
+        <legend>Announcements</legend>
     <% announcements.forEach(function(announcement) { %>
         <form action="/common/updateAnnouncement" method="post">
             <input type="hidden" name="announcementId" value="<%= announcement.announcement_id %>">
@@ -57,6 +121,7 @@
             <a href="#" onclick="deleteRecord('announcement', <%= announcement.announcement_id %>)">Delete</a>
         </form>
     <% }); %>
+    </fieldset>
     
 
     <script>

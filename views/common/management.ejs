@@ -5,8 +5,10 @@
         <ul class="management-links">
             <li><a href="/common/registerSchoolYear">Register School Year, Events & Announcement </a></li>
             <li><a href="/common/manageRecords">Modify School Year, Events & Announcments</a></li>
-            <li><a href="/common/addClassSubject">Add Class & Subject</a></li>
+            <li><a href="/common/addClassSubject">Add Class, Subject & Graduation Year Group</a></li>
+            <li><a href="/common/manageClassSubjectAndGradYr">Modify Class, Subject & Graduation Year Group</a></li>
             <li><a href="/common/addStudent">Add Student</a></li>
+            <li><a href="/common/manageStudents">Manage Students</a></li>
             <li><a href="/common/createEmployee">Create Employee Account</a></li>
             <li><a href="/account/accountPersonalization">Personalize Organization Space</a></li>
    
@@ -30,7 +32,7 @@
                     <% year.terms.forEach(term => { %>
                         <li>
                             <%= term.term_name %> (Start: <%= term.start_date.toISOString().slice(0, 10) %>, End: <%= term.end_date.toISOString().slice(0, 10) %>)
-                            <button onclick="confirmEndTerm('<%= term.term_id %>')">End</button>
+                            <a href="#" onclick="confirmEndTerm('<%= term.term_id %>')">End</a>
                         </li>
                     <% }); %>
                 <% }); %>

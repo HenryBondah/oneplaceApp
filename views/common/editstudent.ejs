@@ -1,33 +1,177 @@
-<main class="edit-student-container">
-    <h1>Edit Student: <%= student.first_name %> <%= student.last_name %></h1>
-    <form action="/common/updateStudent" method="post">
-        <input type="hidden" name="student_id" value="<%= student.student_id %>">
 
-        <div class="form-group">
-            <label for="firstName">First Name:</label>
-            <input type="text" id="firstName" name="firstName" value="<%= student.first_name %>" required>
-        </div>
+    <main class="edit-student-container">
+        <h1>Edit Student</h1>
+        <form action="/common/editStudent/<%= student.student_id %>" method="POST" enctype="multipart/form-data">
+            <fieldset>
+                <legend>Select Class & Subject (Required)</legend>
+                <div class="form-group">
+                    <label for="classSelect">Class:</label>
+                    <select id="classSelect" name="classId" required>
+                        <option value="">Select a Class</option>
+                        <% classes.forEach(function(cls) { %>
+                            <option value="<%= cls.class_id %>" <%= cls.class_id === student.class_id ? 'selected' : '' %>><%= cls.class_name %></option>
+                        <% }); %>
+                    </select>
+                    <div id="gradYearGroupDisplay" style="margin-top: 10px;">
+                        Student will be a member of the <%= gradYearGroupName %>.
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="subjectSelect">Subjects:</label>
+                    <div>
+                        <input type="checkbox" id="selectAllSubjects" onclick="selectAll(this.checked)">
+                        <label for="selectAllSubjects">Select All Subjects</label>
+                    </div>
+                    <div id="subjectContainer">
+                        <% subjects.forEach(function(subject) { %>
+                            <div>
+                                <input type="checkbox" name="subjects[]" value="<%= subject.subject_id %>" id="subject<%= subject.subject_id %>" <%= enrolledSubjects.includes(subject.subject_id) ? 'checked' : '' %>>
+                                <label for="subject<%= subject.subject_id %>"><%= subject.subject_name %></label>
+                            </div>
+                        <% }); %>
+                    </div>
+                </div>
+            </fieldset>
+            
+            <br>
+            <div class="form-group">
+                <label for="firstName">Student First Name:</label>
+                <input type="text" id="firstName" name="firstName" value="<%= student.first_name %>" required>
+            </div>
+            <div class="form-group">
+                <label for="lastName">Student Last Name:</label>
+                <input type="text" id="lastName" name="lastName" value="<%= student.last_name %>" required>
+            </div>
+            <div class="form-group">
+                <label for="dateOfBirth">Date of Birth:</label>
+                <input type="date" id="dateOfBirth" name="dateOfBirth" value="<%= student.date_of_birth.toISOString().split('T')[0] %>" required>
+            </div>
+            <div class="form-group">
+                <label for="height">Student Height (cm):</label>
+                <input type="number" id="height" name="height" value="<%= student.height %>">
+            </div>
+            <div class="form-group">
+                <label for="hometown">Student Hometown:</label>
+                <input type="text" id="hometown" name="hometown" value="<%= student.hometown %>">
+            </div>
+            <div class="form-group">
+                <label for="studentImage">Student Image (Optional):</label>
+                <input type="file" id="studentImage" name="studentImage" accept="image/*">
+                <% if (student.image_url) { %>
+                    <img src="/<%= student.image_url %>" alt="Student Image" class="student-image">
+                <% } %>
+            </div>
+            <% for (let i = 1; i <= 3; i++) { %>
+            <fieldset>
+                <legend>Guardian <%= i %> Information <%= i === 1 ? '(Required)' : '(Optional)' %></legend>
+                <div class="form-group">
+                    <label for="guardian<%= i %>FirstName">Guardian <%= i %> First Name:</label>
+                    <input type="text" id="guardian<%= i %>FirstName" name="guardian<%= i %>FirstName" value="<%= guardians[i-1] ? guardians[i-1].first_name : '' %>" <%= i === 1 ? 'required' : '' %>>
+                </div>
+                <div class="form-group">
+                    <label for="guardian<%= i %>LastName">Guardian Last Name:</label>
+                    <input type="text" id="guardian<%= i %>LastName" name="guardian<%= i %>LastName" value="<%= guardians[i-1] ? guardians[i-1].last_name : '' %>" <%= i === 1 ? 'required' : '' %>>
+                </div>
+                <div class="form-group">
+                    <label for="guardian<%= i %>Address">Guardian Address:</label>
+                    <input type="text" id="guardian<%= i %>Address" name="guardian<%= i %>Address" value="<%= guardians[i-1] ? guardians[i-1].address : '' %>" <%= i === 1 ? 'required' : '' %>>
+                </div>
+                <div class="form-group">
+                    <label for="guardian<%= i %>Phone">Guardian Phone:</label>
+                    <input type="tel" id="guardian<%= i %>Phone" name="guardian<%= i %>Phone" value="<%= guardians[i-1] ? guardians[i-1].phone : '' %>" <%= i === 1 ? 'required' : '' %>>
+                </div>
+                <div class="form-group">
+                    <label for="guardian<%= i %>Hometown">Guardian Hometown:</label>
+                    <input type="text" id="guardian<%= i %>Hometown" name="guardian<%= i %>Hometown" value="<%= guardians[i-1] ? guardians[i-1].hometown : '' %>">
+                </div>
+            </fieldset>
+            <% } %>
+            <button type="submit">Update Student</button>
+        </form>
+    </main>
 
-        <div class="form-group">
-            <label for="lastName">Last Name:</label>
-            <input type="text" id="lastName" name="lastName" value="<%= student.last_name %>" required>
-        </div>
+    <style>
+        .edit-student-container {
+            padding: 20px;
+        }
+        .form-group, fieldset {
+            margin-bottom: 20px;
+        }
+        .student-image {
+            width: 150px;
+            height: auto;
+            margin-top: 10px;
+        }
+    </style>
 
-        <div class="form-group">
-            <label for="dateOfBirth">Date of Birth:</label>
-            <input type="date" id="dateOfBirth" name="dateOfBirth" value="<%= student.date_of_birth.toISOString().split('T')[0] %>" required>
-        </div>
+    <script>
+        const enrolledSubjects = <%- JSON.stringify(enrolledSubjects) %>;
 
-        <div class="form-group">
-            <label for="classSelect">Class:</label>
-            <select id="classSelect" name="classSelect" required>
-                <option value="">Select a Class</option>
-                <% classes.forEach(function(cls) { %>
-                    <option value="<%= cls.class_id %>" <%= student.class_id === cls.class_id ? 'selected' : '' %>><%= cls.class_name %></option>
-                <% }); %>
-            </select>
-        </div>
+        function updateSubjects(classId) {
+            const subjectContainer = document.getElementById('subjectContainer');
+            if (!classId) {
+                subjectContainer.innerHTML = '';
+                return;
+            }
 
-        <button type="submit">Update Student</button>
-    </form>
-</main>
+            fetch(`/common/getSubjectsForClass?classId=${classId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    let subjectsHTML = '';
+                    data.forEach(subject => {
+                        subjectsHTML += `<div>
+                                            <input type="checkbox" name="subjects[]" value="${subject.subject_id}" id="subject${subject.subject_id}" ${enrolledSubjects.includes(subject.subject_id) ? 'checked' : ''}>
+                                            <label for="subject${subject.subject_id}">${subject.subject_name}</label>
+                                         </div>`;
+                    });
+                    subjectContainer.innerHTML = subjectsHTML;
+                })
+                .catch(error => {
+                    console.error('Error loading subjects:', error);
+                    subjectContainer.innerHTML = '<div>Error loading subjects.</div>';
+                });
+        }
+
+        function selectAll(checked) {
+            document.querySelectorAll('#subjectContainer input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = checked;
+            });
+        }
+
+        document.getElementById('classSelect').addEventListener('change', function() {
+            const classId = this.value;
+            const gradYearDisplay = document.getElementById('gradYearGroupDisplay');
+
+            fetch(`/api/getGradYearGroupByClassId?classId=${classId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.grad_year_group_name) {
+                        gradYearDisplay.textContent = `Student will be a member of the ${data.grad_year_group_name}.`;
+                        gradYearDisplay.classList.remove('error');
+                        gradYearDisplay.classList.add('success');
+                    } else {
+                        gradYearDisplay.textContent = 'No graduation year group assigned to this class.';
+                        gradYearDisplay.classList.remove('success');
+                        gradYearDisplay.classList.add('error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching graduation year group:', error);
+                    gradYearDisplay.textContent = 'Failed to fetch graduation year group data.';
+                    gradYearDisplay.classList.remove('success');
+                    gradYearDisplay.classList.add('error');
+                });
+
+            updateSubjects(classId);
+        });
+
+        // Call updateSubjects with the current class_id
+        updateSubjects('<%= student.class_id %>');
+    </script>
+</body>
+</html>

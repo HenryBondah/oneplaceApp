@@ -4,13 +4,14 @@
         <fieldset>
             <legend>Select Class & Subject (Required)</legend>
             <div class="form-group">
-                <label for="classSelect">Class Room:</label>
-                <select id="classSelect" name="classSelect" required onchange="updateSubjects(this.value)">
-                    <option value="">Select Class</option>
+                <label for="classSelect">Class:</label>
+                <select id="classSelect" name="classId" required>
+                    <option value="">Select a Class</option>
                     <% classes.forEach(function(cls) { %>
                         <option value="<%= cls.class_id %>"><%= cls.class_name %></option>
                     <% }); %>
                 </select>
+                <div id="gradYearGroupDisplay" style="margin-top: 10px;"></div>
             </div>
             <div class="form-group">
                 <label for="subjectSelect">Subjects:</label>
@@ -34,8 +35,8 @@
             <input type="text" id="lastName" name="lastName" required>
         </div>
         <div class="form-group">
-            <label for="age">Student Age:</label>
-            <input type="number" id="age" name="age" required>
+            <label for="dateOfBirth">Date of Birth:</label>
+            <input type="date" id="dateOfBirth" name="dateOfBirth" required>
         </div>
         <div class="form-group">
             <label for="height">Student Height (cm):</label>
@@ -72,7 +73,6 @@
                 <label for="guardian<%= i %>Hometown">Guardian Hometown:</label>
                 <input type="text" id="guardian<%= i %>Hometown" name="guardian<%= i %>Hometown">
             </div>
-          
         </fieldset>
         <% } %>
         <button type="submit">Add Student</button>
@@ -81,6 +81,12 @@
 <style>
     .form-group {
         margin-bottom: 10px;
+    }
+    .error {
+        color: red;
+    }
+    .success {
+        color: green;
     }
 </style>
 <script>
@@ -114,4 +120,35 @@
             checkbox.checked = checked;
         });
     }
+
+    document.getElementById('classSelect').addEventListener('change', function() {
+        const classId = this.value;
+        const gradYearDisplay = document.getElementById('gradYearGroupDisplay');
+        
+        fetch(`/api/getGradYearGroupByClassId?classId=${classId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.grad_year_group_name) {
+                    gradYearDisplay.textContent = `Student will be a member of the ${data.grad_year_group_name}.`;
+                    gradYearDisplay.classList.remove('error');
+                    gradYearDisplay.classList.add('success');
+                } else {
+                    gradYearDisplay.textContent = 'No graduation year group assigned to this class.';
+                    gradYearDisplay.classList.remove('success');
+                    gradYearDisplay.classList.add('error');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching graduation year group:', error);
+                gradYearDisplay.textContent = 'Failed to fetch graduation year group data.';
+                gradYearDisplay.classList.remove('success');
+                gradYearDisplay.classList.add('error');
+            });
+        
+        updateSubjects(classId);
+    });
 </script>
+
+
+
+

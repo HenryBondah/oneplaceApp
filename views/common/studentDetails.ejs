@@ -1,50 +1,73 @@
-<main class="student-details-container">
-    <h1>Student Details: <%= student.first_name %> <%= student.last_name %></h1>
-    <% if (student.image_url) { %>
-        <div>
-            <img src="<%= student.image_url %>" alt="Student Image" style="max-width: 200px; height: auto;">
-        </div>
-    <% } %>
-
-    <ul>
-        <li>First Name: <%= student.first_name %></li>
-        <li>Last Name: <%= student.last_name %></li>
-        <li>Age: <%= student.age %></li>
-        <li>Height: <%= student.height %> cm</li>
-        <li>Hometown: <%= student.hometown %></li>
-        <li>Class Room: <%= student.class_name %></li>
-    </ul>
-
-    <h2>Guardians</h2>
-    <% guardians.forEach(function(guardian) { %>
-        <div>
-            <h3><%= guardian.first_name %> <%= guardian.last_name %></h3>
-            <p>Address: <%= guardian.address %></p>
-            <p>Phone: <%= guardian.phone %></p>
-            <p>Hometown: <%= guardian.hometown %></p>
-        </div>
-    <% }); %>
-
-    <h2>Subjects and Grades</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Subject</th>
-                <th>Grade</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% subjects.forEach(function(subject) { %>
-                <tr>
-                    <td><%= subject.subject_name %></td>
-                    <td><%= subject.grade %></td>
-                </tr>
-            <% }); %>
-            <% if (subjects.length === 0) { %>
-                <tr><td colspan="2">No subjects assigned.</td></tr>
+<style>
+    .student-image-container {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .student-image {
+        max-width: 200px;
+        height: auto;
+        border-radius: 50%;
+    }
+</style>
+    <main>
+        <h1>Student Details</h1>
+        <h2><%= student.first_name %> <%= student.last_name %></h2>
+        <div class="student-image-container">
+            <% if (student.image_url) { %>
+                <img src="/<%= student.image_url %>" alt="Student Image" class="student-image">
+            <% } else { %>
+                <p>No image available</p>
             <% } %>
-        </tbody>
-    </table>
+        </div>
+        <div class="student-info">
+            <p>Class: <%= student.class_name %></p>
+            <p>Graduation Year Group: <%= gradYearGroupName %></p>
+            <p>Date of Birth: <%= new Date(student.date_of_birth).toLocaleDateString() %></p>
+            <p>Height: <%= student.height %> cm</p>
+            <p>Hometown: <%= student.hometown %></p>
+        </div>
+        
+        <h3>Subjects and Grades</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Grade</th>
+                    <th>Total Percentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% subjects.forEach(subject => { %>
+                    <tr>
+                        <td><%= subject.subject_name %></td>
+                        <td><%= subject.grade %></td>
+                        <td><%= subject.total_percentage %> %</td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
 
-    <button onclick="window.print();">Print this page</button>
-</main>
+        <h3>Guardians</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Address</th>
+                    <th>Phone</th>
+                    <th>Hometown</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% guardians.forEach(guardian => { %>
+                    <tr>
+                        <td><%= guardian.first_name %></td>
+                        <td><%= guardian.last_name %></td>
+                        <td><%= guardian.address %></td>
+                        <td><%= guardian.phone %></td>
+                        <td><%= guardian.hometown %></td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </main>

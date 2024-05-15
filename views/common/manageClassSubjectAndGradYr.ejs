@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Class, Subject, and Graduation Year</title>
+    <style>
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh; /* Adjust this to fit your header/footer size */
+            width: 100%;
+            margin-top: 20px; /* Space from header */
+            margin-bottom: 20px; /* Space from footer */
+        }
+
+        fieldset {
+            margin: 10px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 600px; /* Limit the width of fieldsets */
+        }
+
+        form, .delete-link {
+            margin-top: 10px;
+        }
+
+        .delete-link {
+            display: block;
+            color: red;
+            text-decoration: none;
+            margin-top: 5px;
+        }
+
+        .delete-link:hover {
+            text-decoration: underline;
+        }
+
+        button, select, input[type="text"] {
+            padding: 8px;
+            margin-top: 5px;
+        }
+
+        legend {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Manage Records</h1>
+
+    <div class="container">
+        <fieldset>
+            <legend>Graduation Year Groups</legend>
+            <% graduationYearGroups.forEach(group => { %>
+                <div>
+                    <form action="/editGraduationYearGroup" method="post">
+                        <input type="hidden" name="id" value="<%= group.id %>">
+                        <input type="text" name="newName" value="<%= group.name %>">
+                        <button type="submit">Update</button>
+                    </form>
+                    <a href="/deleteGraduationYearGroup?id=<%= group.id %>" class="delete-link" onclick="return confirm('Are you sure you want to delete this year group?');">Delete</a>
+                </div>
+            <% }); %>
+        </fieldset>
+
+        <fieldset>
+            <legend>Classes</legend>
+            <% classes.forEach(cls => { %>
+                <div>
+                    <form action="/editClass" method="post">
+                        <input type="hidden" name="classId" value="<%= cls.class_id %>">
+                        <input type="text" name="newClassName" value="<%= cls.class_name %>">
+                        <button type="submit">Update</button>
+                    </form>
+                    <a href="/deleteClass?classId=<%= cls.class_id %>" class="delete-link" onclick="return confirm('Are you sure you want to delete this class?');">Delete</a>
+                </div>
+            <% }); %>
+        </fieldset>
+
+        <fieldset>
+            <legend>Subjects</legend>
+            <form action="/common/manageClassSubjectAndGradYr" method="GET">
+                <select id="classSelect" name="classId" onchange="fetchSubjects()">
+                    <option value="">Select a Class</option>
+                    <% classes.forEach(function(cls) { %>
+                        <option value="<%= cls.class_id %>"><%= cls.class_name %></option>
+                    <% }); %>
+                </select>
+            </form>
+            
+            <div id="subjectsContainer"></div>
+        </fieldset>
+    </div>
+
+
+    <script>
+        function fetchSubjects() {
+            const classId = document.getElementById('classSelect').value;
+            if (!classId) {
+                document.getElementById('subjectsContainer').innerHTML = '';
+                return;
+            }
+            
+            fetch(`/api/getSubjectsByClass?classId=${classId}`)
+                .then(response => response.json())
+                .then(subjects => {
+                    let html = subjects.map(subject =>
+                        `<div>
+                            <span>${subject.subject_name}</span>
+                            <button onclick="editSubject('${subject.subject_id}', '${subject.subject_name}')">Edit</button>
+                            <button onclick="deleteSubject('${subject.subject_id}')">Delete</button>
+                        </div>`
+                    ).join('');
+                    document.getElementById('subjectsContainer').innerHTML = html;
+                })
+                .catch(error => console.error('Error fetching subjects:', error));
+        }
+        
+        function editSubject(subjectId, currentName) {
+            const newName = prompt("Enter new name for the subject", currentName);
+            if (newName && newName !== currentName) {
+                fetch(`/api/editSubject?subjectId=${subjectId}&newName=${encodeURIComponent(newName)}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Subject updated successfully!');
+                            fetchSubjects(); // Refresh list
+                        }
+                    })
+                    .catch(error => console.error('Error updating subject:', error));
+            }
+        }
+        
+        function deleteSubject(subjectId) {
+            if (confirm("Are you sure you want to delete this subject?")) {
+                fetch(`/api/deleteSubject?subjectId=${subjectId}`, { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Subject deleted successfully!');
+                            fetchSubjects(); // Refresh list
+                        }
+                    })
+                    .catch(error => console.error('Error deleting subject:', error));
+            }
+        }
+        </script>
+</body>
+</html>

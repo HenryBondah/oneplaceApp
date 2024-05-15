@@ -1,7 +1,24 @@
+<form action="/addGraduationYearGroup" method="POST">
+    <div class="form-group">
+        <label for="graduationYear">Graduation Year Group:</label>
+        <input type="number" id="graduationYear" name="graduationYear" placeholder="Year eg. 2020"  required>
+    </div>
+    <button type="submit">Create Graduation Year Group</button>
+</form>
+
 <form action="/common/addClassSubject" method="POST">
     <div class="form-group">
         <label for="className">Class Name:</label>
         <input type="text" id="className" name="className" required>
+    </div>
+    <div class="form-group">
+        <label for="gradYearGroupId">Graduation Year Group:</label>
+        <select id="gradYearGroupId" name="gradYearGroupId" required>
+            <option value="">Select a Graduation Year Group</option>
+            <% availableGradYearGroups.forEach(group => { %>
+                <option value="<%= group.id %>"><%= group.name %></option>
+            <% }); %>
+        </select>
     </div>
     <button type="submit">Add Class</button>
 </form>

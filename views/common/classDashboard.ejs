@@ -1,10 +1,11 @@
 <main class="class-dashboard-container">
-    <h1 id="className"><%= className %></h1>
+    <h1 id="className"><%= className %> <% if (graduationYearGroup) { %>
+        <p> <%= graduationYearGroup %></p>
+    <% } %></h1>
     <div class="dashboard-buttons">
         <ul class="account-links">
             <!-- Existing links -->
             <li><a href="/common/attendance?classId=<%= classId %>">Mark Attendance</a></li>
-            <!-- Link for Attendance Records -->
             <li><a href="/common/attendanceCollection?classId=<%= classId %>">Attendance Records</a></li>
         </ul>
     </div>
@@ -23,15 +24,14 @@
             <p style="text-align: center;">No subjects added yet.</p>
         <% } %>
     </div>
-    
+
     <div class="student-list-container">
         <h2>Students</h2>
         <ul class="student-list">
             <% if (students.length > 0) { %>
                 <% students.forEach(function(student) { %>
                     <!-- Link to the student's detailed page -->
-                    <li><a href="/common/studentDetails?studentId=<%= student.student_id %>"><%= student.first_name %> <%= student.last_name %>
-                    </a></li>
+                    <li><a href="/common/studentDetails?studentId=<%= student.student_id %>"><%= student.first_name %> <%= student.last_name %></a></li>
                 <% }); %>
             <% } else { %>
                 <li>No students in this class yet.</li>

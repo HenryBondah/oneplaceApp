@@ -321,6 +321,30 @@ CREATE TABLE IF NOT EXISTS school_years (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE graduation_year_groups (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL
+);
+ALTER TABLE classes
+ADD COLUMN graduation_year_group_id INT REFERENCES graduation_year_groups(id);
+
+CREATE TABLE student_subjects (
+    student_id INTEGER,
+    subject_id INTEGER,
+    PRIMARY KEY (student_id, subject_id),
+    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE CASCADE
+);
+
+ALTER TABLE guardians ADD CONSTRAINT unique_student_guardian UNIQUE (student_id, first_name);
+
+ALTER TABLE assessments
+ADD COLUMN weight NUMERIC;
+
+ALTER TABLE assessment_results ADD COLUMN grade VARCHAR(2);
+
+ALTER TABLE students ADD COLUMN total_percentage DECIMAL(5, 2);
+
 
 -- Indexes for quicker search
 CREATE INDEX IF NOT EXISTS idx_user_email ON users (email);
