@@ -4,7 +4,8 @@
         <li>
             <%= student.first_name %> <%= student.last_name %> -
             <a href="/common/editStudent?studentId=<%= student.student_id %>">Edit</a>
-            <a href="/common/deleteStudent?id=<%= student.student_id %>">Delete</a>
+            <a href="/common/deleteStudent?studentId=<%= student.student_id %>">Delete</a>
+            <a href="/common/studentDetails?studentId=<%= student.student_id %>">View Details</a>
         </li>
     <% }); %>
 </ul>

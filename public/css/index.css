@@ -1,0 +1,29 @@
+/* index page specific styles */
+.index-container {
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .image-section img {
+    max-width: 50%;
+    display: block;
+    margin: auto;
+  }
+  
+  .buttons {
+    margin-top: 20px;
+  }
+  
+  .buttons .button-link button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .buttons .button-link button:hover {
+    background-color: #0056b3;
+  }
+  

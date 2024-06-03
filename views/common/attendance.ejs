@@ -8,52 +8,36 @@
 </head>
 <body>
     <h1>Mark Attendance for <%= className %></h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Student Name</th>
-                <% dates.forEach(date => { %>
-                    <th><%= date %><br><a href="#" onclick="saveAttendanceForDate('<%= date %>')">Save</a></th>
-                <% }); %>
-            </tr>
-        </thead>
-        <tbody>
-            <% students.forEach(student => { %>
+    <button class="edit-button">Edit</button>
+    <div class="attendance-table-container">
+        <table>
+            <thead>
                 <tr>
-                    <td><%= student.first_name %> <%= student.last_name %></td>
+                    <th>Student Name</th>
                     <% dates.forEach(date => { %>
-                        <td>
-                            <input type="checkbox" data-student-id="<%= student.student_id %>" data-date="<%= date %>"
-                                   <%= (attendanceMap[student.student_id] && attendanceMap[student.student_id][date] === 'Present') ? 'checked' : '' %>>
-                        </td>
+                        <th>
+                            <%= new Date(date).toLocaleDateString() %><br>
+                            <a href="#" class="save-link">Save</a><br>
+                            <span class="timestamp"><%= attendanceMap[students[0].student_id] && attendanceMap[students[0].student_id][date] ? new Date(attendanceMap[students[0].student_id][date].marked_at).toLocaleString() : '' %></span>
+                        </th>
                     <% }); %>
                 </tr>
-            <% }); %>
-        </tbody>
-    </table>
-
-    <script>
-        function saveAttendanceForDate(date) {
-            const checkboxes = document.querySelectorAll(`input[data-date='${date}']`);
-            const attendanceData = [];
-
-            checkboxes.forEach(checkbox => {
-                attendanceData.push({
-                    studentId: checkbox.dataset.studentId,
-                    date: date,
-                    status: checkbox.checked ? 'Present' : 'Absent'
-                });
-            });
-
-            axios.post('/common/saveAttendanceForDate', { attendance: attendanceData })
-                .then(response => {
-                    alert(`Attendance for ${date} saved successfully!`);
-                })
-                .catch(error => {
-                    console.error('Error saving attendance:', error);
-                    alert('Failed to save attendance. Please try again.');
-                });
-        }
-    </script>
+            </thead>
+            <tbody>
+                <% students.forEach(student => { %>
+                    <tr>
+                        <td><%= student.first_name %> <%= student.last_name %></td>
+                        <% dates.forEach(date => {
+                            const isPresent = attendanceMap[student.student_id] && attendanceMap[student.student_id][date] && attendanceMap[student.student_id][date].status === 'Present';
+                        %>
+                            <td>
+                                <input type="checkbox" data-student-id="<%= student.student_id %>" data-date="<%= date %>" <%= isPresent ? 'checked' : '' %> disabled>
+                            </td>
+                        <% }); %>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
 </body>
 </html>

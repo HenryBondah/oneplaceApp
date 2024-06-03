@@ -1,0 +1,15 @@
+/* edit student */
+.edit-student-container {
+    padding: 20px;
+  }
+  
+  .form-group, fieldset {
+    margin-bottom: 20px;
+  }
+  
+  .student-image {
+    width: 150px;
+    height: auto;
+    margin-top: 10px;
+  }
+  

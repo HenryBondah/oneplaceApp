@@ -17,12 +17,11 @@ app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Require and pass the database pool to routes
+// Pass the pool object to routes
 require('./routes/accountRoute')(app, pool);
 require('./routes/adminRoute')(app, pool);
-require('./routes/commonRoute')(app, pool);
+require('./routes/commonRoute')(app, pool); // Ensure pool is passed here
 require('./routes/printRoute')(app, pool);
-
 
 app.get('/', (req, res) => {
     res.render('index', { title: 'Home' });
@@ -31,4 +30,3 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
-

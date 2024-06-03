@@ -1,62 +1,37 @@
-
-
-    <main class="management-container">
-        <h1>Management Tools</h1>
-        <ul class="management-links">
-            <li><a href="/common/registerSchoolYear">Register School Year, Events & Announcement </a></li>
-            <li><a href="/common/manageRecords">Modify School Year, Events & Announcments</a></li>
-            <li><a href="/common/addClassSubject">Add Class, Subject & Graduation Year Group</a></li>
-            <li><a href="/common/manageClassSubjectAndGradYr">Modify Class, Subject & Graduation Year Group</a></li>
-            <li><a href="/common/addStudent">Add Student</a></li>
-            <li><a href="/common/manageStudents">Manage Students</a></li>
-            <li><a href="/common/createEmployee">Create Employee Account</a></li>
-            <li><a href="/account/accountPersonalization">Personalize Organization Space</a></li>
-   
-        </ul>
-        
-        <div class="toggle-container">
-            <h2>Employee Accounts <span id="toggleArrow" class="toggle-arrow">&#9650;</span></h2>
-            <div id="employeeAccountsContainer" class="employee-accounts-container hidden">
-                <div class="employee-account">
-                    <p>Name: John Doe</p>
-                    <p>Account Credentials: example@domain.com</p>
-                </div>
-                <!-- More employee accounts dynamically added here -->
+<main class="management-container">
+    <h1>Management Tools</h1>
+    <ul class="management-links">
+        <li><a href="/common/registerSchoolYear">Register School Year, Events & Announcement </a></li>
+        <li><a href="/common/manageRecords">Modify School Year, Events & Announcments</a></li>
+        <li><a href="/common/addClassSubject">Add Class, Subject & Graduation Year Group</a></li>
+        <li><a href="/common/manageClassSubjectAndGradYr">Modify Class, Subject & Graduation Year Group</a></li>
+        <li><a href="/common/addStudent">Add Student</a></li>
+        <li><a href="/common/manageStudents">Manage Students</a></li>
+        <li><a href="/common/createEmployee">Create Employee Account</a></li>
+        <li><a href="/account/accountPersonalization">Personalize Organization Space</a></li>
+    </ul>
+    
+    <div class="toggle-container">
+        <h2>Employee Accounts <span id="toggleArrow" class="toggle-arrow">&#9650;</span></h2>
+        <div id="employeeAccountsContainer" class="employee-accounts-container hidden">
+            <div class="employee-account">
+                <p>Name: John Doe</p>
+                <p>Account Credentials: example@domain.com</p>
             </div>
         </div>
+    </div>
 
-        <div class="form-group">
-            <label for="termSelect">End Term:</label>
-            <ul id="termsList">
-                <% schoolYears.forEach(year => { %>
-                    <% year.terms.forEach(term => { %>
-                        <li>
-                            <%= term.term_name %> (Start: <%= term.start_date.toISOString().slice(0, 10) %>, End: <%= term.end_date.toISOString().slice(0, 10) %>)
-                            <a href="#" onclick="confirmEndTerm('<%= term.term_id %>')">End</a>
-                        </li>
-                    <% }); %>
+    <div class="form-group">
+        <label for="termSelect">End Term:</label>
+        <ul id="termsList">
+            <% schoolYears.forEach(year => { %>
+                <% year.terms.forEach(term => { %>
+                    <li>
+                        <%= term.term_name %> (Start: <%= term.start_date.toISOString().slice(0, 10) %>, End: <%= term.end_date.toISOString().slice(0, 10) %>)
+                        <a href="#" onclick="confirmEndTerm('<%= term.term_id %>')">End</a>
+                    </li>
                 <% }); %>
-            </ul>
-        </div>
-        <script>
-            function confirmEndTerm(termId) {
-                if (confirm("Are you sure you want to end this term? This action cannot be undone.")) {
-                    fetch('/common/deleteTerm', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ term_id: termId })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('Term ended successfully.');
-                            window.location.reload();  // Reload to update the list
-                        } else {
-                            alert('Failed to end term: ' + data.message);
-                        }
-                    })
-                    .catch(error => alert('Error ending term: ' + error.message));
-                }
-            }
-        </script>
-        
+            <% }); %>
+        </ul>
+    </div>
+</main>

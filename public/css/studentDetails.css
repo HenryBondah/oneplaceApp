@@ -1,0 +1,43 @@
+/* student details */
+.student-image-container {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .student-image {
+    max-width: 200px;
+    height: auto;
+    border-radius: 50%;
+  }
+  
+  .student-info p {
+    margin: 5px 0;
+  }
+  
+  .table-container {
+    margin-top: 20px;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  th, td {
+    border: 1px solid #ddd;
+    text-align: left;
+    padding: 8px;
+  }
+  
+  th {
+    background-color: #f2f2f2;
+  }
+  
+  h3 {
+    margin-top: 20px;
+  }
+  
+  .guardian-table {
+    margin-top: 20px;
+  }
+  

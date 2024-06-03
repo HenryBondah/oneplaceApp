@@ -1,0 +1,58 @@
+/* orgdashboard */
+.dashboard-container {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 90%;
+    max-width: 1200px;
+    margin: auto;
+  }
+  
+  .classes-container {
+    width: 100%;
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    width: 100%;
+  }
+  
+  .school-image-container img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  
+  .calendar-container {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .date {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+  
+  .time {
+    font-size: 16px;
+    color: #555;
+  }
+  
+  @media (max-width: 768px) {
+    .info-grid {
+      grid-template-columns: 1fr; /* Stack the image and calendar vertically on smaller screens */
+    }
+  }
+  

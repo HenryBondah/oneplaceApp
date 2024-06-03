@@ -1,3 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register School Year</title>
+    <link rel="stylesheet" href="/styles/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
 <body>
     <h1>Register School Year</h1>
     <form action="/common/registerSchoolYear" method="post" id="schoolYearForm">
@@ -24,84 +32,4 @@
         <button type="submit">Post Announcement</button>
     </form>
 </body>
-
-
-<style>
-        .term-dates {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 5px;
-        }
-        .term-dates input {
-            width: 48%; /* Adjust width to fit side by side */
-        }
-        fieldset {
-            margin-bottom: 20px;
-        }
-    .school-year-registration-container {
-        width: 90%;
-        max-width: 600px;
-        margin: 20px auto;
-        padding: 20px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    .form-group {
-        margin-bottom: 15px;
-    }
-    label {
-        display: block;
-        margin-bottom: 5px;
-    }
-    input[type="text"],
-    input[type="date"],
-    textarea {
-        width: 100%;
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-    }
-    textarea {
-        height: 100px;
-        resize: vertical;
-    }
-    button {
-        padding: 10px 20px;
-        background-color: #0056b3;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-    button:hover {
-        background-color: #004494;
-    }
-</style>
-<script>
-    let termCount = 0;
-
-    function addTerm() {
-        termCount++;
-        if (termCount <= 4) { // Limit to 4 terms
-            const container = document.getElementById('termsContainer');
-            const html = `
-                <fieldset>
-                    <legend>Term/Semester ${termCount}</legend>
-                    <input type="text" name="termName${termCount}" placeholder="Term/Semester ${termCount}" required>
-                    <div class="term-dates">
-                        <div>
-                            <label for="startDate${termCount}">Start Date</label>
-                            <input type="date" id="startDate${termCount}" name="startDate${termCount}" placeholder="Start Date (optional)">
-                        </div>
-                        <div>
-                            <label for="endDate${termCount}">End Date</label>
-                            <input type="date" id="endDate${termCount}" name="endDate${termCount}" placeholder="End Date (optional)">
-                        </div>
-                    </div>
-                </fieldset>`;
-            container.insertAdjacentHTML('beforeend', html);
-        }
-    }
-
-    // Initially add the first term
-    addTerm();
-</script>
+</html>

@@ -6,8 +6,7 @@
 }
 
 body {
-    font-family: 'Playfair Display', serif;
-
+  font-family: 'Playfair Display', serif;
   margin: 0;
   padding: 0;
 }
@@ -49,11 +48,10 @@ header#top-header #tools a {
   margin-right: 10px;
 }
 
-nav { 
+nav {
   background-color: black;
   text-align: center;
   padding: 10px 0;
-
 }
 
 nav ul {
@@ -70,10 +68,11 @@ nav ul li {
   margin: 0 15px;
 }
 
-nav ul li :hover{
+nav ul li :hover {
   opacity: 7;
   color: #0066cc;
 }
+
 nav ul li a {
   text-decoration: none;
   color: white;
@@ -174,8 +173,9 @@ h1 {
 form label {
   font-weight: bold;
   margin-bottom: 8px;
-  display: block; 
+  display: block;
 }
+
 form {
   max-width: 600px;
   margin: 20px auto;
@@ -190,23 +190,25 @@ form {
 }
 
 footer {
-    border-top: 2px solid black;
-    text-align: center;
-    padding: 10px;
-    font-size: 0.8em;
-    background-color: #f8f8f8;
-  }
+  border-top: 2px solid black;
+  text-align: center;
+  padding: 10px;
+  font-size: 0.8em;
+  background-color: #f8f8f8;
+}
 
 form input[type="text"],
 form select,
 form textarea {
-    width: 100%; 
-    box-sizing: border-box; 
-    margin-bottom: 20px; 
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 20px;
 }
+
 form textarea {
   height: 100px;
 }
+
 button {
   background-color: #007bff;
   color: white;
@@ -220,500 +222,9 @@ button:hover {
   background-color: #0056b3;
 }
 
-/* Container for the list of applications */
-.application-list {
-    max-width: 800px; /* Adjust based on your preference */
-    margin: 20px auto; /* Center the container on the page */
-    padding: 20px;
-    background-color: #f9f9f9; /* Light background to distinguish the container */
-    border-radius: 8px; /* Rounded corners for a modern look */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
-}
-
-/* Individual application summaries */
-.application-summary {
-    padding: 15px;
-    margin-bottom: 20px;
-    background-color: #ffffff; /* White background for each summary */
-    border: 1px solid #ddd; /* Light border for definition */
-    border-radius: 4px; /* Slightly rounded corners */
-    text-align: left; /* Align text to the left for readability */
-}
-
-.application-summary p {
-    margin: 10px 0; /* Space out paragraphs for clarity */
-}
-
-.application-summary button {
-    margin-top: 10px; /* Space above buttons */
-    margin-right: 10px; /* Space between buttons */
-    padding: 8px 12px; /* Padding inside buttons */
-    background-color: #007bff; /* Primary button color */
-    color: white; /* Text color */
-    border: none; /* Remove border */
-    border-radius: 4px; /* Rounded corners for buttons */
-    cursor: pointer; /* Pointer cursor on hover */
-}
-
-.application-summary button:hover {
-    background-color: #0056b3; /* Darker shade on hover */
-}
-
-
-
-/* Small Screens Adjustments */
 @media (max-width: 768px) {
   form, .management-container {
-      width: 90%;
-      padding: 15px;
-  }
-}
-
-/* Admin Dashboard Styles */
-
-body {
-    font-family: 'Open Sans', sans-serif;
-    background-color: #f4f4f4;
-    color: #333;
-    padding: 20px;
-    margin: 0;
-}
-
-main {
-    max-width: 100%;
-    margin: auto;
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-h1, h2 {
-    color: #007bff;
-}
-
-/* Container for Applications */
-.applications-container {
-    margin-top: 20px;
-}
-
-/* Style for lists of forms */
-.form-list {
+    width: 90%;
     padding: 15px;
-    background-color: #eeeeee;
-    border-radius: 5px;
-    margin-bottom: 20px;
-}
-
-.form-details {
-    padding: 15px;
-    background-color: #f9f9f9;
-    border-radius: 5px;
-    margin-bottom: 20px;
-    display: none; /* Hide by default, show via JavaScript as needed */
-}
-
-/* Action Button Styling */
-.action-button-container {
-    margin-top: 20px;
-}
-
-.action-button-container button {
-    padding: 10px 20px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1rem;
-}
-
-.action-button-container button:hover {
-    background-color: #0056b3;
-}
-
-
-
-
-.created-credentials-container {
-    margin-top: 40px;
-}
-
-#credentialsList {
-    background-color: #eeeeee;
-    padding: 15px;
-    border-radius: 5px;
-}
-
-
-/* orgdashboard */
-.dashboard-container {
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 90%;
-  max-width: 1200px;
-  margin: auto;
-}
-
-.classes-container {
-  width: 100%;
-  background: #f9f9f9;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  width: 100%;
-}
-
-.school-image-container img {
-  width: 100%;
-  height: auto;
-  border-radius: 8px;
-}
-
-.calendar-container {
-  background: #f9f9f9;
-  padding: 20px;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.date {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-
-.time {
-  font-size: 16px;
-  color: #555;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .info-grid {
-    grid-template-columns: 1fr; /* Stack the image and calendar vertically on smaller screens */
   }
-}
-
-/* class dahsboard  */
-.class-dashboard-container {
-  width: 90%;
-  max-width: 800px;
-  margin: auto;
-  padding: 20px;
-}
-
-#className {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.dashboard-buttons {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.dashboard-buttons button {
-  margin: 0 10px;
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.dashboard-buttons button:hover {
-  background-color: #0056b3;
-}
-
-.student-list-container {
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  padding: 20px;
-}
-
-.student-list {
-  list-style: none;
-  padding: 0;
-}
-
-.student-list li {
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e1e1e1; /* Light grey line under each student */
-}
-
-.student-list li:last-child {
-  margin-bottom: 0;
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
-
-.account-container {
-  width: 90%;
-  max-width: 600px;
-  margin: auto;
-  padding: 20px;
-}
-
-.account-links {
-  list-style: none;
-  padding: 0;
-}
-
-.account-links li {
-  margin-bottom: 10px;
-}
-
-.account-links a {
-  display: inline-block;
-  background-color: #007bff;
-  color: white;
-  padding: 10px 15px;
-  border-radius: 5px;
-  text-decoration: none;
-}
-
-.account-links a:hover {
-  background-color: #0056b3;
-}
-.management-container {
-  width: 90%;
-  max-width: 800px;
-  margin: auto;
-  padding: 20px;
-}
-
-.management-links {
-  list-style: none;
-  padding: 0;
-  margin-bottom: 20px;
-}
-
-.management-links li {
-  margin-bottom: 10px;
-}
-
-.management-links a {
-  display: inline-block;
-  background-color: #007bff;
-  color: white;
-  padding: 10px 15px;
-  border-radius: 5px;
-  text-decoration: none;
-}
-
-.management-links a:hover {
-  background-color: #0056b3;
-}
-
-.employee-accounts-container {
-  background-color: #f9f9f9;
-  padding: 20px;
-  border-radius: 8px;
-}
-
-.employee-account {
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 10px;
-  margin-bottom: 10px;
-}
-
-.employee-account:last-child {
-  border-bottom: none;
-}
-.attendance-container {
-  max-width: 600px;
-  margin: auto;
-}
-.date-display {
-  text-align: center;
-  margin-bottom: 20px;
-  font-size: 20px;
-}
-.student-list {
-  list-style: none;
-  padding: 0;
-}
-.student-item {
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-}
-.student-item label {
-  margin-right: 10px;
-  flex-grow: 1;
-}
-.submit-btn {
-  display: block;
-  width: 100%;
-  padding: 10px;
-  margin-top: 20px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-.submit-btn:hover {
-  background-color: #0056b3;
-}
-
-.assessment-container {
-  max-width: 800px;
-  margin: auto;
-  overflow-x: auto; /* Ensures table is scrollable on small screens */
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-th, td {
-  text-align: left;
-  padding: 8px;
-  border: 1px solid #ddd;
-}
-th {
-  background-color: #f2f2f2;
-}
-.submit-btn {
-  display: block;
-  width: 100%;
-  padding: 10px;
-  margin-top: 20px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-.submit-btn:hover {
-  background-color: #0056b3;
-}
-input[type="text"] {
-  width: 100%;
-  padding: 5px;
-  margin: 2px 0;
-  box-sizing: border-box; /* Ensures input does not overflow its cell */
-}
-
-.personalization-container {
-  width: 90%;
-  max-width: 600px;
-  margin: auto;
-  padding: 20px;
-}
-
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-}
-
-input[type="file"],
-input[type="color"],
-select {
-  width: 100%;
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-button[type="submit"] {
-  background-color: #007bff;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-button[type="submit"]:hover {
-  background-color: #0056b3;
-}
-.hidden {
-  display: none;
-}
-
-/* .info { margin-bottom: 20px; }
-.subjects { margin-bottom: 20px; }
-table { width: 100%; border-collapse: collapse; }
-th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-th { background-color: #f2f2f2; }
-button { margin-top: 20px; } */
-/* General styles */
-body, html {
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-}
-.print-container {
-  text-align: center;
-}
-.school-logo, .student-image {
-  width: 100px; /* Adjust size as needed */
-  height: auto;
-}
-.watermark {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 5em;
-  color: rgba(200, 200, 200, 0.5);
-  z-index: -1;
-}
-
-/* Print-specific styles */
-@media print {
-  body * {
-      visibility: hidden;
-  }
-  .print-container, .print-container * {
-      visibility: visible;
-  }
-  .print-container {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-  }
-  .print-header, .print-main, .watermark {
-      display: block;
-  }
-  header, footer, .watermark {
-      display: none;
-  }
-}
-
-
-/* attendance  */
-.attendance-sheet-container {
-  overflow-x: auto;
-  white-space: nowrap;
-}
-.attendance-sheet {
-  border-collapse: collapse;
-  width: 100%;
-}
-.attendance-sheet th, .attendance-sheet td {
-  border: 1px solid #ddd;
-  text-align: center;
-  padding: 8px;
 }
