@@ -1,10 +1,18 @@
 <header id="top-header">
     <span class="siteName">
-        <img src="/images/1place.png" alt="Logo" class="logo"><!--   org logo -->
-
-        <a href="/" title="Return to home page">OnePlace</a><!--  should be orgname -->
+        <img src="/images/1place.png" alt="Logo" class="logo">
+        <% if (session.organizationName) { %>
+            <a href="/common/orgDashboard" title="Go to dashboard"><%= session.organizationName %></a>
+        <% } else { %>
+            <a href="/" title="Return to home page">OnePlace</a>
+        <% } %>
     </span>
     <div id="tools">
-        <a title="Click to log in" href="/account/login">Account </a>  
+        <% if (session.organizationName) { %>
+            <a href="/account" title="Account settings"><%= session.firstName %></a>
+            <a href="/account/logout" title="Log out">Logout</a>
+        <% } else { %>
+            <a title="Click to log in" href="/account/login">Account</a>
+        <% } %>
     </div>
 </header>

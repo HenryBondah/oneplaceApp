@@ -1,5 +1,7 @@
 const express = require('express');
 const { Pool } = require('pg');
+const session = require('express-session');
+const flash = require('connect-flash');
 require('dotenv').config();
 
 const app = express();
@@ -11,6 +13,20 @@ const pool = new Pool({
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
 });
 
+app.use(session({
+    secret: 'YourSecret',
+    resave: false,
+    saveUninitialized: false
+}));
+
+app.use(flash());
+
+// Middleware to pass session data to views
+app.use((req, res, next) => {
+    res.locals.session = req.session;
+    next();
+});
+
 app.use(expressLayouts);
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
@@ -20,7 +36,7 @@ app.use(express.urlencoded({ extended: true }));
 // Pass the pool object to routes
 require('./routes/accountRoute')(app, pool);
 require('./routes/adminRoute')(app, pool);
-require('./routes/commonRoute')(app, pool); // Ensure pool is passed here
+require('./routes/commonRoute')(app, pool);
 require('./routes/printRoute')(app, pool);
 
 app.get('/', (req, res) => {

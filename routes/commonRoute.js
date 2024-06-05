@@ -20,6 +20,15 @@ module.exports = function(app, db, pool) {
     });
     const upload = multer({ storage: storage });
 
+  // Middleware to check if user is authenticated
+  function isAuthenticated(req, res, next) {
+    if (req.session.organizationId) {
+        return next();
+    } else {
+        res.redirect('/account/login');
+    }
+}
+
     app.post('/common/deleteTerm', async (req, res) => {
         const { term_id } = req.body;
         try {
@@ -31,7 +40,7 @@ module.exports = function(app, db, pool) {
         }
     });
 
-    app.get('/common/orgDashboard', async (req, res) => {
+    app.get('/common/orgDashboard', isAuthenticated, async (req, res) => {
         try {
             const currentYearResult = await db.query(`
                 SELECT * FROM school_years
@@ -74,6 +83,7 @@ module.exports = function(app, db, pool) {
         }
     });
 
+    
     app.get('/common/addStudent', async (req, res) => {
         try {
             const query = `
@@ -438,7 +448,8 @@ app.get('/common/attendance', async (req, res) => {
             console.error('No class ID provided');
             return res.status(400).send('No class ID provided');
         }
-        console.log('Received query parameters:', req.query);
+
+        console.log('Fetching term dates for classId:', classId);
 
         const termResult = await pool.query(`
             SELECT t.start_date, t.end_date
@@ -458,16 +469,21 @@ app.get('/common/attendance', async (req, res) => {
         const pastDates = generateDates(termDates.start_date, today.toISOString().split('T')[0]);
         const displayedDates = pastDates.slice(-7);
 
+        console.log('Fetching students for classId:', classId);
         const studentsResult = await pool.query('SELECT student_id, first_name, last_name FROM students WHERE class_id = $1 ORDER BY first_name, last_name', [classId]);
+        const students = studentsResult.rows;
+
+        console.log('Fetching attendance records for classId:', classId);
         const attendanceResult = await pool.query(`
             SELECT student_id, date, status, marked_at
             FROM attendance_records
             WHERE class_id = $1 AND date BETWEEN $2 AND $3
             ORDER BY date;
         `, [classId, termDates.start_date, today.toISOString().split('T')[0]]);
+        const attendanceRecords = attendanceResult.rows;
 
         const attendanceMap = {};
-        attendanceResult.rows.forEach(record => {
+        attendanceRecords.forEach(record => {
             if (!attendanceMap[record.student_id]) {
                 attendanceMap[record.student_id] = {};
             }
@@ -477,12 +493,13 @@ app.get('/common/attendance', async (req, res) => {
             };
         });
 
+        console.log('Fetching class name for classId:', classId);
         const className = await getClassName(pool, classId);
 
         res.render('common/attendance', {
             title: `Attendance for ${className}`,
             className: className,
-            students: studentsResult.rows,
+            students: students,
             dates: displayedDates,
             today: today.toISOString().split('T')[0],
             classId: classId,
@@ -492,7 +509,8 @@ app.get('/common/attendance', async (req, res) => {
         console.error('Error fetching attendance data:', err.message, err.stack);
         res.status(500).send('Error loading attendance page');
     }
-});        
+});
+        
     
     app.post('/common/saveAttendanceForDate', async (req, res) => {
         const { attendance, classId } = req.body;

@@ -1,11 +1,54 @@
+<main>
+    <h1>Super Admin Dashboard</h1>
+    <% if (messages.success) { %>
+        <div class="flash-message success"><%= messages.success %></div>
+    <% } %>
+    <% if (messages.error) { %>
+        <div class="flash-message error"><%= messages.error %></div>
+    <% } %>
 
-    
-    <main>
-        <a href="/admin/superSettings">Settings</a> 
+    <div class="applications-container">
+        <% if (deletedAccounts && deletedAccounts.length > 0) { %>
+            <% deletedAccounts.forEach(function(account) { %>
+                <div class="application-summary">
+                    <p>
+                        Organization: <%= account.organization_name %> 
+                        <button class="expand-button" onclick="toggleDetails('<%= account.organization_id %>')">⯆</button>
+                    </p>
+                    <div id="details-<%= account.organization_id %>" class="application-details" style="display: none;">
+                        <p>First Name: <%= account.first_name %></p>
+                        <p>Last Name: <%= account.last_name %></p>
+                        <p>Email: <%= account.email %></p>
+                        <p>Organization Name: <%= account.organization_name %></p>
+                        <p>Organization Address: <%= account.organization_address %></p>
+                        <p>Organization Phone: <%= account.organization_phone %></p>
+                        <p>Proof of Existence 1: <%= account.proof_of_existence_1 %></p>
+                        <p>Proof of Existence 2: <%= account.proof_of_existence_2 %></p>
+                        <!-- Add more fields as required -->
+                        <form action="/admin/restore" method="post" style="display:inline;">
+                            <input type="hidden" name="orgId" value="<%= account.organization_id %>">
+                            <button type="submit">Restore</button>
+                        </form>
+                        <form action="/admin/permanentlyDelete" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to permanently delete this organization?');">
+                            <input type="hidden" name="orgId" value="<%= account.organization_id %>">
+                            <button type="submit">Delete Permanently</button>
+                        </form>
+                    </div>
+                </div>
+            <% }); %>
+        <% } else { %>
+            <p>No deleted applications available.</p>
+        <% } %>
+    </div>
+</main>
 
-        <h1>Welcome to the ONEPLACE super Admin Dashboard</h1>
-        
-     add codes to display all account approved account dynamically in a container. 
-
-    </main>
-
+<script>
+    function toggleDetails(id) {
+        const details = document.getElementById(`details-${id}`);
+        if (details.style.display === 'none') {
+            details.style.display = 'block';
+        } else {
+            details.style.display = 'none';
+        }
+    }
+</script>

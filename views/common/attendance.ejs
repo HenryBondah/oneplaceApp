@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>Mark Attendance for <%= className %></title>
-    <link rel="stylesheet" href="/styles/main.css">
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
     <h1>Mark Attendance for <%= className %></h1>
-    <button class="edit-button">Edit</button>
+    <button class="edit-button" onclick="toggleEditMode()">Edit</button>
     <div class="attendance-table-container">
         <table>
             <thead>
@@ -17,7 +15,7 @@
                     <% dates.forEach(date => { %>
                         <th>
                             <%= new Date(date).toLocaleDateString() %><br>
-                            <a href="#" class="save-link">Save</a><br>
+                            <a href="#" class="save-link" onclick="saveAttendanceForDate('<%= date %>')">Save</a><br>
                             <span class="timestamp"><%= attendanceMap[students[0].student_id] && attendanceMap[students[0].student_id][date] ? new Date(attendanceMap[students[0].student_id][date].marked_at).toLocaleString() : '' %></span>
                         </th>
                     <% }); %>
@@ -39,5 +37,44 @@
             </tbody>
         </table>
     </div>
+
+    <script>
+        function toggleEditMode() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.disabled = !checkbox.disabled;
+            });
+        }
+
+        async function saveAttendanceForDate(date) {
+            const checkboxes = document.querySelectorAll(`input[data-date="${date}"]`);
+            const attendance = Array.from(checkboxes).map(checkbox => ({
+                studentId: checkbox.dataset.studentId,
+                date,
+                status: checkbox.checked ? 'Present' : 'Absent'
+            }));
+
+            try {
+                const response = await fetch('/common/saveAttendanceForDate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ attendance, classId: '<%= classId %>' })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('Attendance saved successfully.');
+                    window.location.reload();
+                } else {
+                    alert('Failed to save attendance.');
+                }
+            } catch (err) {
+                console.error('Error saving attendance:', err);
+                alert('Failed to save attendance.');
+            }
+        }
+    </script>
 </body>
 </html>

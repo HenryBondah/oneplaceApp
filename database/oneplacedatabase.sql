@@ -1,7 +1,7 @@
 -- Create ENUM types for user roles, application status, and attendance status
-CREATE TYPE user_role AS ENUM ('Admin', 'Mini Admin', 'Manager', 'Employee');
-CREATE TYPE application_status AS ENUM ('Pending', 'Approved', 'Declined');
-CREATE TYPE attendance_status AS ENUM ('Present', 'Absent');
+CREATE TYPE IF NOT EXISTS user_role AS ENUM ('Admin', 'Mini Admin', 'Manager', 'Employee');
+CREATE TYPE IF NOT EXISTS application_status AS ENUM ('Pending', 'Approved', 'Declined');
+CREATE TYPE IF NOT EXISTS attendance_status AS ENUM ('Present', 'Absent');
 
 -- Users Table
 CREATE TABLE IF NOT EXISTS users (
@@ -24,7 +24,7 @@ BEGIN
 END;
 $$ LANGUAGE 'plpgsql';
 
-CREATE TRIGGER update_users_modtime
+CREATE TRIGGER IF NOT EXISTS update_users_modtime
     BEFORE UPDATE ON users
     FOR EACH ROW
     EXECUTE FUNCTION update_modified_column();
@@ -33,11 +33,22 @@ CREATE TRIGGER update_users_modtime
 CREATE TABLE IF NOT EXISTS organizations (
     organization_id SERIAL PRIMARY KEY,
     organization_name VARCHAR(255) NOT NULL,
-    logo_url VARCHAR(255),
-    primary_color VARCHAR(7), -- Storing as HEX color code
-    font_style VARCHAR(100),
-    created_by INT REFERENCES users(user_id) ON DELETE SET NULL
+    organization_address VARCHAR(255) NOT NULL,
+    organization_phone VARCHAR(15),
+    proof_of_existence_1 VARCHAR(255) NOT NULL,
+    proof_of_existence_2 VARCHAR(255),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    approved BOOLEAN DEFAULT false,
+    on_hold BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TRIGGER IF NOT EXISTS update_organizations_modtime
+    BEFORE UPDATE ON organizations
+    FOR EACH ROW
+    EXECUTE FUNCTION update_modified_column();
 
 -- Classes Table
 CREATE TABLE IF NOT EXISTS classes (
@@ -97,7 +108,7 @@ CREATE TABLE IF NOT EXISTS student_subjects (
 -- Applications Table
 CREATE TABLE IF NOT EXISTS applications (
     application_id SERIAL PRIMARY KEY,
-    applicant_email VARCHAR(255) NOT NULL,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
     status application_status DEFAULT 'Pending',
     review_timestamp TIMESTAMP WITH TIME ZONE,
     reviewed_by INT REFERENCES users(user_id) ON DELETE SET NULL,
@@ -139,8 +150,7 @@ CREATE TABLE IF NOT EXISTS attendance_records (
     UNIQUE (student_id, date)
 );
 
--- Trigger to update 'updated_at' column for attendance_records
-CREATE TRIGGER update_attendance_modtime
+CREATE TRIGGER IF NOT EXISTS update_attendance_modtime
     BEFORE UPDATE ON attendance_records
     FOR EACH ROW
     EXECUTE FUNCTION update_modified_column();
@@ -190,9 +200,56 @@ CREATE TABLE IF NOT EXISTS term_classes (
 );
 
 -- Add JSONB column to store class IDs in terms table
-ALTER TABLE terms ADD COLUMN class_ids JSONB DEFAULT '[]';
+ALTER TABLE terms ADD COLUMN IF NOT EXISTS class_ids JSONB DEFAULT '[]';
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='organizations' AND column_name='organization_address') THEN
+        ALTER TABLE organizations ADD COLUMN organization_address VARCHAR(255);
+    END IF;
 
--- Indexes for optimization
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='organizations' AND column_name='organization_phone') THEN
+        ALTER TABLE organizations ADD COLUMN organization_phone VARCHAR(15);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='organizations' AND column_name='proof_of_existence_1') THEN
+        ALTER TABLE organizations ADD COLUMN proof_of_existence_1 VARCHAR(255);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='organizations' AND column_name='proof_of_existence_2') THEN
+        ALTER TABLE organizations ADD COLUMN proof_of_existence_2 VARCHAR(255);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='organizations' AND column_name='on_hold') THEN
+        ALTER TABLE organizations ADD COLUMN on_hold BOOLEAN DEFAULT false;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='organizations' AND column_name='email') THEN
+        ALTER TABLE organizations ADD COLUMN email VARCHAR(255) UNIQUE;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='organizations' AND column_name='password') THEN
+        ALTER TABLE organizations ADD COLUMN password VARCHAR(255);
+    END IF;
+END $$;
+
+ALTER TABLE organizations 
+ADD COLUMN first_name VARCHAR(255),
+ADD COLUMN last_name VARCHAR(255);
+
+ALTER TABLE organizations ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+
+-- Add review_timestamp column to organizations table
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS review_timestamp TIMESTAMP WITH TIME ZONE;
+
+-- Ensure on_hold column exists
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS on_hold BOOLEAN DEFAULT false;
+
+-- Ensure approved column exists
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS approved BOOLEAN DEFAULT false;
+
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS deleted BOOLEAN DEFAULT false;
+
+-- Ensure indexes for optimization
 CREATE INDEX IF NOT EXISTS idx_user_email ON users (email);
 CREATE INDEX IF NOT EXISTS idx_org_name ON organizations (organization_name);
 CREATE INDEX IF NOT EXISTS idx_class_name ON classes (class_name);
