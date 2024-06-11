@@ -41,46 +41,54 @@ module.exports = function(app, db, pool) {
         }
     });
 
-    app.get('/common/orgDashboard', isAuthenticated, async (req, res) => {
-        try {
-            const currentYearResult = await db.query(`
-                SELECT * FROM school_years
-                ORDER BY year_label DESC
-                LIMIT 1
-            `);
-            const currentYear = currentYearResult.rows[0];
 
-            let terms = [];
-            if (currentYear) {
-                const termsResult = await db.query(`
-                    SELECT * FROM terms
-                    WHERE year_id = $1
-                    ORDER BY start_date ASC
-                `, [currentYear.id]);
-                terms = termsResult.rows;
+    app.get('/common/orgDashboard', async (req, res) => {
+        try {
+            // Fetch the current school year and its terms
+            const schoolYearResult = await db.query(`
+                SELECT sy.id as school_year_id, sy.year_label, t.term_id, t.term_name, t.start_date, t.end_date
+                FROM school_years sy
+                LEFT JOIN terms t ON sy.id = t.school_year_id
+                WHERE sy.current = TRUE
+                ORDER BY t.start_date
+            `);
+
+            let schoolYear = null;
+            if (schoolYearResult.rows.length > 0) {
+                schoolYear = {
+                    id: schoolYearResult.rows[0].school_year_id,
+                    year_label: schoolYearResult.rows[0].year_label,
+                    terms: schoolYearResult.rows.map(row => ({
+                        term_id: row.term_id,
+                        term_name: row.term_name,
+                        start_date: row.start_date,
+                        end_date: row.end_date
+                    }))
+                };
             }
 
-            const classesResult = await db.query('SELECT * FROM classes ORDER BY class_name ASC');
+            // Fetch classes
+            const classesResult = await db.query('SELECT class_id, class_name FROM classes ORDER BY class_name');
             const classes = classesResult.rows;
 
-            const eventsResult = await db.query('SELECT * FROM school_events ORDER BY event_date DESC');
+            // Fetch events
+            const eventsResult = await db.query('SELECT * FROM school_events ORDER BY event_date');
             const events = eventsResult.rows;
 
-            const announcementsResult = await db.query('SELECT * FROM announcements ORDER BY created_at DESC');
+            // Fetch announcements
+            const announcementsResult = await db.query('SELECT * FROM announcements ORDER BY announcement_id DESC');
             const announcements = announcementsResult.rows;
-
+ 
             res.render('common/orgDashboard', {
                 title: 'Organization Dashboard',
-                currentDate: new Date(),
-                currentYear: currentYear,
-                terms: terms,
-                classes: classes,
-                events: events,
-                announcements: announcements  // Pass announcements data to the view
+                schoolYear,
+                classes,
+                events,
+                announcements
             });
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
-            res.status(500).send('Error loading the organization dashboard');
+            res.status(500).send('Error fetching dashboard data');
         }
     });
 
@@ -442,140 +450,233 @@ function generateDates(startDate, endDate) {
 }
     
 
+// app.get('/common/attendance', async (req, res) => {
+//     try {
+//         const { classId } = req.query;
+//         if (!classId) {
+//             console.error('No class ID provided');
+//             return res.status(400).send('No class ID provided');
+//         }
+
+//         console.log('Fetching term dates for classId:', classId);
+
+//         const termResult = await pool.query(`
+//             SELECT t.start_date, t.end_date
+//             FROM terms t
+//             JOIN classes c ON c.term_id = t.term_id
+//             WHERE c.class_id = $1
+//             ORDER BY t.start_date ASC;
+//         `, [classId]);
+
+//         if (termResult.rows.length === 0) {
+//             console.error('No terms found for the class');
+//             return res.status(404).send('No terms found for the class');
+//         }
+
+//         const termDates = termResult.rows[0];
+//         const today = new Date();
+//         const pastDates = generateDates(termDates.start_date, today.toISOString().split('T')[0]);
+//         const displayedDates = pastDates.slice(-7);
+
+//         console.log('Fetching students for classId:', classId);
+//         const studentsResult = await pool.query('SELECT student_id, first_name, last_name FROM students WHERE class_id = $1 ORDER BY first_name, last_name', [classId]);
+//         const students = studentsResult.rows;
+
+//         console.log('Fetching attendance records for classId:', classId);
+//         const attendanceResult = await pool.query(`
+//             SELECT student_id, date, status, marked_at
+//             FROM attendance_records
+//             WHERE class_id = $1 AND date BETWEEN $2 AND $3
+//             ORDER BY date;
+//         `, [classId, termDates.start_date, today.toISOString().split('T')[0]]);
+//         const attendanceRecords = attendanceResult.rows;
+
+//         const attendanceMap = {};
+//         attendanceRecords.forEach(record => {
+//             if (!attendanceMap[record.student_id]) {
+//                 attendanceMap[record.student_id] = {};
+//             }
+//             attendanceMap[record.student_id][record.date.toISOString().split('T')[0]] = {
+//                 status: record.status,
+//                 marked_at: record.marked_at
+//             };
+//         });
+
+//         console.log('Fetching class name for classId:', classId);
+//         const className = await getClassName(pool, classId);
+
+//         res.render('common/attendance', {
+//             title: `Attendance for ${className}`,
+//             className: className,
+//             students: students,
+//             dates: displayedDates,
+//             today: today.toISOString().split('T')[0],
+//             classId: classId,
+//             attendanceMap: attendanceMap
+//         });
+//     } catch (err) {
+//         console.error('Error fetching attendance data:', err.message, err.stack);
+//         res.status(500).send('Error loading attendance page');
+//     }
+// });
+
+
 app.get('/common/attendance', async (req, res) => {
+    const { classId } = req.query;
+    console.log(`Fetching term dates for classId: ${classId}`);
     try {
-        const { classId } = req.query;
-        if (!classId) {
-            console.error('No class ID provided');
-            return res.status(400).send('No class ID provided');
-        }
-
-        console.log('Fetching term dates for classId:', classId);
-
-        const termResult = await pool.query(`
-            SELECT t.start_date, t.end_date
+        // Fetch term dates for the specified class
+        const termDatesResult = await db.query(`
+            SELECT DISTINCT t.start_date, t.end_date
             FROM terms t
-            JOIN classes c ON c.term_id = t.term_id
-            WHERE c.class_id = $1
-            ORDER BY t.start_date ASC;
+            JOIN term_classes tc ON t.term_id = tc.term_id
+            WHERE tc.class_id = $1
+            ORDER BY t.start_date
         `, [classId]);
 
-        if (termResult.rows.length === 0) {
-            console.error('No terms found for the class');
-            return res.status(404).send('No terms found for the class');
-        }
+        const dates = [];
+        termDatesResult.rows.forEach(row => {
+            let currentDate = new Date(row.start_date);
+            const endDate = new Date(row.end_date);
+            while (currentDate <= endDate) {
+                dates.push(currentDate.toISOString().split('T')[0]);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+        });
 
-        const termDates = termResult.rows[0];
-        const today = new Date();
-        const pastDates = generateDates(termDates.start_date, today.toISOString().split('T')[0]);
-        const displayedDates = pastDates.slice(-7);
+        // Fetch students in the specified class
+        const studentsResult = await db.query(`
+            SELECT student_id, first_name, last_name
+            FROM students
+            WHERE class_id = $1
+            ORDER BY first_name, last_name
+        `, [classId]);
 
-        console.log('Fetching students for classId:', classId);
-        const studentsResult = await pool.query('SELECT student_id, first_name, last_name FROM students WHERE class_id = $1 ORDER BY first_name, last_name', [classId]);
         const students = studentsResult.rows;
 
-        console.log('Fetching attendance records for classId:', classId);
-        const attendanceResult = await pool.query(`
-            SELECT student_id, date, status, marked_at
+        // Fetch attendance records
+        const attendanceResult = await db.query(`
+            SELECT student_id, date, status
             FROM attendance_records
-            WHERE class_id = $1 AND date BETWEEN $2 AND $3
-            ORDER BY date;
-        `, [classId, termDates.start_date, today.toISOString().split('T')[0]]);
-        const attendanceRecords = attendanceResult.rows;
+            WHERE class_id = $1
+        `, [classId]);
 
         const attendanceMap = {};
-        attendanceRecords.forEach(record => {
+        attendanceResult.rows.forEach(record => {
             if (!attendanceMap[record.student_id]) {
                 attendanceMap[record.student_id] = {};
             }
-            attendanceMap[record.student_id][record.date.toISOString().split('T')[0]] = {
-                status: record.status,
-                marked_at: record.marked_at
-            };
+            attendanceMap[record.student_id][record.date.toISOString().split('T')[0]] = record.status;
         });
-
-        console.log('Fetching class name for classId:', classId);
-        const className = await getClassName(pool, classId);
 
         res.render('common/attendance', {
-            title: `Attendance for ${className}`,
-            className: className,
-            students: students,
-            dates: displayedDates,
-            today: today.toISOString().split('T')[0],
-            classId: classId,
-            attendanceMap: attendanceMap
+            title: 'Attendance',
+            classId,
+            dates,
+            students,
+            attendanceMap
         });
-    } catch (err) {
-        console.error('Error fetching attendance data:', err.message, err.stack);
+    } catch (error) {
+        console.error('Error fetching attendance data:', error);
         res.status(500).send('Error loading attendance page');
     }
 });
-        
-    
-    app.post('/common/saveAttendanceForDate', async (req, res) => {
-        const { attendance, classId } = req.body;
 
-        try {
-            for (const record of attendance) {
-                await pool.query(
-                    `INSERT INTO attendance_records (student_id, class_id, date, status, marked_at) 
-                    VALUES ($1, $2, $3, $4, NOW())
-                    ON CONFLICT (student_id, date)
-                    DO UPDATE SET status = EXCLUDED.status, marked_at = EXCLUDED.marked_at;`,
-                    [record.studentId, classId, record.date, record.status]
-                );
+// Route to save attendance for a specific date
+app.post('/common/saveAttendanceForDate', async (req, res) => {
+    const { attendance, classId } = req.body;
+
+    try {
+        for (const record of attendance) {
+            const { studentId, date, status } = record;
+            await db.query(`
+                INSERT INTO attendance_records (student_id, class_id, date, status, marked_by, marked_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+                ON CONFLICT (student_id, class_id, date)
+                DO UPDATE SET status = $4, updated_at = NOW()
+            `, [studentId, classId, date, status, req.session.userId]);
+        }
+
+        res.json({ success: true, message: 'Attendance saved successfully.' });
+    } catch (error) {
+        console.error('Error saving attendance:', error);
+        res.status(500).json({ success: false, message: 'Failed to save attendance.' });
+    }
+});
+
+
+app.get('/common/attendanceCollection', async (req, res) => {
+    const { classId } = req.query;
+    console.log(`Fetching attendance records for classId: ${classId}`);
+    try {
+        // Fetch class name
+        const classResult = await db.query('SELECT class_name FROM classes WHERE class_id = $1', [classId]);
+        if (classResult.rows.length === 0) {
+            return res.status(404).send('Class not found');
+        }
+        const className = classResult.rows[0].class_name;
+
+        // Fetch term dates for the specified class
+        const termDatesResult = await db.query(`
+            SELECT DISTINCT t.start_date, t.end_date
+            FROM terms t
+            JOIN term_classes tc ON t.term_id = tc.term_id
+            WHERE tc.class_id = $1
+            ORDER BY t.start_date
+        `, [classId]);
+
+        const dates = [];
+        termDatesResult.rows.forEach(row => {
+            let currentDate = new Date(row.start_date);
+            const endDate = new Date(row.end_date);
+            while (currentDate <= endDate) {
+                dates.push(currentDate.toISOString().split('T')[0]);
+                currentDate.setDate(currentDate.getDate() + 1);
             }
+        });
 
-            res.json({ success: true });
-        } catch (err) {
-            console.error('Error saving attendance:', err);
-            res.status(500).json({ success: false, message: 'Failed to save attendance. Please try again.' });
-        }
-    });
+        // Fetch students in the specified class
+        const studentsResult = await db.query(`
+            SELECT student_id, first_name, last_name
+            FROM students
+            WHERE class_id = $1
+            ORDER BY first_name, last_name
+        `, [classId]);
 
-    app.get('/common/attendanceCollection', async (req, res) => {
-        const classId = req.query.classId;
-        try {
-            const classResult = await db.query('SELECT class_name FROM classes WHERE class_id = $1', [classId]);
-            const className = classResult.rows[0].class_name;
+        const students = studentsResult.rows;
 
-            const studentResult = await db.query('SELECT student_id, first_name, last_name FROM students WHERE class_id = $1 ORDER BY first_name, last_name', [classId]);
-            const students = studentResult.rows;
+        // Fetch attendance records
+        const attendanceResult = await db.query(`
+            SELECT student_id, date, status
+            FROM attendance_records
+            WHERE class_id = $1
+        `, [classId]);
 
-            const datesResult = await db.query('SELECT DISTINCT date FROM attendance WHERE class_id = $1 ORDER BY date', [classId]);
-            const dates = datesResult.rows.map(row => row.date);
+        const attendanceMap = {};
+        attendanceResult.rows.forEach(record => {
+            if (!attendanceMap[record.student_id]) {
+                attendanceMap[record.student_id] = {};
+            }
+            attendanceMap[record.student_id][record.date.toISOString().split('T')[0]] = record.status;
+        });
 
-            const attendanceResult = await db.query('SELECT * FROM attendance WHERE class_id = $1', [classId]);
-            const attendanceRecords = attendanceResult.rows;
+        res.render('common/attendanceCollection', {
+            title: 'Attendance Records',
+            classId,
+            className,
+            dates,
+            students,
+            attendanceMap
+        });
+    } catch (error) {
+        console.error('Error fetching attendance data:', error);
+        res.status(500).send('Error loading attendance records page');
+    }
+});
 
-            const attendanceMap = {};
-            students.forEach(student => {
-                attendanceMap[student.student_id] = {};
-                dates.forEach(date => {
-                    attendanceMap[student.student_id][date] = { status: 'Absent', timestamp: null };
-                });
-            });
 
-            attendanceRecords.forEach(record => {
-                attendanceMap[record.student_id][record.date] = { status: record.status, timestamp: record.timestamp };
-            });
 
-            res.render('common/attendanceCollection', {
-                title: 'Attendance Records',
-                className,
-                students,
-                dates,
-                attendanceMap,
-                classId
-            });
-        } catch (error) {
-            console.error('Error fetching attendance data:', error);
-            res.status(500).send('Error loading attendance records page');
-        }
-    });
-
-    app.get('/common/createEmployee', (req, res) => {
+app.get('/common/createEmployee', (req, res) => {
         res.render('common/createEmployee', { title: 'Create Employee' });
     });
 
@@ -860,35 +961,24 @@ app.get('/common/attendance', async (req, res) => {
     });
 
     app.post('/common/registerSchoolYear', async (req, res) => {
-        const { terms } = req.body;
-
-        console.log('Received terms:', terms);
-
-        if (!Array.isArray(terms)) {
-            return res.status(400).json({ success: false, message: 'Invalid terms data format' });
-        }
-
+        const { schoolYear, terms } = req.body;
         try {
-            for (const term of terms) {
-                const { termName, startDate, endDate, selectedClasses } = term;
-                const result = await db.query(
-                    'INSERT INTO terms (term_name, start_date, end_date) VALUES ($1, $2, $3) RETURNING term_id',
-                    [termName, startDate, endDate]
-                );
-                const termId = result.rows[0].term_id;
+            const yearResult = await db.query('INSERT INTO school_years (year_label) VALUES ($1) RETURNING id', [schoolYear]);
+            const schoolYearId = yearResult.rows[0].id;
 
-                for (const classId of selectedClasses) {
-                    await db.query(
-                        'INSERT INTO term_classes (term_id, class_id) VALUES ($1, $2)',
-                        [termId, classId]
-                    );
+            for (const term of terms) {
+                const termResult = await db.query('INSERT INTO terms (term_name, start_date, end_date, school_year_id) VALUES ($1, $2, $3, $4) RETURNING term_id', [term.termName, term.startDate, term.endDate, schoolYearId]);
+                const termId = termResult.rows[0].term_id;
+
+                for (const classId of term.selectedClasses) {
+                    await db.query('INSERT INTO term_classes (term_id, class_id) VALUES ($1, $2)', [termId, classId]);
                 }
             }
 
-            res.status(200).json({ success: true });
+            res.json({ success: true });
         } catch (error) {
             console.error('Error registering school year:', error);
-            res.status(500).json({ success: false, message: 'Internal Server Error' });
+            res.status(500).send('Error registering school year');
         }
     });
 
@@ -899,6 +989,16 @@ app.get('/common/attendance', async (req, res) => {
         } catch (error) {
             console.error('Error fetching classes:', error);
             res.status(500).json({ error: 'Failed to load classes.' });
+        }
+    });
+
+    app.get('/common/getClasses', async (req, res) => {
+        try {
+            const { rows: classes } = await db.query('SELECT class_id, class_name FROM classes ORDER BY class_name');
+            res.json(classes);
+        } catch (error) {
+            console.error('Error fetching classes:', error);
+            res.status(500).json({ message: 'Failed to fetch classes' });
         }
     });
 
@@ -993,6 +1093,28 @@ app.get('/common/attendance', async (req, res) => {
         }
     });
 
+    app.get('/common/deleteSchoolYear', async (req, res) => {
+        const { yearId } = req.query;
+        try {
+            // Delete terms and related class associations first
+            const termsResult = await db.query('SELECT term_id FROM terms WHERE school_year_id = $1', [yearId]);
+            const termIds = termsResult.rows.map(row => row.term_id);
+
+            for (const termId of termIds) {
+                await db.query('DELETE FROM term_classes WHERE term_id = $1', [termId]);
+                await db.query('DELETE FROM terms WHERE term_id = $1', [termId]);
+            }
+
+            // Delete the school year
+            await db.query('DELETE FROM school_years WHERE id = $1', [yearId]);
+
+            res.redirect('/common/manageRecords');
+        } catch (error) {
+            console.error('Error deleting school year:', error);
+            res.status(500).send('Error deleting school year');
+        }
+    });
+
 
  // Function to get school years, terms, and associated classes
  async function getSchoolYearsData(db) {
@@ -1023,38 +1145,91 @@ app.get('/common/attendance', async (req, res) => {
     return schoolYears;
 }
 
- // Route to render the manageRecords page
- app.get('/common/manageRecords', isAuthenticated, async (req, res) => {
+
+app.get('/common/manageRecords', async (req, res) => {
     try {
-        const schoolYears = await getSchoolYearsData(db);
+        const schoolYearsResult = await db.query(`
+            SELECT sy.id, sy.year_label, sy.current, json_agg(
+                json_build_object(
+                    'term_id', t.term_id,
+                    'term_name', t.term_name,
+                    'start_date', t.start_date,
+                    'end_date', t.end_date,
+                    'class_ids', (SELECT array_agg(class_id) FROM term_classes WHERE term_id = t.term_id)
+                )
+            ) AS terms
+            FROM school_years sy
+            LEFT JOIN terms t ON sy.id = t.school_year_id
+            GROUP BY sy.id, sy.year_label
+            ORDER BY sy.year_label;
+        `);
 
-        // Fetch all classes to display in the form
-        const classesResult = await db.query('SELECT class_id, class_name FROM classes ORDER BY class_name ASC');
-        const classes = classesResult.rows;
-
-        // Fetch events
-        const eventsResult = await db.query('SELECT * FROM school_events ORDER BY event_date DESC');
-        const events = eventsResult.rows;
-
-        // Fetch announcements
-        const announcementsResult = await db.query('SELECT * FROM announcements ORDER BY created_at DESC');
-        const announcements = announcementsResult.rows;
+        const classesResult = await db.query('SELECT * FROM classes ORDER BY class_name');
+        const eventsResult = await db.query('SELECT * FROM school_events ORDER BY event_date');
+        const announcementsResult = await db.query('SELECT * FROM announcements ORDER BY announcement_id');
 
         res.render('common/manageRecords', {
-            title: 'Manage Records',
-            schoolYears,
-            classes,
-            events,
-            announcements
+            schoolYears: schoolYearsResult.rows,
+            classes: classesResult.rows,
+            events: eventsResult.rows,
+            announcements: announcementsResult.rows
         });
     } catch (error) {
-        console.error('Error fetching records:', error);
-        res.status(500).json({ error: 'Failed to load records.' });
+        console.error('Error fetching school years data:', error);
+        res.status(500).send('Failed to load manage records page.');
+    }
+});
+
+app.post('/common/updateSchoolYearAndTerms', async (req, res) => {
+    const { yearId, year_label, current, termIds, termNames, startDates, endDates } = req.body;
+    const client = await db.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        await client.query(
+            'UPDATE school_years SET year_label = $1, current = $2 WHERE id = $3',
+            [year_label, current === 'true', yearId]
+        );
+
+        for (let i = 0; i < termIds.length; i++) {
+            await client.query(
+                'UPDATE terms SET term_name = $1, start_date = $2, end_date = $3 WHERE term_id = $4',
+                [termNames[i], startDates[i], endDates[i], termIds[i]]
+            );
+
+            await client.query(
+                'DELETE FROM term_classes WHERE term_id = $1',
+                [termIds[i]]
+            );
+
+            if (req.body[`term${termIds[i]}Classes[]`]) {
+                const termClasses = Array.isArray(req.body[`term${termIds[i]}Classes[]`])
+                    ? req.body[`term${termIds[i]}Classes[]`]
+                    : [req.body[`term${termIds[i]}Classes[]`]];
+
+                for (const classId of termClasses) {
+                    await client.query(
+                        'INSERT INTO term_classes (term_id, class_id) VALUES ($1, $2)',
+                        [termIds[i], classId]
+                    );
+                }
+            }
+        }
+
+        await client.query('COMMIT');
+        res.redirect('/common/manageRecords');
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error updating school year and terms:', error);
+        res.status(500).send('Failed to update school year and terms.');
+    } finally {
+        client.release();
     }
 });
 
 
-    app.post('/common/updateEvent', async (req, res) => {
+app.post('/common/updateEvent', async (req, res) => {
         try {
             await db.query('UPDATE school_events SET name = $1, event_date = $2, details = $3 WHERE id = $4', [req.body.name, req.body.event_date, req.body.details, req.body.id]);
             res.redirect('/common/manageRecords');

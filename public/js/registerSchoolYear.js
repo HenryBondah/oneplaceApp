@@ -3,7 +3,7 @@ let classes = [];
 
 async function fetchClasses() {
     try {
-        const response = await axios.get('/api/getClasses');
+        const response = await axios.get('/common/getClasses');
         classes = response.data;
         // Add the first term once classes are fetched
         addTerm();
@@ -79,6 +79,7 @@ document.getElementById('registerSchoolYearForm').addEventListener('submit', fun
     }
 
     const payload = {
+        schoolYear: formData.get('schoolYear'),
         terms: terms
     };
 

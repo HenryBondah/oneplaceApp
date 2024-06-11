@@ -226,6 +226,53 @@ CREATE TABLE IF NOT EXISTS term_classes (
     FOREIGN KEY (class_id) REFERENCES classes(class_id) ON DELETE CASCADE
 );
 
+ALTER TABLE school_years ADD COLUMN current BOOLEAN DEFAULT FALSE;
+-- Table for school years
+CREATE TABLE school_years (
+    id SERIAL PRIMARY KEY,
+    year_label VARCHAR(50) NOT NULL,
+    current BOOLEAN DEFAULT FALSE
+);
+
+-- Table for terms
+CREATE TABLE terms (
+    term_id SERIAL PRIMARY KEY,
+    school_year_id INTEGER NOT NULL REFERENCES school_years(id),
+    term_name VARCHAR(50) NOT NULL,
+    start_date DATE,
+    end_date DATE
+);
+
+-- Table for term classes
+CREATE TABLE term_classes (
+    term_id INTEGER NOT NULL REFERENCES terms(term_id),
+    class_id INTEGER NOT NULL REFERENCES classes(class_id),
+    PRIMARY KEY (term_id, class_id)
+);
+
+-- Table for classes
+CREATE TABLE classes (
+    class_id SERIAL PRIMARY KEY,
+    class_name VARCHAR(50) NOT NULL
+);
+
+-- Table for school events
+CREATE TABLE school_events (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    event_date DATE,
+    details TEXT
+);
+
+-- Table for announcements
+CREATE TABLE announcements (
+    announcement_id SERIAL PRIMARY KEY,
+    message TEXT
+);
+ALTER TABLE attendance_records
+ADD CONSTRAINT unique_attendance_record
+UNIQUE (student_id, class_id, date);
+
 -- Ensure indexes for optimization
 CREATE INDEX IF NOT EXISTS idx_user_email ON users (email);
 CREATE INDEX IF NOT EXISTS idx_org_name ON organizations (organization_name);

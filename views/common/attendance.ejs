@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Mark Attendance for <%= className %></title>
+    <title><%= title %></title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
-    <h1>Mark Attendance for <%= className %></h1>
+    <h1>Mark Attendance for Class ID: <%= classId %></h1>
     <button class="edit-button" onclick="toggleEditMode()">Edit</button>
     <div class="attendance-table-container">
         <table>
@@ -16,7 +17,6 @@
                         <th>
                             <%= new Date(date).toLocaleDateString() %><br>
                             <a href="#" class="save-link" onclick="saveAttendanceForDate('<%= date %>')">Save</a><br>
-                            <span class="timestamp"><%= attendanceMap[students[0].student_id] && attendanceMap[students[0].student_id][date] ? new Date(attendanceMap[students[0].student_id][date].marked_at).toLocaleString() : '' %></span>
                         </th>
                     <% }); %>
                 </tr>
@@ -26,10 +26,10 @@
                     <tr>
                         <td><%= student.first_name %> <%= student.last_name %></td>
                         <% dates.forEach(date => {
-                            const isPresent = attendanceMap[student.student_id] && attendanceMap[student.student_id][date] && attendanceMap[student.student_id][date].status === 'Present';
+                            const isPresent = attendanceMap[student.student_id] && attendanceMap[student.student_id][date] === 'Present';
                         %>
                             <td>
-                                <input type="checkbox" data-student-id="<%= student.student_id %>" data-date="<%= date %>" <%= isPresent ? 'checked' : '' %> disabled>
+                                <input type="checkbox" data-student-id="<%= student.student_id %>" data-date="<%= date %>" <%= isPresent ? 'checked' : '' %>>
                             </td>
                         <% }); %>
                     </tr>
@@ -66,7 +66,6 @@
                 const result = await response.json();
                 if (result.success) {
                     alert('Attendance saved successfully.');
-                    window.location.reload();
                 } else {
                     alert('Failed to save attendance.');
                 }

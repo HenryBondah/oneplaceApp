@@ -1,61 +1,68 @@
-<div class="dashboard-container">
-    <div class="classes-container">
-        <h2>Classes</h2>
-        <ul>
-            <% if (classes && classes.length > 0) { %>
-                <% classes.forEach(function(cls) { %>
-                    <li><a href="/common/classDashboard?classId=<%= cls.class_id %>"><%= cls.class_name %></a></li>
-                <% }); %>
-            <% } else { %>
-                <li>No classes found</li>
-            <% } %>
-        </ul>
-    </div>
-    
-    <div class="info-grid">
-        <div class="school-image-container">
-            <h2>Today's Date and Time</h2>
-            <div id="currentDate" class="date"></div>
-            <div id="currentTime" class="time"></div>
+
+<body>
+    <div class="dashboard-container">
+        <div class="classes-container">
+            <h2>Classes</h2>
+            <ul>
+                <% if (classes && classes.length > 0) { %>
+                    <% classes.forEach(function(cls) { %>
+                        <li><a href="/common/classDashboard?classId=<%= cls.class_id %>"><%= cls.class_name %></a></li>
+                    <% }); %>
+                <% } else { %>
+                    <li>No classes found</li>
+                <% } %>
+            </ul>
         </div>
-        <% if (currentYear) { %>
+        
+        <div class="info-grid">
+            <div class="calendar-container">
+                <h2>Today's Date and Time</h2>
+                <div class="date" id="currentDate"></div>
+                <div class="time" id="currentTime"></div>
+            </div>
+            
             <div class="school-year-info">
-                <h2>Current School Year: <%= currentYear.year_label %></h2>
-                <% terms.forEach(term => { %>
-                    <div>
-                        <strong><%= term.term_name %>:</strong>
-                        Start Date: <%= term.start_date.toISOString().split('T')[0] %>,
-                        End Date: <%= term.end_date.toISOString().split('T')[0] %>
+                <% if (schoolYear) { %>
+                    <h2>Current School Year: <%= schoolYear.year_label %></h2>
+                    <% schoolYear.terms.forEach(term => { %>
+                        <div>
+                            <strong><%= term.term_name %>:</strong>
+                            Start : <%= term.start_date.toISOString().split('T')[0] %>,
+                            End : <%= term.end_date.toISOString().split('T')[0] %>
+                            <div class="countdown" data-start-date="<%= term.start_date.toISOString() %>" data-end-date="<%= term.end_date.toISOString() %>" data-term-name="<%= term.term_name %>"></div>
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <div class="school-year-info">
+                        <h2>No current school year information available.</h2>
                     </div>
-                <% }); %>
+                <% } %>
             </div>
-        <% } else { %>
-            <div class="school-year-info">
-                <h2>No current school year information available.</h2>
-            </div>
-        <% } %>
+        </div>
+               
     </div>
-           
-</div>
 
-<h2>Events</h2>
-<ul>
-    <% if (events && events.length > 0) { %>
-        <% events.forEach(function(event) { %>
-            <li><%= event.name %> - <%= event.details %></li>
-        <% }); %>
-    <% } else { %>
-        <li>No events found</li>
-    <% } %>
-</ul>
+    <h2>Events</h2>
+    <ul>
+        <% if (events && events.length > 0) { %>
+            <% events.forEach(function(event) { %>
+                <li><strong><%= event.name %></strong> - <%= event.event_date.toISOString().split('T')[0] %><br><%= event.details %></li>
+            <% }); %>
+        <% } else { %>
+            <li>No events found</li>
+        <% } %>
+    </ul>
 
-<h2>Announcements</h2>
-<ul>
-    <% if (announcements && announcements.length > 0) { %>
-        <% announcements.forEach(function(announcement) { %>
-            <li><%= announcement.message %></li>
-        <% }); %>
-    <% } else { %>
-        <li>No announcements found</li>
-    <% } %>
-</ul>
+    <h2>Announcements</h2>
+    <ul>
+        <% if (announcements && announcements.length > 0) { %>
+            <% announcements.forEach(function(announcement) { %>
+                <li><%= announcement.message %></li>
+            <% }); %>
+        <% } else { %>
+            <li>No announcements found</li>
+        <% } %>
+    </ul>
+
+
+
