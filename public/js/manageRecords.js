@@ -76,3 +76,8 @@ function deleteTerm(termId) {
         });
     }
 }
+
+function selectAllClasses(termId, checkbox) {
+    const checkboxes = document.querySelectorAll(`input[name="term${termId}Classes[]"]`);
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+}

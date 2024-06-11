@@ -5,6 +5,8 @@ async function fetchClasses() {
     try {
         const response = await axios.get('/api/getClasses');
         classes = response.data;
+        // Add the first term once classes are fetched
+        addTerm();
     } catch (error) {
         console.error('Error fetching classes:', error);
     }
@@ -54,5 +56,49 @@ function selectAllClasses(termNumber, checkbox) {
     checkboxes.forEach(cb => cb.checked = checkbox.checked);
 }
 
+document.getElementById('registerSchoolYearForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const terms = [];
+
+    for (let i = 1; i <= termCount; i++) {
+        const termName = formData.get(`termName${i}`);
+        const startDate = formData.get(`startDate${i}`);
+        const endDate = formData.get(`endDate${i}`);
+        const selectedClasses = [];
+        formData.getAll(`term${i}Classes[]`).forEach(classId => {
+            selectedClasses.push(parseInt(classId));
+        });
+
+        terms.push({
+            termName,
+            startDate,
+            endDate,
+            selectedClasses
+        });
+    }
+
+    const payload = {
+        terms: terms
+    };
+
+    console.log('Payload to be sent:', payload);
+
+    fetch('/common/registerSchoolYear', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    }).then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              window.location.href = '/common/orgDashboard';
+          } else {
+              console.error('Failed to register school year:', data.message);
+          }
+      }).catch(error => console.error('Error:', error));
+});
+
 // Initially fetch classes and add the first term
-fetchClasses().then(() => addTerm());
+fetchClasses();

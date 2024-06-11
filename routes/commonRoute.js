@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const router = express.Router();
 
+
 module.exports = function(app, db, pool) {
     const uploadDirectory = './uploads';
     if (!fs.existsSync(uploadDirectory)) {
@@ -859,32 +860,35 @@ app.get('/common/attendance', async (req, res) => {
     });
 
     app.post('/common/registerSchoolYear', async (req, res) => {
-        const { schoolYear } = req.body;
+        const { terms } = req.body;
+
+        console.log('Received terms:', terms);
+
+        if (!Array.isArray(terms)) {
+            return res.status(400).json({ success: false, message: 'Invalid terms data format' });
+        }
+
         try {
-            const yearResult = await db.query('INSERT INTO school_years (year_label) VALUES ($1) RETURNING id', [schoolYear]);
-            const yearId = yearResult.rows[0].id;
+            for (const term of terms) {
+                const { termName, startDate, endDate, selectedClasses } = term;
+                const result = await db.query(
+                    'INSERT INTO terms (term_name, start_date, end_date) VALUES ($1, $2, $3) RETURNING term_id',
+                    [termName, startDate, endDate]
+                );
+                const termId = result.rows[0].term_id;
 
-            for (let i = 1; i <= 4; i++) {
-                const termName = req.body[`termName${i}`];
-                const startDate = req.body[`startDate${i}`];
-                const endDate = req.body[`endDate${i}`];
-                const termClasses = req.body[`term${i}Classes[]`];
-                if (termName) {
-                    const termResult = await db.query('INSERT INTO terms (year_id, term_name, start_date, end_date) VALUES ($1, $2, $3, $4) RETURNING term_id', [yearId, termName, startDate || null, endDate || null]);
-                    const termId = termResult.rows[0].term_id;
-
-                    if (Array.isArray(termClasses)) {
-                        for (const classId of termClasses) {
-                            await db.query('UPDATE classes SET term_id = $1 WHERE class_id = $2', [termId, classId]);
-                        }
-                    }
+                for (const classId of selectedClasses) {
+                    await db.query(
+                        'INSERT INTO term_classes (term_id, class_id) VALUES ($1, $2)',
+                        [termId, classId]
+                    );
                 }
             }
 
-            res.redirect('/common/orgDashboard');
+            res.status(200).json({ success: true });
         } catch (error) {
-            console.error('Failed to register school year and terms:', error);
-            res.status(500).send('Error processing your request');
+            console.error('Error registering school year:', error);
+            res.status(500).json({ success: false, message: 'Internal Server Error' });
         }
     });
 
@@ -897,6 +901,9 @@ app.get('/common/attendance', async (req, res) => {
             res.status(500).json({ error: 'Failed to load classes.' });
         }
     });
+
+    
+
 
     app.post('/common/registerSchoolYearEvent', async (req, res) => {
         try {
@@ -986,60 +993,66 @@ app.get('/common/attendance', async (req, res) => {
         }
     });
 
-    app.get('/common/manageRecords', async (req, res) => {
-        try {
-            const schoolYearsResult = await db.query('SELECT * FROM school_years ORDER BY year_label DESC');
-            const schoolEventsResult = await db.query('SELECT * FROM school_events ORDER BY event_date DESC');
-            const announcementsResult = await db.query('SELECT * FROM announcements ORDER BY created_at DESC');
-            const classesResult = await db.query('SELECT * FROM classes ORDER BY class_name');
 
-            const schoolYears = schoolYearsResult.rows;
-            const schoolEvents = schoolEventsResult.rows;
-            const announcements = announcementsResult.rows;
-            const classes = classesResult.rows;
+ // Function to get school years, terms, and associated classes
+ async function getSchoolYearsData(db) {
+    // Fetch school years
+    const schoolYearsResult = await db.query('SELECT * FROM school_years ORDER BY created_at DESC');
+    const schoolYears = schoolYearsResult.rows;
 
-            const yearsWithTerms = await Promise.all(schoolYears.map(async year => {
-                const termsResult = await db.query('SELECT * FROM terms WHERE year_id = $1', [year.id]);
-                const terms = termsResult.rows.map(term => {
-                    term.class_ids = term.class_ids || [];
-                    return term;
-                });
-                year.terms = terms;
-                return year;
-            }));
+    // Fetch terms and associated classes for each school year
+    for (const year of schoolYears) {
+        const termsResult = await db.query('SELECT * FROM terms WHERE year_id = $1 ORDER BY start_date', [year.id]);
+        const terms = termsResult.rows;
 
-            res.render('common/manageRecords', {
-                title: 'Manage Records',
-                schoolYears: yearsWithTerms,
-                events: schoolEvents,
-                announcements: announcements,
-                classes: classes
-            });
-        } catch (error) {
-            console.error('Error loading management data:', error);
-            res.status(500).send('Failed to load management data');
+        for (const term of terms) {
+            const termClassesResult = await db.query(
+                `SELECT tc.class_id, c.class_name 
+                 FROM term_classes tc
+                 JOIN classes c ON tc.class_id = c.class_id
+                 WHERE tc.term_id = $1`,
+                [term.term_id]
+            );
+            term.class_ids = termClassesResult.rows.map(row => row.class_id);
+            term.classes = termClassesResult.rows;
         }
-    });
 
-    app.post('/common/updateSchoolYearAndTerms', async (req, res) => {
-        const { yearId, year_label, termIds, termNames, startDates, endDates } = req.body;
-        try {
-            await db.query('UPDATE school_years SET year_label = $1 WHERE id = $2', [year_label, yearId]);
+        year.terms = terms;
+    }
 
-            for (let index = 0; index < termIds.length; index++) {
-                const termId = termIds[index];
-                const classIds = req.body[`term${termId}Classes[]`] || [];
-                await db.query('UPDATE terms SET term_name = $1, start_date = $2, end_date = $3, class_ids = $4 WHERE term_id = $5', [
-                    termNames[index], startDates[index], endDates[index], JSON.stringify(classIds), termId
-                ]);
-            }
+    return schoolYears;
+}
 
-            res.redirect('/common/manageRecords');
-        } catch (error) {
-            console.error('Failed to update school year and terms:', error);
-            res.status(500).send('Error processing your request');
-        }
-    });
+ // Route to render the manageRecords page
+ app.get('/common/manageRecords', isAuthenticated, async (req, res) => {
+    try {
+        const schoolYears = await getSchoolYearsData(db);
+
+        // Fetch all classes to display in the form
+        const classesResult = await db.query('SELECT class_id, class_name FROM classes ORDER BY class_name ASC');
+        const classes = classesResult.rows;
+
+        // Fetch events
+        const eventsResult = await db.query('SELECT * FROM school_events ORDER BY event_date DESC');
+        const events = eventsResult.rows;
+
+        // Fetch announcements
+        const announcementsResult = await db.query('SELECT * FROM announcements ORDER BY created_at DESC');
+        const announcements = announcementsResult.rows;
+
+        res.render('common/manageRecords', {
+            title: 'Manage Records',
+            schoolYears,
+            classes,
+            events,
+            announcements
+        });
+    } catch (error) {
+        console.error('Error fetching records:', error);
+        res.status(500).json({ error: 'Failed to load records.' });
+    }
+});
+
 
     app.post('/common/updateEvent', async (req, res) => {
         try {
