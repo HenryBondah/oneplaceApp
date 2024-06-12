@@ -14,6 +14,15 @@ const pool = new Pool({
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
 });
 
+// Test the pool connection
+pool.query('SELECT NOW()', (err, res) => {
+    if (err) {
+        console.error('Error executing query', err.stack);
+    } else {
+        console.log('Database connected:', res.rows[0]);
+    }
+});
+
 app.use(session({
     secret: 'YourSecret',
     resave: false,
@@ -22,7 +31,6 @@ app.use(session({
 
 app.use(flash());
 
-// Middleware to pass session data to views
 app.use((req, res, next) => {
     res.locals.session = req.session;
     next();

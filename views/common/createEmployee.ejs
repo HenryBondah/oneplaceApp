@@ -1,28 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Employee Account</title>
+    <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
 <main class="create-employee-container">
     <h1>Create New Employee</h1>
-    <form action="/employee/create" method="POST">
-        <div class="form-group">
-            <label for="roleSelect">Assign Role:</label>
-            <select id="roleSelect" name="roleSelect">
-                <option value="">Select a role</option>
-                <option value="manager">Manager</option>
-                <option value="employee">Employee</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="classSelect">Assign Class:</label>
-            <select id="classSelect" name="classSelect">
-                <option value="">Select a class</option>
-                <option value="class1">Class 1</option>
-                <option value="class2">Class 2</option>
-            </select>
-        </div>
-        <div class="form-group" id="subjectContainer" style="display: none;">
-            <label>Select Subjects:</label>
-            <div class="checkbox-group" id="subjectCheckboxes">
-                <!-- Subject checkboxes will be populated here -->
-            </div>
-        </div>
+    <form action="/common/createEmployee" method="POST">
         <div class="form-group">
             <label for="firstName">First Name:</label>
             <input type="text" id="firstName" name="firstName" required>
@@ -32,10 +18,6 @@
             <input type="text" id="lastName" name="lastName" required>
         </div>
         <div class="form-group">
-            <label for="phone">Phone:</label>
-            <input type="tel" id="phone" name="phone">
-        </div>
-        <div class="form-group">
             <label for="email">Email:</label>
             <input type="email" id="email" name="email" required>
         </div>
@@ -43,6 +25,26 @@
             <label for="password">Password:</label>
             <input type="password" id="password" name="password" required>
         </div>
+        <div class="form-group">
+            <label for="role">Role:</label>
+            <select id="role" name="role" required>
+                <option value="">Select a role</option>
+                <option value="Manager">Manager</option>
+                <option value="Supervisor">Supervisor</option>
+                <option value="Teacher">Teacher</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="classSelect">Class:</label>
+            <select id="classSelect" name="classId" required>
+                <option value="">Select a Class</option>
+                <% classes.forEach(function(cls) { %>
+                    <option value="<%= cls.class_id %>"><%= cls.class_name %></option>
+                <% }); %>
+            </select>
+        </div>
         <button type="submit">Create Employee</button>
     </form>
 </main>
+</body>
+</html>

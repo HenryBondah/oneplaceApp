@@ -1,3 +1,4 @@
+// public/scripts/createEmployee.js
 const subjectsByClass = {
     class1: ['Math', 'Science', 'History'],
     class2: ['English', 'Geography', 'Biology']

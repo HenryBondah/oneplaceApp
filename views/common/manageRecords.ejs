@@ -49,7 +49,7 @@
                             <% classes.forEach(cls => { %>
                                 <div class="class-checkbox-container">
                                     <label>
-                                        <input type="checkbox" name="term<%= term.term_id %>Classes[]" value="<%= cls.class_id %>" <%= (term.class_ids || []).includes(cls.class_id) ? 'checked' : '' %>>
+                                        <input type="checkbox" name="term<%= term.term_id %>Classes[]" value="<%= cls.class_id %>" <%= (term.classes || []).includes(cls.class_id) ? 'checked' : '' %>>
                                         <%= cls.class_name %>
                                     </label>
                                 </div>

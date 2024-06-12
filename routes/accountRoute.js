@@ -1,20 +1,29 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
-const flash = require('connect-flash');
-const session = require('express-session');
 const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
-module.exports = function (app, pool) {
-    app.use(session({
+module.exports = function(app, pool) {
+    const upload = multer({ dest: 'uploads/' });
+
+    // Middleware to check if user is authenticated
+    function isAuthenticated(req, res, next) {
+        if (req.session.organizationId) {
+            return next();
+        } else {
+            res.redirect('/account/login');
+        }
+    }
+
+    app.use(require('express-session')({
         secret: 'YourSecret',
         resave: false,
         saveUninitialized: false
     }));
-    app.use(flash());
 
-    const upload = multer({ dest: 'uploads/' });
+    app.use(require('connect-flash')());
 
-    // Registration Route
     app.get('/account/register', (req, res) => {
         res.render('account/register', { title: 'Register', messages: req.flash() });
     });
@@ -46,7 +55,6 @@ module.exports = function (app, pool) {
         }
     });
 
-    // Login Route
     app.get('/account/login', (req, res) => {
         res.render('account/login', { title: 'Login', messages: req.flash() });
     });
@@ -87,7 +95,6 @@ module.exports = function (app, pool) {
         }
     });
 
-    // Logout Route
     app.get('/account/logout', (req, res) => {
         req.session.destroy(err => {
             if (err) {
@@ -100,24 +107,11 @@ module.exports = function (app, pool) {
         });
     });
 
-    // Account Route
-    app.get('/account', (req, res) => {
-        if (!req.session.organizationId) {
-            req.flash('error', 'Please log in to view your account.');
-            res.redirect('/account/login');
-            return;
-        }
+    app.get('/account', isAuthenticated, (req, res) => {
         res.render('account/account', { title: 'Account Management', messages: req.flash() });
     });
 
-    // Update Account Route
-    app.get('/account/update', async (req, res) => {
-        if (!req.session.organizationId) {
-            req.flash('error', 'Please log in to update your account.');
-            res.redirect('/account/login');
-            return;
-        }
-
+    app.get('/account/update', isAuthenticated, async (req, res) => {
         try {
             const result = await pool.query('SELECT * FROM organizations WHERE organization_id = $1', [req.session.organizationId]);
             const orgDetails = result.rows[0];
@@ -129,7 +123,7 @@ module.exports = function (app, pool) {
         }
     });
 
-    app.post('/account/update', async (req, res) => {
+    app.post('/account/update', isAuthenticated, async (req, res) => {
         const { firstName, lastName, email, orgName, orgAddress, orgPhone } = req.body;
         const orgId = req.session.organizationId;
 
@@ -147,14 +141,7 @@ module.exports = function (app, pool) {
         }
     });
 
-    // Account Personalization Route
-    app.get('/account/personalization', async (req, res) => {
-        if (!req.session.organizationId) {
-            req.flash('error', 'Please log in to personalize your account.');
-            res.redirect('/account/login');
-            return;
-        }
-
+    app.get('/account/personalization', isAuthenticated, async (req, res) => {
         try {
             const result = await pool.query('SELECT * FROM organizations WHERE organization_id = $1', [req.session.organizationId]);
             const orgDetails = result.rows[0];
@@ -166,7 +153,7 @@ module.exports = function (app, pool) {
         }
     });
 
-    app.post('/account/personalization', upload.single('logo'), async (req, res) => {
+    app.post('/account/personalization', upload.single('logo'), isAuthenticated, async (req, res) => {
         const { primaryColor, fontStyle } = req.body;
         const logoUrl = req.file ? req.file.path : null;
         const orgId = req.session.organizationId;
@@ -184,4 +171,20 @@ module.exports = function (app, pool) {
             res.redirect('/account/accountPersonalization');
         }
     });
+
+
+// API route to get subjects by class ID
+app.get('/api/getSubjectsByClass', isAuthenticated, async (req, res) => {
+    const { classId } = req.query;
+    if (!classId) {
+        return res.status(400).json({ message: "Class ID is required" });
+    }
+    try {
+        const result = await pool.query('SELECT subject_id, subject_name FROM subjects WHERE class_id = $1', [classId]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching subjects:', error);
+        res.status(500).json({ message: 'Failed to fetch subjects.' });
+    }
+});
 };
