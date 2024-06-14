@@ -1,5 +1,4 @@
-
-<body>
+<main>
     <div class="dashboard-container">
         <div class="classes-container">
             <h2>Classes</h2>
@@ -13,14 +12,14 @@
                 <% } %>
             </ul>
         </div>
-        
+
         <div class="info-grid">
             <div class="calendar-container">
                 <h2>Today's Date and Time</h2>
                 <div class="date" id="currentDate"></div>
                 <div class="time" id="currentTime"></div>
             </div>
-            
+
             <div class="school-year-info">
                 <% if (schoolYear) { %>
                     <h2>Current School Year: <%= schoolYear.year_label %></h2>
@@ -39,7 +38,6 @@
                 <% } %>
             </div>
         </div>
-               
     </div>
 
     <h2>Events</h2>
@@ -63,6 +61,5 @@
             <li>No announcements found</li>
         <% } %>
     </ul>
-
-
-
+</main>
+<script src="/js/orgDashboard.js"></script>

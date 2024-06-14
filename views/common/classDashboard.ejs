@@ -1,41 +1,48 @@
-<main class="class-dashboard-container">
-    <h1 id="className"><%= className %> <% if (graduationYearGroup) { %>
-        <p> <%= graduationYearGroup %></p>
-    <% } %></h1>
-    <div class="dashboard-buttons">
-        <ul class="account-links">
-            <!-- Existing links -->
-            <li><a href="/common/attendance?classId=<%= classId %>">Mark Attendance</a></li>
-            <li><a href="/common/attendanceCollection?classId=<%= classId %>">Attendance Records</a></li>
-        </ul>
-    </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Class Dashboard</title>
+</head>
+<body>
+    <main class="class-dashboard-container">
+        <h1 id="className"><%= className %> <% if (graduationYearGroup) { %>
+            <p> <%= graduationYearGroup %></p>
+        <% } %></h1>
+        <div class="dashboard-buttons">
+            <ul class="account-links">
+                <li><a href="/common/attendance?classId=<%= classId %>">Mark Attendance</a></li>
+                <li><a href="/common/attendanceCollection?classId=<%= classId %>">Attendance Records</a></li>
+            </ul>
+        </div>
 
-    <div class="subjects-list">
-        <h2>Subjects</h2>
-        <% if (subjects.length > 0) { %>
-            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 10px;">
-                <% subjects.forEach(function(subject) { %>
-                    <a href="/common/assessment?classId=<%= classId %>&subjectId=<%= subject.subject_id %>" style="background-color: #f0f0f0; padding: 5px 10px; border-radius: 5px; text-decoration: none;">
-                        <%= subject.subject_name %>
-                    </a>
-                <% }); %>
-            </div>
-        <% } else { %>
-            <p style="text-align: center;">No subjects added yet.</p>
-        <% } %>
-    </div>
-
-    <div class="student-list-container">
-        <h2>Students</h2>
-        <ul class="student-list">
-            <% if (students.length > 0) { %>
-                <% students.forEach(function(student) { %>
-                    <!-- Link to the student's detailed page -->
-                    <li><a href="/common/studentDetails?studentId=<%= student.student_id %>"><%= student.first_name %> <%= student.last_name %></a></li>
-                <% }); %>
+        <div class="subjects-list">
+            <h2>Subjects</h2>
+            <% if (subjects.length > 0) { %>
+                <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 10px;">
+                    <% subjects.forEach(function(subject) { %>
+                        <a href="/common/assessment?classId=<%= classId %>&subjectId=<%= subject.subject_id %>" style="background-color: #f0f0f0; padding: 5px 10px; border-radius: 5px; text-decoration: none;">
+                            <%= subject.subject_name %>
+                        </a>
+                    <% }); %>
+                </div>
             <% } else { %>
-                <li>No students in this class yet.</li>
+                <p style="text-align: center;">No subjects added yet.</p>
             <% } %>
-        </ul>
-    </div>
-</main>
+        </div>
+
+        <div class="student-list-container">
+            <h2>Students</h2>
+            <ul class="student-list">
+                <% if (students.length > 0) { %>
+                    <% students.forEach(function(student) { %>
+                        <li><a href="/common/studentDetails?studentId=<%= student.student_id %>"><%= student.first_name %> <%= student.last_name %></a></li>
+                    <% }); %>
+                <% } else { %>
+                    <li>No students in this class yet.</li>
+                <% } %>
+            </ul>
+        </div>
+    </main>
+</body>
+</html>

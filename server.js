@@ -16,11 +16,7 @@ const pool = new Pool({
 
 // Test the pool connection
 pool.query('SELECT NOW()', (err, res) => {
-    if (err) {
-        console.error('Error executing query', err.stack);
-    } else {
-        console.log('Database connected:', res.rows[0]);
-    }
+
 });
 
 app.use(session({
@@ -35,6 +31,27 @@ app.use((req, res, next) => {
     res.locals.session = req.session;
     next();
 });
+
+// Middleware to check if user is authenticated and fetch organization ID
+function fetchOrganizationInfo(req, res, next) {
+    if (req.session.userId) {
+        pool.query('SELECT u.first_name, o.organization_name FROM users u JOIN organizations o ON u.organization_id = o.organization_id WHERE u.user_id = $1', [req.session.userId], (err, result) => {
+            if (err) {
+                console.error('Error fetching organization info:', err);
+                next(err);
+            } else {
+                req.session.organizationId = result.rows[0].organization_id;
+                req.session.organizationName = result.rows[0].organization_name;
+                req.session.firstName = result.rows[0].first_name;
+                next();
+            }
+        });
+    } else {
+        next();
+    }
+}
+
+app.use(fetchOrganizationInfo);
 
 app.use(expressLayouts);
 app.set('view engine', 'ejs');

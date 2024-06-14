@@ -1,101 +1,60 @@
-<form action="/addGraduationYearGroup" method="POST">
-    <div class="form-group">
-        <label for="graduationYear">Graduation Year Group:</label>
-        <input type="number" id="graduationYear" name="graduationYear" placeholder="Year eg. 2020"  required>
-    </div>
-    <button type="submit">Create Graduation Year Group</button>
-</form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title><%= title %></title>
+</head>
+<body>
+    <main class="add-class-subject-container">
+        <h1>Add Class and Subject</h1>
+        <div class="messages">
+            <% if (messages.success) { %>
+                <p class="success"><%= messages.success %></p>
+            <% } %>
+            <% if (messages.error) { %>
+                <p class="error"><%= messages.error %></p>
+            <% } %>
+        </div>
+        <div class="form-section">
+            <form action="/common/addClass" method="POST">
+                <h2>Add Class</h2>
+                <label for="className">Class Name:</label>
+                <input type="text" id="className" name="className" required>
+                
+                <label for="gradYearGroupId">Graduation Year Group:</label>
+                <select id="gradYearGroupId" name="gradYearGroupId">
+                    <% availableGradYearGroups.forEach(function(group) { %>
+                        <option value="<%= group.id %>"><%= group.name %></option>
+                    <% }); %>
+                </select>
 
-<form action="/common/addClassSubject" method="POST">
-    <div class="form-group">
-        <label for="className">Class Name:</label>
-        <input type="text" id="className" name="className" required>
-    </div>
-    <div class="form-group">
-        <label for="gradYearGroupId">Graduation Year Group:</label>
-        <select id="gradYearGroupId" name="gradYearGroupId" required>
-            <option value="">Select a Graduation Year Group</option>
-            <% availableGradYearGroups.forEach(group => { %>
-                <option value="<%= group.id %>"><%= group.name %></option>
-            <% }); %>
-        </select>
-    </div>
-    <button type="submit">Add Class</button>
-</form>
+                <button type="submit">Add Class</button>
+            </form>
+        </div>
+        <div class="form-section">
+            <form action="/common/addSubject" method="POST">
+                <h2>Add Subject</h2>
+                <label for="subjectName">Subject Name:</label>
+                <input type="text" id="subjectName" name="subjectName" required>
+                
+                <label for="classId">Class:</label>
+                <select id="classId" name="classId">
+                    <% classes.forEach(function(classItem) { %>
+                        <option value="<%= classItem.class_id %>"><%= classItem.class_name %></option>
+                    <% }); %>
+                </select>
 
-<form action="/common/addSubject" method="POST">
-    <div>
-        <label for="subjectName">Subject Name:</label>
-        <input type="text" id="subjectName" name="subjectName" required>
-    </div>
-    <div>
-        <label for="classId">Class:</label>
-        <select id="classId" name="classId" required>
-            <% classes.forEach(function(cls) { %>
-                <option value="<%= cls.class_id %>"><%= cls.class_name %></option>
-            <% }); %>
-        </select>
-    </div>
-    <button type="submit">Add Subject</button>
-</form>
-
-
-
-
-<script>
-    document.getElementById('addClassSubjectForm').addEventListener('submit', function(event) {
-        event.preventDefault();
-        const className = document.getElementById('className').value;
-        fetch('/common/addClassSubject', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ className: className })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if(data.success) {
-                alert('Class added successfully!');
-                updateClassDropdown();
-            } else {
-                alert('Failed to add class');
-            }
-        })
-        .catch(error => console.error('Error adding class:', error));
-    });
-    
-    function updateClassDropdown() {
-        fetch('/common/getClasses')
-            .then(response => response.json())
-            .then(classes => {
-                const select = document.getElementById('classSelect');
-                select.innerHTML = '<option value="all">All Classes</option>'; // Reset
-                classes.forEach(cls => {
-                    const option = document.createElement('option');
-                    option.value = cls.class_id;
-                    option.textContent = cls.class_name;
-                    select.appendChild(option);
-                });
-            })
-            .catch(error => console.error('Error fetching classes:', error));
-    }
-    document.addEventListener('click', function(event) {
-        var isClickInsideElement = document.querySelector('.dropdown-checkboxes').contains(event.target);
-        if (!isClickInsideElement) {
-            document.querySelector('.dropdown-checkbox-wrapper').style.display = 'none';
-        }
-    });
-
-    function toggleDropdown() {
-        var checkboxes = document.querySelector('.dropdown-checkboxes');
-        checkboxes.style.display = checkboxes.style.display === 'none' ? 'block' : 'none';
-    }
-    
-    function selectAll(source) {
-        checkboxes = document.querySelectorAll('.dropdown-checkboxes input[type="checkbox"]');
-        for(var i = 0, n=checkboxes.length; i < n; i++) {
-            if (checkboxes[i] !== source) checkboxes[i].checked = source.checked;
-        }
-    }
-    
-    </script>
-    
+                <button type="submit">Add Subject</button>
+            </form>
+        </div>
+        <div class="form-section">
+            <form action="/addGraduationYearGroup" method="POST">
+                <h2>Add Graduation Year Group</h2>
+                <label for="graduationYear">Graduation Year:</label>
+                <input type="number" id="graduationYear" name="graduationYear" required>
+                <button type="submit">Add Graduation Year Group</button>
+            </form>
+        </div>
+    </main>
+</body>
+</html>

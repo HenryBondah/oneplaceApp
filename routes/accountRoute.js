@@ -9,10 +9,37 @@ module.exports = function(app, pool) {
 
     // Middleware to check if user is authenticated
     function isAuthenticated(req, res, next) {
-        if (req.session.organizationId) {
+        if (req.session.organizationId || req.session.userId) {
             return next();
         } else {
             res.redirect('/account/login');
+        }
+    }
+
+    // Middleware to check if organization is active (not on hold or deleted)
+    async function checkOrganizationStatus(req, res, next) {
+        if (req.session.organizationId) {
+            try {
+                const result = await pool.query('SELECT on_hold, deleted FROM organizations WHERE organization_id = $1', [req.session.organizationId]);
+                const organization = result.rows[0];
+
+                if (organization.on_hold || organization.deleted) {
+                    req.session.destroy(err => {
+                        if (err) {
+                            console.error('Error logging out:', err);
+                        }
+                        res.redirect('/account/login');
+                    });
+                } else {
+                    next();
+                }
+            } catch (error) {
+                console.error('Error checking organization status:', error);
+                req.flash('error', 'An error occurred. Please try again.');
+                res.redirect('/account/login');
+            }
+        } else {
+            next();
         }
     }
 
@@ -23,35 +50,43 @@ module.exports = function(app, pool) {
     }));
 
     app.use(require('connect-flash')());
+    app.use(checkOrganizationStatus);
 
     app.get('/account/register', (req, res) => {
         res.render('account/register', { title: 'Register', messages: req.flash() });
     });
 
-    app.post('/account/register', upload.fields([{ name: 'proof1', maxCount: 1 }, { name: 'proof2', maxCount: 1 }]), async (req, res) => {
+    app.post('/account/register', upload.fields([{ name: 'proof1' }, { name: 'proof2' }]), async (req, res) => {
         const { firstName, lastName, email, password, orgName, orgAddress, orgPhone } = req.body;
-        if (!password) {
-            req.flash('error', 'Password is required.');
-            return res.redirect('/account/register');
-        }
+        const proof1 = req.files['proof1'] ? req.files['proof1'][0].path : '';
+        const proof2 = req.files['proof2'] ? req.files['proof2'][0].path : '';
+        const hashedPassword = await bcrypt.hash(password, 10);
 
+        const client = await pool.connect();
         try {
-            const saltRounds = 10;
-            const hashedPassword = await bcrypt.hash(password, saltRounds);
-            const proof1 = req.files['proof1'] ? req.files['proof1'][0].path : null;
-            const proof2 = req.files['proof2'] ? req.files['proof2'][0].path : null;
+            await client.query('BEGIN');
 
-            await pool.query(
-                'INSERT INTO organizations (organization_name, organization_address, organization_phone, proof_of_existence_1, proof_of_existence_2, email, password, first_name, last_name, approved) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-                [orgName, orgAddress, orgPhone, proof1, proof2, email, hashedPassword, firstName, lastName, false]
+            const result = await client.query(
+                'INSERT INTO organizations (organization_name, organization_address, organization_phone, proof_of_existence_1, proof_of_existence_2, email, password, first_name, last_name, approved, on_hold, deleted) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, false, false) RETURNING organization_id',
+                [orgName, orgAddress, orgPhone, proof1, proof2, email, hashedPassword, firstName, lastName]
             );
 
-            req.flash('success', 'Registration successful. Your organization needs to be approved before you can log in. Look forward to an email confirming your approval. If declined, you will be required to provide additional proof for confirmation.');
+            const orgId = result.rows[0].organization_id;
+
+            await client.query('COMMIT');
+            req.flash('success', 'Registration successful. Please wait for approval.');
             res.redirect('/account/login');
         } catch (error) {
-            console.error('Error registering organization:', error);
-            req.flash('error', 'Registration failed. Please try again.');
+            await client.query('ROLLBACK');
+            console.error('Error during registration:', error);
+            if (error.code === '23505') {
+                req.flash('error', 'Email already exists.');
+            } else {
+                req.flash('error', 'Registration failed.');
+            }
             res.redirect('/account/register');
+        } finally {
+            client.release();
         }
     });
 
@@ -62,32 +97,102 @@ module.exports = function(app, pool) {
     app.post('/account/login', async (req, res) => {
         const { email, password } = req.body;
         try {
+            const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+            if (userResult.rows.length > 0) {
+                const user = userResult.rows[0];
+                const match = await bcrypt.compare(password, user.password);
+                if (match) {
+                    const orgResult = await pool.query('SELECT organization_name, on_hold, deleted FROM organizations WHERE organization_id = $1', [user.organization_id]);
+                    if (orgResult.rows.length > 0) {
+                        const organization = orgResult.rows[0];
+
+                        if (organization.on_hold) {
+                            req.flash('error', 'Your organization account is currently on hold.');
+                            res.redirect('/account/login');
+                            return;
+                        }
+
+                        if (organization.deleted) {
+                            req.flash('error', 'Your organization account has been deleted.');
+                            res.redirect('/account/login');
+                            return;
+                        }
+
+                        req.session.regenerate(err => {
+                            if (err) {
+                                console.error('Error regenerating session:', err);
+                                req.flash('error', 'Login failed. Please try again.');
+                                res.redirect('/account/login');
+                                return;
+                            }
+
+                            req.session.userId = user.user_id;
+                            req.session.organizationId = user.organization_id;
+                            req.session.firstName = user.first_name;
+                            req.session.lastName = user.last_name;
+                            req.session.organizationName = organization.organization_name;
+
+                            req.session.save(err => {
+                                if (err) {
+                                    console.error('Error saving session:', err);
+                                    req.flash('error', 'Login failed. Please try again.');
+                                    res.redirect('/account/login');
+                                } else {
+                                    res.redirect('/common/orgDashboard');
+                                }
+                            });
+                        });
+                        return;
+                    }
+                }
+            }
+
             const orgResult = await pool.query('SELECT * FROM organizations WHERE email = $1', [email]);
-            if (orgResult.rows.length === 0) {
-                req.flash('error', 'Invalid email or password.');
-                res.redirect('/account/login');
-                return;
+            if (orgResult.rows.length > 0) {
+                const organization = orgResult.rows[0];
+                const match = await bcrypt.compare(password, organization.password);
+                if (match) {
+                    if (organization.on_hold) {
+                        req.flash('error', 'Your organization account is currently on hold.');
+                        res.redirect('/account/login');
+                        return;
+                    }
+
+                    if (organization.deleted) {
+                        req.flash('error', 'Your organization account has been deleted.');
+                        res.redirect('/account/login');
+                        return;
+                    }
+
+                    req.session.regenerate(err => {
+                        if (err) {
+                            console.error('Error regenerating session:', err);
+                            req.flash('error', 'Login failed. Please try again.');
+                            res.redirect('/account/login');
+                            return;
+                        }
+
+                        req.session.organizationId = organization.organization_id;
+                        req.session.organizationName = organization.organization_name;
+                        req.session.firstName = organization.first_name;
+                        req.session.lastName = organization.last_name;
+
+                        req.session.save(err => {
+                            if (err) {
+                                console.error('Error saving session:', err);
+                                req.flash('error', 'Login failed. Please try again.');
+                                res.redirect('/account/login');
+                            } else {
+                                res.redirect('/common/orgDashboard');
+                            }
+                        });
+                    });
+                    return;
+                }
             }
 
-            const organization = orgResult.rows[0];
-            const match = await bcrypt.compare(password, organization.password);
-            if (!match) {
-                req.flash('error', 'Invalid email or password.');
-                res.redirect('/account/login');
-                return;
-            }
-
-            if (!organization.approved) {
-                req.flash('error', 'Your organization account is not yet approved.');
-                res.redirect('/account/login');
-                return;
-            }
-
-            req.session.organizationId = organization.organization_id;
-            req.session.organizationName = organization.organization_name;
-            req.session.firstName = organization.first_name;
-            req.session.lastName = organization.last_name;
-            res.redirect('/common/orgDashboard');
+            req.flash('error', 'Invalid email or password.');
+            res.redirect('/account/login');
         } catch (error) {
             console.error('Error logging in:', error);
             req.flash('error', 'Login failed. Please try again.');
@@ -102,7 +207,7 @@ module.exports = function(app, pool) {
                 req.flash('error', 'Failed to log out. Please try again.');
                 res.redirect('/common/orgDashboard');
             } else {
-                res.redirect('/account/login');
+                res.redirect('/');
             }
         });
     });
@@ -172,19 +277,18 @@ module.exports = function(app, pool) {
         }
     });
 
-
-// API route to get subjects by class ID
-app.get('/api/getSubjectsByClass', isAuthenticated, async (req, res) => {
-    const { classId } = req.query;
-    if (!classId) {
-        return res.status(400).json({ message: "Class ID is required" });
-    }
-    try {
-        const result = await pool.query('SELECT subject_id, subject_name FROM subjects WHERE class_id = $1', [classId]);
-        res.json(result.rows);
-    } catch (error) {
-        console.error('Error fetching subjects:', error);
-        res.status(500).json({ message: 'Failed to fetch subjects.' });
-    }
-});
+    // API route to get subjects by class ID
+    app.get('/api/getSubjectsByClass', isAuthenticated, async (req, res) => {
+        const { classId } = req.query;
+        if (!classId) {
+            return res.status(400).json({ message: "Class ID is required" });
+        }
+        try {
+            const result = await pool.query('SELECT subject_id, subject_name FROM subjects WHERE class_id = $1', [classId]);
+            res.json(result.rows);
+        } catch (error) {
+            console.error('Error fetching subjects:', error);
+            res.status(500).json({ message: 'Failed to fetch subjects.' });
+        }
+    });
 };

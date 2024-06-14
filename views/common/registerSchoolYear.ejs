@@ -5,17 +5,17 @@
     <title>Register School Year</title>
     <link rel="stylesheet" href="/styles/main.css">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script defer src="/scripts/registerSchoolYear.js"></script>
+    <script defer src="/js/registerSchoolYear.js"></script>
 </head>
 <body>
     <h1>Register School Year</h1>
     <form id="registerSchoolYearForm" action="/common/registerSchoolYear" method="POST">
         <input type="text" name="schoolYear" placeholder="Enter School Year" required>
-        
+
         <div id="termsContainer">
             <!-- Term inputs will be added here dynamically -->
         </div>
-        
+
         <a href="#" onclick="addTerm()">Add Term / Semester</a>
         <button type="submit">Register Year and Terms</button>
     </form>

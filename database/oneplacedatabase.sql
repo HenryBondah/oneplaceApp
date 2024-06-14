@@ -17,32 +17,6 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
--- Users Table
-CREATE TABLE IF NOT EXISTS users (
-    user_id SERIAL PRIMARY KEY,
-    first_name VARCHAR(255) NOT NULL,
-    last_name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    account_type user_role NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Trigger function to update the 'updated_at' column
-CREATE OR REPLACE FUNCTION update_modified_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = now(); 
-    RETURN NEW; 
-END;
-$$ LANGUAGE 'plpgsql';
-
-CREATE TRIGGER update_users_modtime
-    BEFORE UPDATE ON users
-    FOR EACH ROW
-    EXECUTE FUNCTION update_modified_column();
-
 -- Organizations Table
 CREATE TABLE IF NOT EXISTS organizations (
     organization_id SERIAL PRIMARY KEY,
@@ -68,6 +42,33 @@ CREATE TRIGGER update_organizations_modtime
     FOR EACH ROW
     EXECUTE FUNCTION update_modified_column();
 
+-- Users Table
+CREATE TABLE IF NOT EXISTS users (
+    user_id SERIAL PRIMARY KEY,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    account_type user_role NOT NULL,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Trigger function to update the 'updated_at' column
+CREATE OR REPLACE FUNCTION update_modified_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now(); 
+    RETURN NEW; 
+END;
+$$ LANGUAGE 'plpgsql';
+
+CREATE TRIGGER update_users_modtime
+    BEFORE UPDATE ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_modified_column();
+
 -- Graduation Year Groups Table
 CREATE TABLE IF NOT EXISTS graduation_year_groups (
     id SERIAL PRIMARY KEY,
@@ -88,7 +89,8 @@ CREATE TABLE IF NOT EXISTS subjects (
     subject_id SERIAL PRIMARY KEY,
     subject_name VARCHAR(255) NOT NULL,
     class_id INT REFERENCES classes(class_id) ON DELETE CASCADE,
-    created_by INT REFERENCES users(user_id) ON DELETE SET NULL
+    created_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE
 );
 
 -- Students Table
@@ -99,6 +101,7 @@ CREATE TABLE IF NOT EXISTS students (
     date_of_birth DATE,
     class_id INT REFERENCES classes(class_id) ON DELETE CASCADE,
     created_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
     height DECIMAL(5,2),
     hometown VARCHAR(255),
     image_url VARCHAR(255),
@@ -116,6 +119,7 @@ CREATE TABLE IF NOT EXISTS guardians (
     hometown VARCHAR(255),
     image_url VARCHAR(255),
     student_id INT REFERENCES students(student_id) ON DELETE CASCADE,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
     CONSTRAINT unique_student_guardian UNIQUE (student_id, first_name)
 );
 
@@ -126,7 +130,8 @@ CREATE TABLE IF NOT EXISTS student_subjects (
     grade VARCHAR(255),
     PRIMARY KEY (student_id, subject_id),
     FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
-    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE CASCADE
+    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE CASCADE,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE
 );
 
 -- Applications Table
@@ -147,6 +152,7 @@ CREATE TABLE IF NOT EXISTS assessments (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     created_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
     weight NUMERIC
 );
 
@@ -158,6 +164,7 @@ CREATE TABLE IF NOT EXISTS assessment_results (
     score DECIMAL(5,2),
     grade VARCHAR(2),
     created_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
     CONSTRAINT unique_student_assessment UNIQUE (student_id, assessment_id)
 );
 
@@ -169,6 +176,7 @@ CREATE TABLE IF NOT EXISTS attendance_records (
     date DATE NOT NULL,
     status attendance_status,
     marked_by INT REFERENCES users(user_id) ON DELETE SET NULL,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
     marked_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (student_id, date)
@@ -182,13 +190,15 @@ CREATE TRIGGER update_attendance_modtime
 -- Admins Table
 CREATE TABLE IF NOT EXISTS admins (
     admin_id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users(user_id) ON DELETE CASCADE
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE
 );
 
 -- Announcements Table
 CREATE TABLE IF NOT EXISTS announcements (
     announcement_id SERIAL PRIMARY KEY,
     message TEXT NOT NULL,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -198,6 +208,7 @@ CREATE TABLE IF NOT EXISTS school_events (
     name VARCHAR(255) NOT NULL,
     event_date DATE,
     details TEXT,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -206,6 +217,7 @@ CREATE TABLE IF NOT EXISTS school_years (
     id SERIAL PRIMARY KEY,
     year_label VARCHAR(255) NOT NULL,
     current BOOLEAN DEFAULT FALSE,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -216,13 +228,15 @@ CREATE TABLE IF NOT EXISTS terms (
     term_name VARCHAR(255) NOT NULL,
     start_date DATE,
     end_date DATE,
-    year_id INT -- New column added to terms table
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
+    year_id INT
 );
 
 -- Term Classes Table (many-to-many relationship between terms and classes)
 CREATE TABLE IF NOT EXISTS term_classes (
     term_id INT NOT NULL,
     class_id INT NOT NULL,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
     PRIMARY KEY (term_id, class_id),
     FOREIGN KEY (term_id) REFERENCES terms(term_id) ON DELETE CASCADE,
     FOREIGN KEY (class_id) REFERENCES classes(class_id) ON DELETE CASCADE
@@ -238,3 +252,11 @@ CREATE INDEX IF NOT EXISTS idx_student_name ON students (first_name, last_name);
 ALTER TABLE attendance_records
 ADD CONSTRAINT unique_attendance_record
 UNIQUE (student_id, class_id, date);
+
+
+-- Add organization_id to graduation_year_groups if missing
+ALTER TABLE graduation_year_groups
+ADD COLUMN organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE;
+
+ALTER TABLE subjects
+ADD COLUMN grad_year_group_id INT REFERENCES graduation_year_groups(id) ON DELETE CASCADE;

@@ -1,4 +1,12 @@
 <main class="add-student-container">
+    <div class="messages">
+        <% if (messages.success) { %>
+            <p class="success"><%= messages.success %></p>
+        <% } %>
+        <% if (messages.error) { %>
+            <p class="error"><%= messages.error %></p>
+        <% } %>
+    </div>
     <h1>Add New Student</h1>
     <form action="/common/addStudent" method="POST" enctype="multipart/form-data">
         <fieldset>
@@ -24,7 +32,7 @@
                 </div>
             </div>
         </fieldset>
-        
+
         <br>
         <div class="form-group">
             <label for="firstName">Student First Name:</label>
@@ -78,3 +86,4 @@
         <button type="submit">Add Student</button>
     </form>
 </main>
+<script src="/js/addStudent.js"></script>

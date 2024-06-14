@@ -8,11 +8,11 @@
         <% } %>
     </span>
     <div id="tools">
-        <% if (session.organizationName) { %>
-            <a href="/account" title="Account settings"><%= session.firstName %></a>
+        <% if (session.firstName) { %>
+            <a href="/common/management" title="Go to management page">Welcome, <%= session.firstName %>!</a>
             <a href="/account/logout" title="Log out">Logout</a>
         <% } else { %>
-            <a title="Click to log in" href="/account/login">Account</a>
+            <a title="Click to log in" href="/account/login">Login | Register</a>
         <% } %>
     </div>
 </header>

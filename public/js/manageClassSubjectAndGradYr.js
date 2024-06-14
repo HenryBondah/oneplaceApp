@@ -4,7 +4,7 @@ function fetchSubjects() {
         document.getElementById('subjectsContainer').innerHTML = '';
         return;
     }
-    
+
     fetch(`/api/getSubjectsByClass?classId=${classId}`)
         .then(response => response.json())
         .then(subjects => {

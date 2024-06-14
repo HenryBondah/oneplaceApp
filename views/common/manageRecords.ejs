@@ -91,11 +91,6 @@
         </fieldset>
     </div>
 
-    <script>
-        function selectAllClasses(termId, checkbox) {
-            const checkboxes = document.querySelectorAll(`input[name="term${termId}Classes[]"]`);
-            checkboxes.forEach(cb => cb.checked = checkbox.checked);
-        }
-    </script>
+    <script src="/js/manageRecords.js"></script>
 </body>
 </html>
