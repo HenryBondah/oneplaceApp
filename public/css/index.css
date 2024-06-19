@@ -1,29 +1,97 @@
 /* index page specific styles */
 .index-container {
-    text-align: center;
-    padding: 20px;
-  }
-  
-  .image-section img {
-    max-width: 50%;
-    display: block;
-    margin: auto;
-  }
-  
-  .buttons {
-    margin-top: 20px;
-  }
-  
-  .buttons .button-link button {
-    padding: 10px 20px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  
-  .buttons .button-link button:hover {
-    background-color: #0056b3;
-  }
-  
+  text-align: center;
+  padding: 20px;
+}
+ 
+.image-section img {
+  max-width: 80%;
+  display: block;
+  margin: auto;
+}
+ 
+.buttons {
+  margin-top: 20px;
+}
+ 
+.buttons .button-link button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+ 
+.buttons .button-link button:hover {
+  background-color: #0056b3;
+}
+ 
+/*hero styles*/
+.content {
+  position: relative;
+ 
+}
+ 
+.content h1 {
+  position: absolute;
+  color: white;
+  top: 20%;
+  right: 50%;
+}
+ 
+.content button {
+  position: absolute;
+  top: 80%;
+  left: 40%;
+}
+ 
+/*main styles*/
+main {
+  font-family: "Roboto", sans-serif;
+  width: 1200px;
+}
+ 
+.info {
+  border-radius: 10px;
+  border: black solid;
+  text-align: center;
+  padding: 10px;
+  margin: 10px;
+}
+ 
+/*features styles*/
+ 
+.services {
+  text-align: center;
+}
+ 
+#img-feature {
+  width: 300px;
+  height: 300px;
+  border-radius: 10px;
+ 
+}
+ 
+#features {
+  display: flex;
+  text-align: center;
+ 
+}
+ 
+.feature {
+ 
+  border-radius: 10px;
+  padding: 10px;
+  margin: 10px;
+  width: auto;
+}
+ 
+.feature p,
+h3 {
+  text-align: center;
+}
+ 
+img:hover {
+  box-shadow: 0 0 5px #333;
+}
