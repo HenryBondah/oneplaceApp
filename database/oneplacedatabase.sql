@@ -260,3 +260,5 @@ ADD COLUMN organization_id INT REFERENCES organizations(organization_id) ON DELE
 
 ALTER TABLE subjects
 ADD COLUMN grad_year_group_id INT REFERENCES graduation_year_groups(id) ON DELETE CASCADE;
+
+ALTER TABLE terms ADD COLUMN current BOOLEAN DEFAULT FALSE;

@@ -23,14 +23,20 @@
             <div class="school-year-info">
                 <% if (schoolYear) { %>
                     <h2>Current School Year: <%= schoolYear.year_label %></h2>
-                    <% schoolYear.terms.forEach(term => { %>
+                    <% if (currentTerm) { %>
                         <div>
-                            <strong><%= term.term_name %>:</strong>
-                            Start : <%= term.start_date.toISOString().split('T')[0] %>,
-                            End : <%= term.end_date.toISOString().split('T')[0] %>
-                            <div class="countdown" data-start-date="<%= term.start_date.toISOString() %>" data-end-date="<%= term.end_date.toISOString() %>" data-term-name="<%= term.term_name %>"></div>
+                            <strong><%= currentTerm.term_name %>:</strong>
+                            Start: <%= new Date(currentTerm.start_date).toISOString().split('T')[0] %>,
+                            End: <%= new Date(currentTerm.end_date).toISOString().split('T')[0] %>
+                            <div class="countdown" data-start-date="<%= currentTerm.start_date.toISOString() %>" data-end-date="<%= currentTerm.end_date.toISOString() %>" data-term-name="<%= currentTerm.term_name %>"></div>
                         </div>
-                    <% }); %>
+                        <div>
+                            <strong>Days until end of term: </strong>
+                            <span id="daysUntilEnd"><%= Math.ceil((new Date(currentTerm.end_date) - new Date()) / (1000 * 60 * 60 * 24)) %></span>
+                        </div>
+                    <% } else { %>
+                        <p>No current term information available.</p>
+                    <% } %>
                 <% } else { %>
                     <div class="school-year-info">
                         <h2>No current school year information available.</h2>
@@ -44,7 +50,7 @@
     <ul>
         <% if (events && events.length > 0) { %>
             <% events.forEach(function(event) { %>
-                <li><strong><%= event.name %></strong> - <%= event.event_date.toISOString().split('T')[0] %><br><%= event.details %></li>
+                <li><strong><%= event.name %></strong> - <%= new Date(event.event_date).toISOString().split('T')[0] %><br><%= event.details %></li>
             <% }); %>
         <% } else { %>
             <li>No events found</li>

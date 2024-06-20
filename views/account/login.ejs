@@ -1,23 +1,26 @@
-<h1>Login</h1>
-<% if (messages.success) { %>
-  <div class="flash-message success"><%= messages.success %></div>
-<% } %>
-<% if (messages.error) { %>
-  <div class="flash-message error"><%= messages.error %></div>
-<% } %>
 
-<form id="loginForm" action="/account/login" method="post">
-  <div class="form-group">
-    <label for="email">Email:</label>
-    <input type="email" id="email" name="email" required>
-  </div>
-  <div class="form-group">
-    <label for="password">Password:</label>
-    <input type="password" id="password" name="password" required>
-    <div>
-      <input type="checkbox" onclick="togglePassword()"> Show Password
-    </div>
-  </div>
-  <button type="submit">Login</button>
-  <p>Don't have an account? <a href="/account/register">Register here</a>.</p>
-</form>
+    <h1>Login</h1>
+    <% if (messages.success) { %>
+        <div class="flash-message success"><%= messages.success %></div>
+    <% } %>
+    <% if (messages.error) { %>
+        <div class="flash-message error"><%= messages.error %></div>
+    <% } %>
+
+    <form id="loginForm" action="/account/login" method="post">
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+            <div>
+                <input type="checkbox" id="show-password"> Show Password
+            </div>
+        </div>
+        <button type="submit">Login</button>
+        <p>Don't have an account? <a href="/account/register">Register here</a>.</p>
+    </form>
+
+ 

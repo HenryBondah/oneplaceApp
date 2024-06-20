@@ -59,11 +59,23 @@ function deleteSchoolYear(yearId) {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: yearId })
-        }).then(() => {
-            window.location.reload();
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('School year deleted successfully!');
+                window.location.reload();
+            } else {
+                alert('Deletion failed: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Deletion error:', error);
+            alert('Failed to delete due to an error.');
         });
     }
 }
+
 
 function deleteTerm(termId) {
     if (confirm('Are you sure you want to delete this term?')) {

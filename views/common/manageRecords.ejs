@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title><%= title %> - OnePlace</title>
-    <link rel="stylesheet" href="/styles/main.css">
+    <title>Manage Records</title>
 </head>
 <body>
     <div class="container">
@@ -17,7 +16,7 @@
                         <label>School Year:</label>
                         <input type="text" name="year_label" value="<%= year.year_label %>">
                         <label>
-                            <input type="checkbox" name="current" value="true" <%= year.current ? 'checked' : '' %>>
+                            <input type="checkbox" name="currentYear" value="true" <%= year.current ? 'checked' : '' %>>
                             Current
                         </label>
                     </div>
@@ -42,6 +41,12 @@
                             </div>
                             <div>
                                 <label>
+                                    <input type="radio" name="currentTerm" value="<%= term.term_id %>" <%= term.current ? 'checked' : '' %>>
+                                    Current
+                                </label>
+                            </div>
+                            <div>
+                                <label>
                                     <input type="checkbox" id="selectAll<%= term.term_id %>" onclick="selectAllClasses(<%= term.term_id %>, this)">
                                     Select All Classes
                                 </label>
@@ -49,7 +54,7 @@
                             <% classes.forEach(cls => { %>
                                 <div class="class-checkbox-container">
                                     <label>
-                                        <input type="checkbox" name="term<%= term.term_id %>Classes[]" value="<%= cls.class_id %>" <%= (term.classes || []).includes(cls.class_id) ? 'checked' : '' %>>
+                                        <input type="checkbox" name="termClasses[<%= index %>][]" value="<%= cls.class_id %>" <%= (term.classes || []).includes(cls.class_id) ? 'checked' : '' %>>
                                         <%= cls.class_name %>
                                     </label>
                                 </div>
@@ -68,9 +73,18 @@
             <% events.forEach(function(event) { %>
                 <form action="/common/updateEvent" method="post">
                     <input type="hidden" name="id" value="<%= event.id %>">
-                    <input type="text" name="name" value="<%= event.name %>">
-                    <input type="date" name="event_date" value="<%= new Date(event.event_date).toISOString().split('T')[0] %>">
-                    <textarea name="details"><%= event.details %></textarea>
+                    <div>
+                        <label>Event Name:</label>
+                        <input type="text" name="name" value="<%= event.name %>">
+                    </div>
+                    <div>
+                        <label>Event Date:</label>
+                        <input type="date" name="event_date" value="<%= new Date(event.event_date).toISOString().split('T')[0] %>">
+                    </div>
+                    <div>
+                        <label>Details:</label>
+                        <textarea name="details"><%= event.details %></textarea>
+                    </div>
                     <button type="submit">Save</button>
                     <a href="#" onclick="deleteEvent(<%= event.id %>)">Delete</a>
                 </form>
@@ -91,6 +105,11 @@
         </fieldset>
     </div>
 
-    <script src="/js/manageRecords.js"></script>
+    <script>
+        function selectAllClasses(termId, checkbox) {
+            const checkboxes = document.querySelectorAll(`input[name="termClasses[${termId}][]"]`);
+            checkboxes.forEach(cb => cb.checked = checkbox.checked);
+        }
+    </script>
 </body>
 </html>

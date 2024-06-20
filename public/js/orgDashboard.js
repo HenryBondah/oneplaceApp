@@ -3,13 +3,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const currentTimeElement = document.getElementById('currentTime');
     const termCountdownElement = document.getElementById('termCountdown');
 
+  // index page specific scripts
+  document.addEventListener("DOMContentLoaded", function () {
     function updateDateTime() {
         const now = new Date();
-        currentDateElement.textContent = now.toLocaleDateString();
-        currentTimeElement.textContent = now.toLocaleTimeString();
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+        document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', dateOptions);
+        document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US', timeOptions);
     }
 
-    updateDateTime();
+    updateDateTime(); // Update on load
+    setInterval(updateDateTime, 1000); // Update every second
+});
+
     setInterval(updateDateTime, 1000);
 
     function calculateCountdown(term) {
