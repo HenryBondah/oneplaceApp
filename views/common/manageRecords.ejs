@@ -29,73 +29,14 @@
 <body>
     <!-- Add the link to the Register School Year page -->
     <div class="link-to-register-school-year">
-        <a href="/common/registerSchoolYear">Register School Year</a>
+        <a href="/common/registerSchoolYear">Create Event, Announcement & Sch Year</a>
     </div>
 
     <!-- Horizontal line separator -->
     <div class="separator"></div>
 
     <div class="container">
-        <fieldset>
-            <h1>Manage School Years and Terms</h1>
-            <legend>School Years</legend>
-            <% schoolYears.forEach(function(year) { %>
-                <form action="/common/updateSchoolYearAndTerms" method="post">
-                    <input type="hidden" name="yearId" value="<%= year.id %>">
-                    <div>
-                        <label>School Year:</label>
-                        <input type="text" name="year_label" value="<%= year.year_label %>">
-                        <label>
-                            <input type="checkbox" name="currentYear" value="true" <%= year.current ? 'checked' : '' %>>
-                            Current
-                        </label>
-                    </div>
-
-                    <% year.terms.forEach(function(term, index) { %>
-                        <fieldset>
-                            <legend>Term <%= index + 1 %></legend>
-                            <input type="hidden" name="termIds[]" value="<%= term.term_id %>">
-                            <div>
-                                <label>Term Name:</label>
-                                <input type="text" name="termNames[]" value="<%= term.term_name %>">
-                            </div>
-                            <div class="date-fields">
-                                <div>
-                                    <label>Start Date:</label>
-                                    <input type="date" name="startDates[]" value="<%= new Date(term.start_date).toISOString().slice(0, 10) %>">
-                                </div>
-                                <div>
-                                    <label>End Date:</label>
-                                    <input type="date" name="endDates[]" value="<%= new Date(term.end_date).toISOString().slice(0, 10) %>">
-                                </div>
-                            </div>
-                            <div>
-                                <label>
-                                    <input type="radio" name="currentTerm" value="<%= term.term_id %>" <%= term.current ? 'checked' : '' %>>
-                                    Current
-                                </label>
-                            </div>
-                            <div>
-                                <label>
-                                    <input type="checkbox" id="selectAll<%= term.term_id %>" onclick="selectAllClasses(<%= term.term_id %>, this)">
-                                    Select All Classes
-                                </label>
-                            </div>
-                            <% classes.forEach(cls => { %>
-                                <div class="class-checkbox-container">
-                                    <label>
-                                        <input type="checkbox" name="termClasses[<%= index %>][]" value="<%= cls.class_id %>" <%= (term.classes || []).includes(cls.class_id) ? 'checked' : '' %>>
-                                        <%= cls.class_name %>
-                                    </label>
-                                </div>
-                            <% }); %>
-                        </fieldset>
-                    <% }); %>
-                    <button type="submit">Save Changes</button>
-                    <a href="#" onclick="deleteSchoolYear(<%= year.id %>)">Delete</a>
-                </form>
-            <% }); %>
-        </fieldset>
+     
 
         <fieldset>
             <h1>Manage Events</h1>
@@ -130,6 +71,68 @@
                     <textarea name="message"><%= announcement.message %></textarea>
                     <button type="submit">Save</button>
                     <a href="#" onclick="deleteRecord('announcement', <%= announcement.announcement_id %>)">Delete</a>
+                </form>
+            <% }); %>
+        </fieldset>
+
+        <fieldset>
+            <h1>Manage School Years and Terms</h1>
+            <legend>School Years</legend>
+            <% schoolYears.forEach(function(year) { %>
+                <form action="/common/updateSchoolYearAndTerms" method="post">
+                    <input type="hidden" name="yearId" value="<%= year.id %>">
+                    <div>
+                        <label>School Year:</label>
+                        <input type="text" name="year_label" value="<%= year.year_label %>">
+                        <label>
+                            <input type="checkbox" name="currentYear" value="true" <%= year.current ? 'checked' : '' %>>
+                            Current
+                        </label>
+                    </div>
+
+                    <% year.terms.forEach(function(term, index) { %>
+                        <fieldset>
+                            <legend>Term <%= index + 1 %></legend>
+                            <input type="hidden" name="termIds[]" value="<%= term.term_id %>">
+                            <div>
+                                <label>Term Name:</label>
+                                <input type="text" name="termNames[]" value="<%= term.term_name %>">
+                            </div>
+                            <div>
+                                <label>
+                                    <input type="radio" name="currentTerm" value="<%= term.term_id %>" <%= term.current ? 'checked' : '' %>>
+                                    Current
+                                </label>
+                            </div>
+                            <div class="date-fields">
+                                <div>
+                                    <label>Start Date:</label>
+                                    <input type="date" name="startDates[]" value="<%= new Date(term.start_date).toISOString().slice(0, 10) %>">
+                                </div>
+                                <div>
+                                    <label>End Date:</label>
+                                    <input type="date" name="endDates[]" value="<%= new Date(term.end_date).toISOString().slice(0, 10) %>">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label>
+                                    <input type="checkbox" id="selectAll<%= term.term_id %>" onclick="selectAllClasses(<%= term.term_id %>, this)">
+                                    Select All Classes
+                                </label>
+                            </div>
+                            <% classes.forEach(cls => { %>
+                                <div class="class-checkbox-container">
+                                    <label>
+                                        <input type="checkbox" name="termClasses[<%= index %>][]" value="<%= cls.class_id %>" <%= (term.classes || []).includes(cls.class_id) ? 'checked' : '' %>>
+                                        <%= cls.class_name %>
+                                    </label>
+                                </div>
+                            <% }); %>
+                        </fieldset>
+                    <% }); %>
+                    <button type="submit">Save Changes</button>
+                    <a href="#" onclick="deleteSchoolYear(<%= year.id %>)">Delete</a>
                 </form>
             <% }); %>
         </fieldset>

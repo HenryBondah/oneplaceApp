@@ -34,6 +34,8 @@ header#top-header .siteName a {
 header#top-header #tools {
   display: flex;
   align-items: center;
+  right: 15px;
+  position: relative;
 }
 
 header#top-header #tools a {
@@ -278,8 +280,18 @@ button:hover {
   display: block;
 }
 
+.nav-item a:hover {
+  background-color: #f0f0f0;
+}
+
 .nav-menu.show {
   display: block;
+  position: absolute;
+  background-color: #f8f8f8;
+  box-shadow: 0px 10px 20px 3px rgba(0, 0, 0, 0.2);
+  right: 0;
+  top: 40px;
+  width: 250px;
 }
 
 .hamburger.active .bar:nth-child(2) {
@@ -295,18 +307,20 @@ button:hover {
 }
 
 /* Management tools dropdown */
-.nav-item:hover .management-links {
+.submenu {
+  display: none;
+}
+
+.submenu.show {
   display: block;
 }
 
 .management-links {
-  display: none;
   list-style: none;
   padding: 0;
   margin: 0;
   background-color: #f9f9f9;
   border: 1px solid #ddd;
-  position: absolute;
 }
 
 .management-links a {
@@ -320,10 +334,26 @@ button:hover {
   background-color: #f0f0f0;
 }
 
-@media (max-width: 768px) {
-  .hamburger {
-    display: block;
-  }
+.submenu-toggle {
+  cursor: pointer;
+}
+
+.submenu-toggle .arrow {
+  margin-left: 10px;
+}
+
+.arrow {
+  transition: transform 0.3s ease;
+}
+
+.arrow.open {
+  transform: rotate(180deg);
+}
+
+/* Image hover effect */
+img:hover {
+  filter: brightness(70%);
+  transition: filter 0.3s ease;
 }
 
 /* index page specific styles */

@@ -9,7 +9,7 @@
     </span>
     <div id="tools">
       <% if (session.firstName) { %>
-        <a href="/common/management" title="Go to management page">Welcome, <%= session.firstName %>!</a> 
+        <a href="#" title="Go to management page">Welcome, <%= session.firstName %>!</a> 
         <div style="margin-left: 15px;">
           <div class="hamburger" id="hamburger">
             <span class="bar"></span>
@@ -17,22 +17,24 @@
             <span class="bar"></span>
           </div>
           <ul class="nav-menu" id="nav-menu">
-            
             <li class="nav-item">
               <a href="/account/update">Update Account</a>
             </li>
             <li class="nav-item">
-                <a href="#">Management Tools</a>
-                <ul class="management-links">
-                  <li><a href="/common/manageRecords">Modify School Year, Events & Announcements</a></li>
-                  <li><a href="/common/manageClassSubjectAndGradYr">Modify Class, Subject & Graduation Year Group</a></li>
-                  <li><a href="/common/manageStudents">Manage Students (Edit, Delete, view student info)</a></li>
-                  <li><a href="/common/createEmployee">Create Employee Account</a></li>
-                  <li><a href="/account/personalization">Personalize Organization Space</a></li>
-                </ul>
-              </li>
+              <a href="#" class="submenu-toggle" data-target="management-submenu">Management Tools <span class="arrow">&#9660;</span></a>
+              <ul class="management-links submenu" id="management-submenu">
+                <li><a href="/common/manageRecords">Events, Announcements & Sch Year</a></li>
+                <li><a href="/common/manageClassSubjectAndGradYr">Class, Subject & Graduation Year Group</a></li>
+                <li><a href="/common/manageStudents">Students (Create, Edit & Delete)</a></li>
+                <li><a href="/common/createEmployee">Employee (Create, Edit & Delete)</a></li>
+              </ul>
+            </li>
             <li class="nav-item">
-              <a href="/common/management">Settings</a>
+              <a href="#" class="submenu-toggle" data-target="settings-submenu">Settings <span class="arrow">&#9660;</span></a>
+              <ul class="management-links submenu" id="settings-submenu">
+                <li><a href="/common/management">Term Mnagement</a></li>
+                <li><a href="/account/personalization">Personalize Organization Space</a></li>
+              </ul>
             </li>
             <li class="nav-item">
               <a href="/account/logout">Logout</a>
@@ -48,10 +50,21 @@
     document.addEventListener('DOMContentLoaded', () => {
       const hamburger = document.getElementById('hamburger');
       const navMenu = document.getElementById('nav-menu');
+      const submenuToggles = document.querySelectorAll('.submenu-toggle');
   
       hamburger.addEventListener('click', () => {
         hamburger.classList.toggle('active');
         navMenu.classList.toggle('show');
+      });
+  
+      submenuToggles.forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+          e.preventDefault();
+          const target = document.getElementById(toggle.dataset.target);
+          const arrow = toggle.querySelector('.arrow');
+          target.classList.toggle('show');
+          arrow.classList.toggle('open');
+        });
       });
     });
   </script>

@@ -38,6 +38,20 @@
     <!-- Horizontal line separator -->
     <div class="separator"></div>
 
+   
+    <h1>Event</h1>
+    <form action="/common/registerSchoolYearEvent" method="post">
+        <input type="text" name="eventName" placeholder="Event Name">
+        <input type="date" name="startDate">
+        <textarea name="eventDetails" placeholder="Event Details"></textarea>
+        <button type="submit">Add Event</button>
+    </form>
+    <h1>Announcement</h1>
+    <form action="/common/registerSchoolYearAnnouncement" method="post">
+        <textarea name="announcement" placeholder="Announcement Details"></textarea>
+        <button type="submit">Post Announcement</button>
+    </form>
+
     <h1>Register School Year</h1>
     <form id="registerSchoolYearForm" action="/common/registerSchoolYear" method="POST">
         <input type="text" name="schoolYear" placeholder="Enter School Year" required>
@@ -48,18 +62,6 @@
 
         <a href="#" onclick="addTerm()">Add Term / Semester</a>
         <button type="submit">Register Year and Terms</button>
-    </form>
-
-    <form action="/common/registerSchoolYearEvent" method="post">
-        <input type="text" name="eventName" placeholder="Event Name">
-        <input type="date" name="startDate">
-        <textarea name="eventDetails" placeholder="Event Details"></textarea>
-        <button type="submit">Add Event</button>
-    </form>
-
-    <form action="/common/registerSchoolYearAnnouncement" method="post">
-        <textarea name="announcement" placeholder="Announcement Details"></textarea>
-        <button type="submit">Post Announcement</button>
     </form>
 
     <script>
