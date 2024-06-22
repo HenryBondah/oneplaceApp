@@ -1,89 +1,128 @@
-<main class="add-student-container">
-    <div class="messages">
-        <% if (messages.success) { %>
-            <p class="success"><%= messages.success %></p>
-        <% } %>
-        <% if (messages.error) { %>
-            <p class="error"><%= messages.error %></p>
-        <% } %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Student</title>
+    <style>
+        .link-to-manage-students {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .link-to-manage-students a {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .link-to-manage-students a:hover {
+            background-color: #0056b3;
+        }
+        .separator {
+            border-bottom: 1px solid #ccc;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Add the link to the Manage Students page -->
+    <div class="link-to-manage-students">
+        <a href="/common/manageStudents">Back</a>
     </div>
-    <h1>Add New Student</h1>
-    <form action="/common/addStudent" method="POST" enctype="multipart/form-data">
-        <fieldset>
-            <legend>Select Class & Subject (Required)</legend>
-            <div class="form-group">
-                <label for="classSelect">Class:</label>
-                <select id="classSelect" name="classId" required>
-                    <option value="">Select a Class</option>
-                    <% classes.forEach(function(cls) { %>
-                        <option value="<%= cls.class_id %>"><%= cls.class_name %></option>
-                    <% }); %>
-                </select>
-                <div id="gradYearGroupDisplay" style="margin-top: 10px;"></div>
-            </div>
-            <div class="form-group">
-                <label for="subjectSelect">Subjects:</label>
-                <div>
-                    <input type="checkbox" id="selectAllSubjects">
-                    <label for="selectAllSubjects">Select All Subjects</label>
-                </div>
-                <div id="subjectContainer">
-                    <!-- Subjects will be loaded here based on the selected class -->
-                </div>
-            </div>
-        </fieldset>
 
-        <br>
-        <div class="form-group">
-            <label for="firstName">Student First Name:</label>
-            <input type="text" id="firstName" name="firstName" required>
+    <!-- Horizontal line separator -->
+    <div class="separator"></div>
+
+    <main class="add-student-container">
+        <div class="messages">
+            <% if (messages.success) { %>
+                <p class="success"><%= messages.success %></p>
+            <% } %>
+            <% if (messages.error) { %>
+                <p class="error"><%= messages.error %></p>
+            <% } %>
         </div>
-        <div class="form-group">
-            <label for="lastName">Student Last Name:</label>
-            <input type="text" id="lastName" name="lastName" required>
-        </div>
-        <div class="form-group">
-            <label for="dateOfBirth">Date of Birth:</label>
-            <input type="date" id="dateOfBirth" name="dateOfBirth" required>
-        </div>
-        <div class="form-group">
-            <label for="height">Student Height (cm):</label>
-            <input type="number" id="height" name="height">
-        </div>
-        <div class="form-group">
-            <label for="hometown">Student Hometown:</label>
-            <input type="text" id="hometown" name="hometown">
-        </div>
-        <div class="form-group">
-            <label for="studentImage">Student Image (Optional):</label>
-            <input type="file" id="studentImage" name="studentImage" accept="image/*">
-        </div>
-        <% for (let i = 1; i <= 3; i++) { %>
-        <fieldset>
-            <legend>Guardian <%= i %> Information <%= i === 1 ? '(Required)' : '(Optional)' %></legend>
+        <h1>Add New Student</h1>
+        <form action="/common/addStudent" method="POST" enctype="multipart/form-data">
+            <fieldset>
+                <legend>Select Class & Subject (Required)</legend>
+                <div class="form-group">
+                    <label for="classSelect">Class:</label>
+                    <select id="classSelect" name="classId" required>
+                        <option value="">Select a Class</option>
+                        <% classes.forEach(function(cls) { %>
+                            <option value="<%= cls.class_id %>"><%= cls.class_name %></option>
+                        <% }); %>
+                    </select>
+                    <div id="gradYearGroupDisplay" style="margin-top: 10px;"></div>
+                </div>
+                <div class="form-group">
+                    <label for="subjectSelect">Subjects:</label>
+                    <div>
+                        <input type="checkbox" id="selectAllSubjects">
+                        <label for="selectAllSubjects">Select All Subjects</label>
+                    </div>
+                    <div id="subjectContainer">
+                        <!-- Subjects will be loaded here based on the selected class -->
+                    </div>
+                </div>
+            </fieldset>
+
+            <br>
             <div class="form-group">
-                <label for="guardian<%= i %>FirstName">Guardian <%= i %> First Name:</label>
-                <input type="text" id="guardian<%= i %>FirstName" name="guardian<%= i %>FirstName" <%= i === 1 ? 'required' : '' %>>
+                <label for="firstName">Student First Name:</label>
+                <input type="text" id="firstName" name="firstName" required>
             </div>
             <div class="form-group">
-                <label for="guardian<%= i %>LastName">Guardian Last Name:</label>
-                <input type="text" id="guardian<%= i %>LastName" name="guardian<%= i %>LastName" <%= i === 1 ? 'required' : '' %>>
+                <label for="lastName">Student Last Name:</label>
+                <input type="text" id="lastName" name="lastName" required>
             </div>
             <div class="form-group">
-                <label for="guardian<%= i %>Address">Guardian Address:</label>
-                <input type="text" id="guardian<%= i %>Address" name="guardian<%= i %>Address" <%= i === 1 ? 'required' : '' %>>
+                <label for="dateOfBirth">Date of Birth:</label>
+                <input type="date" id="dateOfBirth" name="dateOfBirth" required>
             </div>
             <div class="form-group">
-                <label for="guardian<%= i %>Phone">Guardian Phone:</label>
-                <input type="tel" id="guardian<%= i %>Phone" name="guardian<%= i %>Phone" <%= i === 1 ? 'required' : '' %>>
+                <label for="height">Student Height (cm):</label>
+                <input type="number" id="height" name="height">
             </div>
             <div class="form-group">
-                <label for="guardian<%= i %>Hometown">Guardian Hometown:</label>
-                <input type="text" id="guardian<%= i %>Hometown" name="guardian<%= i %>Hometown">
+                <label for="hometown">Student Hometown:</label>
+                <input type="text" id="hometown" name="hometown">
             </div>
-        </fieldset>
-        <% } %>
-        <button type="submit">Add Student</button>
-    </form>
-</main>
-<script src="/js/addStudent.js"></script>
+            <div class="form-group">
+                <label for="studentImage">Student Image (Optional):</label>
+                <input type="file" id="studentImage" name="studentImage" accept="image/*">
+            </div>
+            <% for (let i = 1; i <= 3; i++) { %>
+            <fieldset>
+                <legend>Guardian <%= i %> Information <%= i === 1 ? '(Required)' : '(Optional)' %></legend>
+                <div class="form-group">
+                    <label for="guardian<%= i %>FirstName">Guardian <%= i %> First Name:</label>
+                    <input type="text" id="guardian<%= i %>FirstName" name="guardian<%= i %>FirstName" <%= i === 1 ? 'required' : '' %>>
+                </div>
+                <div class="form-group">
+                    <label for="guardian<%= i %>LastName">Guardian Last Name:</label>
+                    <input type="text" id="guardian<%= i %>LastName" name="guardian<%= i %>LastName" <%= i === 1 ? 'required' : '' %>>
+                </div>
+                <div class="form-group">
+                    <label for="guardian<%= i %>Address">Guardian Address:</label>
+                    <input type="text" id="guardian<%= i %>Address" name="guardian<%= i %>Address" <%= i === 1 ? 'required' : '' %>>
+                </div>
+                <div class="form-group">
+                    <label for="guardian<%= i %>Phone">Guardian Phone:</label>
+                    <input type="tel" id="guardian<%= i %>Phone" name="guardian<%= i %>Phone" <%= i === 1 ? 'required' : '' %>>
+                </div>
+                <div class="form-group">
+                    <label for="guardian<%= i %>Hometown">Guardian Hometown:</label>
+                    <input type="text" id="guardian<%= i %>Hometown" name="guardian<%= i %>Hometown">
+                </div>
+            </fieldset>
+            <% } %>
+            <button type="submit">Add Student</button>
+        </form>
+    </main>
+    <script src="/js/addStudent.js"></script>
+</body>
+</html>

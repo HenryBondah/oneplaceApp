@@ -1,18 +1,58 @@
 <header id="top-header">
     <span class="siteName">
-        <img src="/images/1place.png" alt="Logo" class="logo">
-        <% if (session.organizationName) { %>
-            <a href="/common/orgDashboard" title="Go to dashboard"><%= session.organizationName %></a>
-        <% } else { %>
-            <a href="/" title="Return to home page">OnePlace</a>
-        <% } %>
+      <img src="/images/1place.png" alt="Logo" class="logo">
+      <% if (session.organizationName) { %>
+        <a href="/common/orgDashboard" title="Go to dashboard"><%= session.organizationName %></a>
+      <% } else { %>
+        <a href="/" title="Return to home page">OnePlace</a>
+      <% } %>
     </span>
     <div id="tools">
-        <% if (session.firstName) { %>
-            <a href="/common/management" title="Go to management page">Welcome, <%= session.firstName %>!</a>
-            <a href="/account/logout" title="Log out">Logout</a>
-        <% } else { %>
-            <a title="Click to log in" href="/account/login">Login | Register</a>
-        <% } %>
+      <% if (session.firstName) { %>
+        <a href="/common/management" title="Go to management page">Welcome, <%= session.firstName %>!</a> 
+        <div style="margin-left: 15px;">
+          <div class="hamburger" id="hamburger">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+          </div>
+          <ul class="nav-menu" id="nav-menu">
+            
+            <li class="nav-item">
+              <a href="/account/update">Update Account</a>
+            </li>
+            <li class="nav-item">
+                <a href="#">Management Tools</a>
+                <ul class="management-links">
+                  <li><a href="/common/manageRecords">Modify School Year, Events & Announcements</a></li>
+                  <li><a href="/common/manageClassSubjectAndGradYr">Modify Class, Subject & Graduation Year Group</a></li>
+                  <li><a href="/common/manageStudents">Manage Students (Edit, Delete, view student info)</a></li>
+                  <li><a href="/common/createEmployee">Create Employee Account</a></li>
+                  <li><a href="/account/personalization">Personalize Organization Space</a></li>
+                </ul>
+              </li>
+            <li class="nav-item">
+              <a href="/common/management">Settings</a>
+            </li>
+            <li class="nav-item">
+              <a href="/account/logout">Logout</a>
+            </li>
+          </ul>
+        </div>
+      <% } else { %>
+        <a title="Click to log in" href="/account/login">Login | Register</a>
+      <% } %>
     </div>
-</header>
+  </header>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const hamburger = document.getElementById('hamburger');
+      const navMenu = document.getElementById('nav-menu');
+  
+      hamburger.addEventListener('click', () => {
+        hamburger.classList.toggle('active');
+        navMenu.classList.toggle('show');
+      });
+    });
+  </script>
+  
