@@ -16,7 +16,11 @@ const pool = new Pool({
 
 // Test the pool connection
 pool.query('SELECT NOW()', (err, res) => {
-
+    if (err) {
+        console.error('Error connecting to the database:', err);
+    } else {
+        console.log('Database connection established at:', res.rows[0].now);
+    }
 });
 
 app.use(session({
@@ -35,14 +39,16 @@ app.use((req, res, next) => {
 // Middleware to check if user is authenticated and fetch organization ID
 function fetchOrganizationInfo(req, res, next) {
     if (req.session.userId) {
-        pool.query('SELECT u.first_name, o.organization_name FROM users u JOIN organizations o ON u.organization_id = o.organization_id WHERE u.user_id = $1', [req.session.userId], (err, result) => {
+        pool.query('SELECT u.first_name, o.organization_id, o.organization_name FROM users u JOIN organizations o ON u.organization_id = o.organization_id WHERE u.user_id = $1', [req.session.userId], (err, result) => {
             if (err) {
                 console.error('Error fetching organization info:', err);
                 next(err);
             } else {
-                req.session.organizationId = result.rows[0].organization_id;
-                req.session.organizationName = result.rows[0].organization_name;
-                req.session.firstName = result.rows[0].first_name;
+                if (result.rows.length > 0) {
+                    req.session.organizationId = result.rows[0].organization_id;
+                    req.session.organizationName = result.rows[0].organization_name;
+                    req.session.firstName = result.rows[0].first_name;
+                }
                 next();
             }
         });
