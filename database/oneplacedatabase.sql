@@ -262,3 +262,6 @@ ALTER TABLE subjects
 ADD COLUMN grad_year_group_id INT REFERENCES graduation_year_groups(id) ON DELETE CASCADE;
 
 ALTER TABLE terms ADD COLUMN current BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE school_events ADD COLUMN visibility VARCHAR(10) DEFAULT 'both';
+ALTER TABLE announcements ADD COLUMN visibility VARCHAR(10) DEFAULT 'both';

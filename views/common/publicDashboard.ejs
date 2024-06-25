@@ -1,0 +1,148 @@
+<style>/* Add to your CSS file */
+    .dashboard-buttons {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    
+    .dashboard-buttons button {
+      margin: 0 10px;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    
+    .dashboard-buttons button:hover,
+    .dashboard-buttons button.active {
+      background-color: #0056b3;
+    }
+    
+    .dashboard-container, .public-dashboard-container {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 90%;
+      max-width: 1200px;
+      margin: auto;
+    }
+    
+    .classes-container, .events-container, .announcements-container {
+      width: 100%;
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .info-grid, .public-info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    
+    .calendar-container {
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .date {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    
+    .time {
+      font-size: 16px;
+      color: #555;
+    }
+    
+    .line-divider {
+      width: 100%;
+      border-top: 2px solid #ddd;
+      margin: 20px 0;
+    }
+    
+    @media (max-width: 768px) {
+      .info-grid, .public-info-grid {
+          grid-template-columns: 1fr; /* Stack the items vertically on smaller screens */
+      }
+    }
+    </style><div class="public-dashboard-container">
+    <h1>Public Dashboard</h1>
+    <div class="public-info-grid">
+        <div class="calendar-container">
+            <h2>Today's Date and Time</h2>
+            <div class="date" id="publicCurrentDate"></div>
+            <div class="time" id="publicCurrentTime"></div>
+        </div>
+
+        <div class="school-year-info">
+            <% if (schoolYear) { %>
+                <h2>Current School Year: <%= schoolYear.year_label %></h2>
+                <% if (currentTerm) { %>
+                    <div>
+                        <strong><%= currentTerm.term_name %>:</strong>
+                        Start: <%= new Date(currentTerm.start_date).toISOString().split('T')[0] %>,
+                        End: <%= new Date(currentTerm.end_date).toISOString().split('T')[0] %>
+                        <div class="countdown" data-start-date="<%= currentTerm.start_date.toISOString() %>" data-end-date="<%= currentTerm.end_date.toISOString() %>" data-term-name="<%= currentTerm.term_name %>"></div>
+                    </div>
+                    <div>
+                        <strong>Days until end of term: </strong>
+                        <span id="publicDaysUntilEnd"><%= Math.ceil((new Date(currentTerm.end_date) - new Date()) / (1000 * 60 * 60 * 24)) %></span>
+                    </div>
+                <% } else { %>
+                    <p>No current term information available.</p>
+                <% } %>
+            <% } else { %>
+                <div class="school-year-info">
+                    <h2>No current school year information available.</h2>
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <div class="events-container">
+        <h2>Events</h2>
+        <ul>
+            <% if (events && events.length > 0) { %>
+                <% events.forEach(function(event) { %>
+                    <li><strong><%= event.name %></strong> - <%= new Date(event.event_date).toISOString().split('T')[0] %><br><%= event.details %></li>
+                <% }); %>
+            <% } else { %>
+                <li>No events found</li>
+            <% } %>
+        </ul>
+    </div>
+
+    <div class="announcements-container">
+        <h2>Announcements</h2>
+        <ul>
+            <% if (announcements && announcements.length > 0) { %>
+                <% announcements.forEach(function(announcement) { %>
+                    <li><%= announcement.message %></li>
+                <% }); %>
+            <% } else { %>
+                <li>No announcements found</li>
+            <% } %>
+        </ul>
+    </div>
+</div>
+
+<script>
+function updateDateTime() {
+    const now = new Date();
+    document.getElementById('publicCurrentDate').innerText = now.toLocaleDateString();
+    document.getElementById('publicCurrentTime').innerText = now.toLocaleTimeString();
+}
+setInterval(updateDateTime, 1000);
+updateDateTime();
+</script>

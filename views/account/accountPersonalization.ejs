@@ -1,6 +1,13 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+<body>
     <h1>Personalize Your Interface</h1>
-    <form action="/personalization" method="POST" enctype="multipart/form-data">
+    <form action="/account/personalization" method="POST" enctype="multipart/form-data">
         <div>
             <label for="orgName">Organization Name:</label>
             <input type="text" id="orgName" name="orgName" value="<%= orgDetails.organization_name %>" required>
@@ -23,5 +30,18 @@
             </select>
         </div>
         <button type="submit">Apply Personalization</button>
+
+        <br>
+
+        <div class="public-dashboard-link">
+            <h2>Public Dashboard</h2>
+            <p>Access the public dashboard for your organization:</p>
+            <a href="/<%= orgDetails.organization_name.replace(/\s+/g, '').toLowerCase() %>-<%= organizationId %>-public.edu">
+                /<%= orgDetails.organization_name.replace(/\s+/g, '').toLowerCase() %>-<%= organizationId %>-public.edu
+            </a>
+        </div>
     </form>
 
+    
+</body>
+</html>

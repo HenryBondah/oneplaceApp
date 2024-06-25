@@ -56,6 +56,14 @@
                         <label>Details:</label>
                         <textarea name="details"><%= event.details %></textarea>
                     </div>
+                    <div>
+                        <label for="visibility">Visibility:</label>
+                        <select name="visibility">
+                            <option value="org" <%= event.visibility === 'org' ? 'selected' : '' %>>Org Dashboard</option>
+                            <option value="public" <%= event.visibility === 'public' ? 'selected' : '' %>>Public</option>
+                            <option value="both" <%= event.visibility === 'both' ? 'selected' : '' %>>Both</option>
+                        </select>
+                    </div>
                     <button type="submit">Save</button>
                     <a href="#" onclick="deleteEvent(<%= event.id %>)">Delete</a>
                 </form>
@@ -69,6 +77,14 @@
                 <form action="/common/updateAnnouncement" method="post">
                     <input type="hidden" name="announcementId" value="<%= announcement.announcement_id %>">
                     <textarea name="message"><%= announcement.message %></textarea>
+                    <div>
+                        <label for="visibility">Visibility:</label>
+                        <select name="visibility">
+                            <option value="org" <%= announcement.visibility === 'org' ? 'selected' : '' %>>Org Dashboard</option>
+                            <option value="public" <%= announcement.visibility === 'public' ? 'selected' : '' %>>Public</option>
+                            <option value="both" <%= announcement.visibility === 'both' ? 'selected' : '' %>>Both</option>
+                        </select>
+                    </div>
                     <button type="submit">Save</button>
                     <a href="#" onclick="deleteRecord('announcement', <%= announcement.announcement_id %>)">Delete</a>
                 </form>

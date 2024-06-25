@@ -38,17 +38,33 @@
     <!-- Horizontal line separator -->
     <div class="separator"></div>
 
-   
     <h1>Event</h1>
     <form action="/common/registerSchoolYearEvent" method="post">
         <input type="text" name="eventName" placeholder="Event Name">
         <input type="date" name="startDate">
         <textarea name="eventDetails" placeholder="Event Details"></textarea>
+        <div>
+            <label for="visibility">Visibility:</label>
+            <select name="visibility" id="visibility">
+                <option value="org">Org Dashboard</option>
+                <option value="public">Public</option>
+                <option value="both" selected>Both</option>
+            </select>
+        </div>
         <button type="submit">Add Event</button>
     </form>
+
     <h1>Announcement</h1>
     <form action="/common/registerSchoolYearAnnouncement" method="post">
         <textarea name="announcement" placeholder="Announcement Details"></textarea>
+        <div>
+            <label for="visibility">Visibility:</label>
+            <select name="visibility" id="visibility">
+                <option value="org">Org Dashboard</option>
+                <option value="public">Public</option>
+                <option value="both" selected>Both</option>
+            </select>
+        </div>
         <button type="submit">Post Announcement</button>
     </form>
 

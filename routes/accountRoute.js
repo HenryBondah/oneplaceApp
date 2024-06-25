@@ -7,7 +7,6 @@ const fs = require('fs');
 module.exports = function(app, pool) {
     const upload = multer({ dest: 'uploads/' });
 
-    // Middleware to check if user is authenticated
     function isAuthenticated(req, res, next) {
         if (req.session.organizationId || req.session.userId) {
             return next();
@@ -16,7 +15,6 @@ module.exports = function(app, pool) {
         }
     }
 
-    // Middleware to check if organization is active (not on hold or deleted)
     async function checkOrganizationStatus(req, res, next) {
         if (req.session.organizationId) {
             try {
@@ -220,7 +218,7 @@ module.exports = function(app, pool) {
         try {
             const result = await pool.query('SELECT * FROM organizations WHERE organization_id = $1', [req.session.organizationId]);
             const orgDetails = result.rows[0];
-            res.render('account/update', { title: 'Update Account Information', orgDetails, messages: req.flash() });
+            res.render('account/update', { title: 'Update Account Information', orgDetails, success_msg: req.flash('success'), error_msg: req.flash('error') });
         } catch (error) {
             console.error('Error fetching organization details:', error);
             req.flash('error', 'Failed to load account information. Please try again.');
@@ -229,16 +227,28 @@ module.exports = function(app, pool) {
     });
 
     app.post('/account/update', isAuthenticated, async (req, res) => {
-        const { firstName, lastName, email, orgName, orgAddress, orgPhone } = req.body;
+        const { firstName, lastName, email, phone, password } = req.body;
         const orgId = req.session.organizationId;
 
         try {
-            await pool.query(
-                'UPDATE organizations SET first_name = $1, last_name = $2, email = $3, organization_name = $4, organization_address = $5, organization_phone = $6 WHERE organization_id = $7',
-                [firstName, lastName, email, orgName, orgAddress, orgPhone, orgId]
-            );
+            let query = 'UPDATE organizations SET first_name = $1, last_name = $2, email = $3, organization_phone = $4';
+            let params = [firstName, lastName, email, phone, orgId];
+
+            if (password) {
+                const hashedPassword = await bcrypt.hash(password, 10);
+                query += ', password = $5 WHERE organization_id = $6';
+                params.push(hashedPassword);
+            } else {
+                query += ' WHERE organization_id = $5';
+            }
+
+            await pool.query(query, params);
+
+            req.session.firstName = firstName;
+            req.session.lastName = lastName;
+
             req.flash('success', 'Account information updated successfully.');
-            res.redirect('/account');
+            res.redirect('/account/update');
         } catch (error) {
             console.error('Error updating account:', error);
             req.flash('error', 'Failed to update account information. Please try again.');
@@ -248,13 +258,19 @@ module.exports = function(app, pool) {
 
     app.get('/account/personalization', isAuthenticated, async (req, res) => {
         try {
-            const result = await pool.query('SELECT * FROM organizations WHERE organization_id = $1', [req.session.organizationId]);
+            const { organizationId } = req.session;
+            const result = await pool.query('SELECT * FROM organizations WHERE organization_id = $1', [organizationId]);
             const orgDetails = result.rows[0];
-            res.render('account/accountPersonalization', { title: 'Account Personalization', orgDetails, messages: req.flash() });
+
+            res.render('account/accountPersonalization', {
+                title: 'Account Personalization',
+                orgDetails,
+                organizationId
+            });
         } catch (error) {
-            console.error('Error fetching organization details:', error);
-            req.flash('error', 'Failed to load personalization settings. Please try again.');
-            res.redirect('/account');
+            console.error('Error rendering account personalization page:', error);
+            req.flash('error', 'Failed to load personalization page.');
+            res.redirect('/');
         }
     });
 
@@ -277,18 +293,21 @@ module.exports = function(app, pool) {
         }
     });
 
-    // API route to get subjects by class ID
-    app.get('/api/getSubjectsByClass', isAuthenticated, async (req, res) => {
-        const { classId } = req.query;
-        if (!classId) {
-            return res.status(400).json({ message: "Class ID is required" });
-        }
+    app.post('/account/setCustomUri', isAuthenticated, async (req, res) => {
+        const { customUri } = req.body;
+        const orgId = req.session.organizationId;
+
         try {
-            const result = await pool.query('SELECT subject_id, subject_name FROM subjects WHERE class_id = $1', [classId]);
-            res.json(result.rows);
+            await pool.query(
+                'UPDATE organizations SET custom_uri = $1 WHERE organization_id = $2',
+                [customUri, orgId]
+            );
+            req.flash('success', 'Custom URI set successfully.');
+            res.redirect('/account/personalization');
         } catch (error) {
-            console.error('Error fetching subjects:', error);
-            res.status(500).json({ message: 'Failed to fetch subjects.' });
+            console.error('Error setting custom URI:', error);
+            req.flash('error', 'Failed to set custom URI. Please try again.');
+            res.redirect('/account/personalization');
         }
     });
 };

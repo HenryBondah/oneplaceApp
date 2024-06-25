@@ -1,4 +1,4 @@
-/* Org Dashboard */
+/* Add to your CSS file */
 .dashboard-buttons {
   display: flex;
   justify-content: center;
@@ -20,7 +20,7 @@
   background-color: #0056b3;
 }
 
-.dashboard-container {
+.dashboard-container, .public-dashboard-container {
   margin-top: 20px;
   display: flex;
   flex-direction: column;
@@ -30,7 +30,7 @@
   margin: auto;
 }
 
-.classes-container {
+.classes-container, .events-container, .announcements-container {
   width: 100%;
   background: #f9f9f9;
   padding: 20px;
@@ -38,18 +38,12 @@
   margin-bottom: 20px;
 }
 
-.info-grid {
+.info-grid, .public-info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   width: 100%;
   margin-bottom: 20px;
-}
-
-.school-image-container img {
-  width: 100%;
-  height: auto;
-  border-radius: 8px;
 }
 
 .calendar-container {
@@ -64,20 +58,11 @@
 .date {
   font-size: 24px;
   font-weight: bold;
-  margin-bottom: 8px;
 }
 
 .time {
   font-size: 16px;
   color: #555;
-}
-
-.events-container, .announcements-container {
-  width: 100%;
-  background: #f9f9f9;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
 }
 
 .line-divider {
@@ -87,7 +72,7 @@
 }
 
 @media (max-width: 768px) {
-  .info-grid {
+  .info-grid, .public-info-grid {
       grid-template-columns: 1fr; /* Stack the items vertically on smaller screens */
   }
 }
