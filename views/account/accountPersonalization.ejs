@@ -1,47 +1,69 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title><%= title %></title>
-    <link rel="stylesheet" href="/stylesheets/style.css">
-</head>
-<body>
-    <h1>Personalize Your Interface</h1>
-    <form action="/account/personalization" method="POST" enctype="multipart/form-data">
-        <div>
-            <label for="orgName">Organization Name:</label>
-            <input type="text" id="orgName" name="orgName" value="<%= orgDetails.organization_name %>" required>
-        </div>
-        <div>
-            <label for="logo">Upload Logo:</label>
-            <input type="file" id="logo" name="logo" accept="image/*">
-        </div>
-        <div>
-            <label for="color">Choose Primary Color:</label>
-            <input type="color" id="color" name="color" value="<%= orgDetails.primary_color %>">
-        </div>
-        <div>
-            <label for="font">Select Font Type:</label>
-            <select id="font" name="font">
-                <option value="Arial" <%= orgDetails.font_style === 'Arial' ? 'selected' : '' %>>Arial</option>
-                <option value="Verdana" <%= orgDetails.font_style === 'Verdana' ? 'selected' : '' %>>Verdana</option>
-                <option value="Helvetica" <%= orgDetails.font_style === 'Helvetica' ? 'selected' : '' %>>Helvetica</option>
-                <option value="Times New Roman" <%= orgDetails.font_style === 'Times New Roman' ? 'selected' : '' %>>Times New Roman</option>
-            </select>
-        </div>
-        <button type="submit">Apply Personalization</button>
+<div class="manage-public-content-link" style="text-align: center;">
+    <a href="/account/managePublicContent" class="btn btn-primary">
+        Manage Public Content
+    </a>
+</div>
+<hr>
+<h1>Personalize Your Interface</h1>
+<form action="/account/personalization" method="POST" enctype="multipart/form-data">
+    <div>
+        <label for="orgName">Organization Name:</label>
+        <input type="text" id="orgName" name="orgName" value="<%= orgDetails.organization_name %>" required>
+    </div>
+    <div>
+        <label for="logo">Upload Logo:</label>
+        <input type="file" id="logo" name="logo" accept="image/*">
+    </div>
+    <div>
+        <label for="color">Choose Primary Color:</label>
+        <input type="color" id="color" name="color" value="<%= orgDetails.primary_color %>">
+    </div>
+    <div>
+        <label for="font">Select Font Type:</label>
+        <select id="font" name="font">
+            <option value="Arial" <%= orgDetails.font_style === 'Arial' ? 'selected' : '' %>>Arial</option>
+            <option value="Verdana" <%= orgDetails.font_style === 'Verdana' ? 'selected' : '' %>>Verdana</option>
+            <option value="Helvetica" <%= orgDetails.font_style === 'Helvetica' ? 'selected' : '' %>>Helvetica</option>
+            <option value="Times New Roman" <%= orgDetails.font_style === 'Times New Roman' ? 'selected' : '' %>>Times New Roman</option>
+        </select>
+    </div>
+    <button type="submit">Apply Personalization</button>
+</form>
 
-        <br>
+<form action="/account/uploadSlideshowImages" method="POST" enctype="multipart/form-data">
+    <h2>Upload Slideshow Images</h2>
 
-        <div class="public-dashboard-link">
-            <h2>Public Dashboard</h2>
-            <p>Access the public dashboard for your organization:</p>
-            <a href="/<%= orgDetails.organization_name.replace(/\s+/g, '').toLowerCase() %>-<%= organizationId %>-public.edu">
-                /<%= orgDetails.organization_name.replace(/\s+/g, '').toLowerCase() %>-<%= organizationId %>-public.edu
-            </a>
-        </div>
-    </form>
+    <div>
+        <label for="slideshowImages">Select Images:</label>
+        <input type="file" id="slideshowImages" name="slideshowImages" accept="image/*" multiple required>
+    </div>
+    <div>
+        <label for="imageText">Text for Images:</label>
+        <input type="text" id="imageText" name="imageText" placeholder="Enter text for the image">
+    </div>
+    <button type="submit">Upload Images</button>
+</form>
 
-    
-</body>
-</html>
+<form action="/account/addTextSection" method="POST">
+    <h2>Add Text Section</h2>
+    <div>
+        <label for="heading">Heading:</label>
+        <input type="text" id="heading" name="heading" required>
+    </div>
+    <div>
+        <label for="paragraph">Text:</label>
+        <textarea id="paragraph" name="paragraph" rows="4" required></textarea>
+    </div>
+    <button type="submit">Add Text Section</button>
+</form>
+
+<hr>
+
+
+<div class="public-dashboard-link">
+    <h2>Public Dashboard</h2>
+    <p>Access the public dashboard for your organization:</p>
+    <a href="/common/publicDashboardContent?organizationId=<%= organizationId %>">
+        /common/publicDashboardContent?organizationId=<%= organizationId %>
+    </a>
+</div>

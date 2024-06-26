@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manage Public Content</title>
+    <link rel="stylesheet" type="text/css" href="/styles.css">
+    <style>
+        .manage-public-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .content-container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 20px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .content-item {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .content-item img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px;
+        }
+
+        .content-item h2,
+        .content-item p {
+            margin: 10px 0;
+        }
+
+        .content-item form {
+            display: inline-block;
+        }
+
+        .content-item form button {
+            margin-right: 10px;
+        }
+
+        .content-item .delete-link {
+            display: block;
+            margin-top: 10px;
+            color: red;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="manage-public-container">
+        <div class="button-container">
+            <a href="/account/accountPersonalization" class="btn btn-primary">
+                Back
+            </a>
+        
+            <hr>
+        </div>
+        <hr>
+        <h1>Manage Public Content</h1>
+        <div class="content-container">
+            
+                    <form action="/account/updateImage" method="POST">
+                        <% images.forEach(image => { %>
+                            <div class="content-item">
+                                <img src="/<%= image.image_url %>" alt="Image">
+                        <input type="hidden" name="imageId" value="<%= image.image_id %>">
+                        <label for="caption">Caption:</label>
+                        <input type="text" name="caption" value="<%= image.caption %>">
+                        <button type="submit">Update</button>
+                    </form>
+                    <a href="/account/deleteImage/<%= image.image_id %>" class="delete-link">Delete</a>
+                </div>
+            <% }) %>
+        </div>
+        <div class="content-container">
+            <% texts.forEach(text => { %>
+                <div class="content-item">
+                    <form action="/account/updateText" method="POST">
+                        <h2>Texts</h2>
+                        <input type="hidden" name="textId" value="<%= text.text_id %>">
+                        <label for="heading">Heading:</label>
+                        <input type="text" name="heading" value="<%= text.heading %>">
+                        <label for="paragraph">Paragraph:</label>
+                        <textarea name="paragraph" rows="4"><%= text.paragraph %></textarea>
+                        <button type="submit">Update</button>
+                    </form>
+                    <a href="/account/deleteText/<%= text.text_id %>" class="delete-link">Delete</a>
+                </div>
+            <% }) %>
+        </div>
+    </div>
+</body>
+</html>

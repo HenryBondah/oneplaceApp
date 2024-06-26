@@ -265,3 +265,18 @@ ALTER TABLE terms ADD COLUMN current BOOLEAN DEFAULT FALSE;
 
 ALTER TABLE school_events ADD COLUMN visibility VARCHAR(10) DEFAULT 'both';
 ALTER TABLE announcements ADD COLUMN visibility VARCHAR(10) DEFAULT 'both';
+CREATE TABLE organization_images (
+    image_id SERIAL PRIMARY KEY,
+    organization_id INTEGER NOT NULL,
+    image_url TEXT NOT NULL,
+    caption TEXT NOT NULL,
+    FOREIGN KEY (organization_id) REFERENCES organizations(organization_id)
+);
+
+CREATE TABLE organization_texts (
+    text_id SERIAL PRIMARY KEY,
+    organization_id INTEGER NOT NULL,
+    heading TEXT NOT NULL,
+    paragraph TEXT NOT NULL,
+    FOREIGN KEY (organization_id) REFERENCES organizations(organization_id)
+);

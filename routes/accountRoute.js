@@ -1,3 +1,4 @@
+// routes/accountRoute.js
 const express = require('express');
 const bcrypt = require('bcrypt');
 const multer = require('multer');
@@ -7,6 +8,7 @@ const fs = require('fs');
 module.exports = function(app, pool) {
     const upload = multer({ dest: 'uploads/' });
 
+    // Middleware to check if user is authenticated
     function isAuthenticated(req, res, next) {
         if (req.session.organizationId || req.session.userId) {
             return next();
@@ -15,6 +17,7 @@ module.exports = function(app, pool) {
         }
     }
 
+    // Middleware to check if organization is active (not on hold or deleted)
     async function checkOrganizationStatus(req, res, next) {
         if (req.session.organizationId) {
             try {
@@ -214,6 +217,7 @@ module.exports = function(app, pool) {
         res.render('account/account', { title: 'Account Management', messages: req.flash() });
     });
 
+    // Route to display the update form
     app.get('/account/update', isAuthenticated, async (req, res) => {
         try {
             const result = await pool.query('SELECT * FROM organizations WHERE organization_id = $1', [req.session.organizationId]);
@@ -226,6 +230,7 @@ module.exports = function(app, pool) {
         }
     });
 
+    // Route to handle the update form submission
     app.post('/account/update', isAuthenticated, async (req, res) => {
         const { firstName, lastName, email, phone, password } = req.body;
         const orgId = req.session.organizationId;
@@ -244,6 +249,7 @@ module.exports = function(app, pool) {
 
             await pool.query(query, params);
 
+            // Update session values
             req.session.firstName = firstName;
             req.session.lastName = lastName;
 
@@ -259,13 +265,14 @@ module.exports = function(app, pool) {
     app.get('/account/personalization', isAuthenticated, async (req, res) => {
         try {
             const { organizationId } = req.session;
+    
             const result = await pool.query('SELECT * FROM organizations WHERE organization_id = $1', [organizationId]);
             const orgDetails = result.rows[0];
-
+    
             res.render('account/accountPersonalization', {
                 title: 'Account Personalization',
-                orgDetails,
-                organizationId
+                organizationId,
+                orgDetails
             });
         } catch (error) {
             console.error('Error rendering account personalization page:', error);
@@ -273,6 +280,7 @@ module.exports = function(app, pool) {
             res.redirect('/');
         }
     });
+    
 
     app.post('/account/personalization', upload.single('logo'), isAuthenticated, async (req, res) => {
         const { primaryColor, fontStyle } = req.body;
@@ -293,21 +301,134 @@ module.exports = function(app, pool) {
         }
     });
 
-    app.post('/account/setCustomUri', isAuthenticated, async (req, res) => {
-        const { customUri } = req.body;
-        const orgId = req.session.organizationId;
-
+    // API route to get subjects by class ID
+    app.get('/api/getSubjectsByClass', isAuthenticated, async (req, res) => {
+        const { classId } = req.query;
+        if (!classId) {
+            return res.status(400).json({ message: "Class ID is required" });
+        }
         try {
-            await pool.query(
-                'UPDATE organizations SET custom_uri = $1 WHERE organization_id = $2',
-                [customUri, orgId]
-            );
-            req.flash('success', 'Custom URI set successfully.');
+            const result = await pool.query('SELECT subject_id, subject_name FROM subjects WHERE class_id = $1', [classId]);
+            res.json(result.rows);
+        } catch (error) {
+            console.error('Error fetching subjects:', error);
+            res.status(500).json({ message: 'Failed to fetch subjects.' });
+        }
+    });
+
+    // Route for uploading slideshow images
+    app.post('/account/uploadSlideshowImages', upload.array('slideshowImages', 10), isAuthenticated, async (req, res) => {
+        const images = req.files;
+        const imageText = req.body.imageText;
+        const orgId = req.session.organizationId;
+    
+        try {
+            for (const image of images) {
+                await pool.query(
+                    'INSERT INTO organization_images (organization_id, image_url, caption) VALUES ($1, $2, $3)',
+                    [orgId, image.path, imageText]
+                );
+            }
+            req.flash('success', 'Images uploaded successfully.');
             res.redirect('/account/personalization');
         } catch (error) {
-            console.error('Error setting custom URI:', error);
-            req.flash('error', 'Failed to set custom URI. Please try again.');
+            console.error('Error uploading images:', error);
+            req.flash('error', 'Failed to upload images. Please try again.');
             res.redirect('/account/personalization');
         }
     });
+
+    
+
+// Route for adding text sections
+app.post('/account/addTextSection', isAuthenticated, async (req, res) => {
+    const { heading, paragraph } = req.body;
+    const orgId = req.session.organizationId;
+
+    try {
+        await pool.query(
+            'INSERT INTO organization_texts (organization_id, heading, paragraph) VALUES ($1, $2, $3)',
+            [orgId, heading, paragraph]
+        );
+        req.flash('success', 'Text section added successfully.');
+        res.redirect('/account/personalization');
+    } catch (error) {
+        console.error('Error adding text section:', error);
+        req.flash('error', 'Failed to add text section. Please try again.');
+        res.redirect('/account/personalization');
+    }
+});
+
+app.get('/account/managePublicContent', isAuthenticated, async (req, res) => {
+    const { organizationId } = req.session;
+
+    try {
+        const imagesResult = await pool.query('SELECT * FROM organization_images WHERE organization_id = $1', [organizationId]);
+        const textsResult = await pool.query('SELECT * FROM organization_texts WHERE organization_id = $1', [organizationId]);
+
+        res.render('account/managePublicContent', {
+            title: 'Manage Public Content',
+            images: imagesResult.rows,
+            texts: textsResult.rows
+        });
+    } catch (error) {
+        console.error('Error fetching public content:', error);
+        req.flash('error', 'Failed to load public content.');
+        res.redirect('/account');
+    }
+});
+
+app.post('/account/updateImage', isAuthenticated, async (req, res) => {
+    const { imageId, caption } = req.body;
+    const { organizationId } = req.session;
+
+    try {
+        await pool.query('UPDATE organization_images SET caption = $1 WHERE image_id = $2 AND organization_id = $3', [caption, imageId, organizationId]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error updating image:', error);
+        res.json({ success: false });
+    }
+});
+
+app.post('/account/deleteImage', isAuthenticated, async (req, res) => {
+    const { imageId } = req.body;
+    const { organizationId } = req.session;
+
+    try {
+        await pool.query('DELETE FROM organization_images WHERE image_id = $1 AND organization_id = $2', [imageId, organizationId]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting image:', error);
+        res.json({ success: false });
+    }
+});
+
+app.post('/account/updateText', isAuthenticated, async (req, res) => {
+    const { textId, heading, paragraph } = req.body;
+    const { organizationId } = req.session;
+
+    try {
+        await pool.query('UPDATE organization_texts SET heading = $1, paragraph = $2 WHERE text_id = $3 AND organization_id = $4', [heading, paragraph, textId, organizationId]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error updating text:', error);
+        res.json({ success: false });
+    }
+});
+
+app.post('/account/deleteText', isAuthenticated, async (req, res) => {
+    const { textId } = req.body;
+    const { organizationId } = req.session;
+
+    try {
+        await pool.query('DELETE FROM organization_texts WHERE text_id = $1 AND organization_id = $2', [textId, organizationId]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting text:', error);
+        res.json({ success: false });
+    }
+});
+
+
 };

@@ -111,11 +111,11 @@
         })
         .catch(error => console.error('Error fetching public dashboard content:', error));
 
-    function updateDateTime() {
-        const now = new Date();
-        document.getElementById('currentDate').innerText = now.toLocaleDateString();
-        document.getElementById('currentTime').innerText = now.toLocaleTimeString();
-    }
+    // function updateDateTime() {
+    //     const now = new Date();
+    //     document.getElementById('currentDate').innerText = now.toLocaleDateString();
+    //     document.getElementById('currentTime').innerText = now.toLocaleTimeString();
+    // }
     setInterval(updateDateTime, 1000);
     updateDateTime();
 </script>

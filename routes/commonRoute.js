@@ -100,125 +100,11 @@ app.get('/common/orgDashboard', isAuthenticated, async (req, res) => {
 
         // Fetch events and filter by visibility
         const eventsResult = await db.query('SELECT * FROM school_events WHERE organization_id = $1 ORDER BY event_date', [organizationId]);
-        const events = eventsResult.rows;
-
-        // Fetch announcements and filter by visibility
-        const announcementsResult = await db.query('SELECT * FROM announcements WHERE organization_id = $1 ORDER BY announcement_id DESC', [organizationId]);
-        const announcements = announcementsResult.rows;
-
-        res.render('common/orgDashboard', {
-            title: 'Organization Dashboard',
-            schoolYear,
-            currentTerm,
-            classes,
-            events,
-            announcements,
-            organizationId, // Ensure this is passed
-            messages: req.flash()
-        });
-    } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        req.flash('error', 'Failed to load dashboard data.');
-        res.redirect('/');
-    }
-});
-app.get('/common/orgDashboard', isAuthenticated, async (req, res) => {
-    try {
-        const { organizationId } = req.session;
-
-        // Fetch the current school year and its terms
-        const schoolYearResult = await db.query(`
-            SELECT sy.id as school_year_id, sy.year_label, t.term_id, t.term_name, t.start_date, t.end_date, t.current
-            FROM school_years sy
-            LEFT JOIN terms t ON sy.id = t.school_year_id
-            WHERE sy.organization_id = $1 AND sy.current = TRUE
-            ORDER BY t.start_date
-        `, [organizationId]);
-
-        let schoolYear = null;
-        let currentTerm = null;
-        if (schoolYearResult.rows.length > 0) {
-            schoolYear = {
-                id: schoolYearResult.rows[0].school_year_id,
-                year_label: schoolYearResult.rows[0].year_label,
-                terms: schoolYearResult.rows.map(row => ({
-                    term_id: row.term_id,
-                    term_name: row.term_name,
-                    start_date: row.start_date,
-                    end_date: row.end_date,
-                    current: row.current
-                }))
-            };
-
-            currentTerm = schoolYearResult.rows.find(row => row.current);
-        }
-
-        // Fetch classes
-        const classesResult = await db.query('SELECT class_id, class_name FROM classes WHERE organization_id = $1 ORDER BY class_name', [organizationId]);
-        const classes = classesResult.rows;
-
-        // Fetch events and filter by visibility
-        const eventsResult = await db.query('SELECT * FROM school_events WHERE organization_id = $1 ORDER BY event_date', [organizationId]);
         const events = eventsResult.rows.filter(event => event.visibility === 'org' || event.visibility === 'both');
 
         // Fetch announcements and filter by visibility
         const announcementsResult = await db.query('SELECT * FROM announcements WHERE organization_id = $1 ORDER BY announcement_id DESC', [organizationId]);
         const announcements = announcementsResult.rows.filter(announcement => announcement.visibility === 'org' || announcement.visibility === 'both');
-
-        res.render('common/orgDashboard', {
-            title: 'Organization Dashboard',
-            schoolYear,
-            currentTerm,
-            classes,
-            events,
-            announcements,
-            messages: req.flash()
-        });
-    } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        req.flash('error', 'Failed to load dashboard data.');
-        res.redirect('/');
-    }
-});
-
-// Route for organization dashboard
-app.get('/common/orgDashboard', isAuthenticated, async (req, res) => {
-    try {
-        const { organizationId } = req.session;
-        const schoolYearResult = await db.query(`
-            SELECT sy.id as school_year_id, sy.year_label, t.term_id, t.term_name, t.start_date, t.end_date, t.current
-            FROM school_years sy
-            LEFT JOIN terms t ON sy.id = t.school_year_id
-            WHERE sy.organization_id = $1 AND sy.current = TRUE
-            ORDER BY t.start_date
-        `, [organizationId]);
-
-        let schoolYear = null;
-        let currentTerm = null;
-        if (schoolYearResult.rows.length > 0) {
-            schoolYear = {
-                id: schoolYearResult.rows[0].school_year_id,
-                year_label: schoolYearResult.rows[0].year_label,
-                terms: schoolYearResult.rows.map(row => ({
-                    term_id: row.term_id,
-                    term_name: row.term_name,
-                    start_date: row.start_date,
-                    end_date: row.end_date,
-                    current: row.current
-                }))
-            };
-
-            currentTerm = schoolYearResult.rows.find(row => row.current);
-        }
-
-        const classesResult = await db.query('SELECT class_id, class_name FROM classes WHERE organization_id = $1 ORDER BY class_name', [organizationId]);
-        const classes = classesResult.rows;
-
-        const eventsResult = await db.query('SELECT * FROM school_events WHERE organization_id = $1 ORDER BY event_date', [organizationId]);
-        const events = eventsResult.rows;
-
-        const announcementsResult = await db.query('SELECT * FROM announcements WHERE organization_id = $1 ORDER BY announcement_id DESC', [organizationId]);
-        const announcements = announcementsResult.rows;
 
         res.render('common/orgDashboard', {
             title: 'Organization Dashboard',
@@ -242,12 +128,11 @@ app.get('/common/orgDashboard', isAuthenticated, async (req, res) => {
 
 app.get('/common/publicDashboardContent', async (req, res) => {
     try {
-        const organizationId = parseInt(req.query.organizationId, 10); // Ensure organization_id is an integer
+        const organizationId = parseInt(req.query.organizationId, 10);
         if (isNaN(organizationId)) {
             throw new Error('Invalid organization_id');
         }
 
-        // Fetch the current school year and its terms
         const schoolYearResult = await db.query(`
             SELECT sy.id as school_year_id, sy.year_label, t.term_id, t.term_name, t.start_date, t.end_date, t.current
             FROM school_years sy
@@ -274,13 +159,17 @@ app.get('/common/publicDashboardContent', async (req, res) => {
             currentTerm = schoolYearResult.rows.find(row => row.current);
         }
 
-        // Fetch events
         const eventsResult = await db.query('SELECT * FROM school_events WHERE organization_id = $1 AND (visibility = $2 OR visibility = $3) ORDER BY event_date', [organizationId, 'public', 'both']);
         const events = eventsResult.rows;
 
-        // Fetch announcements
         const announcementsResult = await db.query('SELECT * FROM announcements WHERE organization_id = $1 AND (visibility = $2 OR visibility = $3) ORDER BY announcement_id DESC', [organizationId, 'public', 'both']);
         const announcements = announcementsResult.rows;
+
+        const imagesResult = await db.query('SELECT * FROM organization_images WHERE organization_id = $1 ORDER BY image_id', [organizationId]);
+        const images = imagesResult.rows;
+
+        const textsResult = await db.query('SELECT * FROM organization_texts WHERE organization_id = $1 ORDER BY text_id', [organizationId]);
+        const texts = textsResult.rows;
 
         res.render('common/publicDashboard', {
             title: 'Public Dashboard',
@@ -288,7 +177,10 @@ app.get('/common/publicDashboardContent', async (req, res) => {
             currentTerm,
             events,
             announcements,
-            layout: false // Render only the content without the layout
+            organizationId,
+            images,
+            texts,
+            layout: !req.session.organizationId // If not logged in, set layout to true
         });
     } catch (error) {
         console.error('Error fetching public dashboard data:', error);
@@ -1893,15 +1785,7 @@ app.get('/common/studentListByClass', isAuthenticated, async (req, res) => {
     }
 });
 
-app.get('/:organizationName-:organizationId-public.edu', async (req, res) => {
-    try {
-        const { organizationName, organizationId } = req.params;
-        res.redirect(`/common/publicDashboardContent?organizationId=${organizationId}`);
-    } catch (error) {
-        console.error('Error processing custom URI:', error);
-        res.status(400).send('Invalid custom URI');
-    }
-});
+
 
 
 };
