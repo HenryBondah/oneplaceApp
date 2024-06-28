@@ -1,154 +1,165 @@
-<style>
-    .public-dashboard-container {
-        margin-top: 20px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        width: 90%;
-        max-width: 1200px;
-        margin: auto;
-    }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Public Dashboard</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        .public-dashboard-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 90%;
+            max-width: 1200px;
+            margin: auto;
+        }
 
-    .slideshow-container {
-        width: 100%;
-        max-width: 1000px;
-        position: relative;
-        margin: auto;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
+        .slideshow-container {
+            width: 100%;
+            max-width: 1000px;
+            position: relative;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-    .mySlides {
-        display: none;
-        width: 100%;
-    }
+        .mySlides {
+            display: none;
+            width: 100%;
+        }
 
-    .text {
-        color: #f2f2f2;
-        font-size: 15px;
-        padding: 8px 12px;
-        position: absolute;
-        bottom: 8px;
-        width: 100%;
-        text-align: center;
-        background-color: rgba(0, 0, 0, 0.5);
-    }
+        .text {
+            color: #f2f2f2;
+            font-size: 15px;
+            padding: 8px 12px;
+            position: absolute;
+            bottom: 8px;
+            width: 100%;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
 
-    .image-gallery img {
-        vertical-align: middle;
-        width: 100%;
-    }
+        .image-gallery img {
+            vertical-align: middle;
+            width: 100%;
+        }
 
-    .text-item {
-        width: 100%;
-        max-width: 1000px;
-        margin: 20px 0;
-        padding: 20px;
-        background: #f9f9f9;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    }
+        .text-item {
+            text-align: center;
+            margin: 20px 0;
+        }
 
-    .calendar-container {
-        background: #f9f9f9;
-        padding: 20px;
-        border-radius: 8px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin-top: 20px;
-    }
+        .calendar-container {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
 
-    .date {
-        font-size: 24px;
-        font-weight: bold;
-    }
+        .date {
+            font-size: 24px;
+            font-weight: bold;
+        }
 
-    .time {
-        font-size: 16px;
-        color: #555;
-    }
+        .time {
+            font-size: 16px;
+            color: #555;
+        }
 
-    .events-container, .announcements-container {
-        width: 100%;
-        max-width: 1000px;
-        background: #f9f9f9;
-        padding: 20px;
-        border-radius: 8px;
-        margin: 20px 0;
-    }
-</style>
-
-<div class="public-dashboard-container">
-    <h1>Public Dashboard</h1>
-    <div class="slideshow-container">
-        <% images.forEach((image, index) => { %>
-            <div class="mySlides">
-                <img src="/<%= image.image_url %>" alt="Slideshow Image">
-                <div class="text"><%= image.caption %></div>
-            </div>
-        <% }) %>
-    </div>
-
-    <% texts.forEach(text => { %>
-        <div class="text-item">
-            <h2><%= text.heading %></h2>
-            <p><%= text.paragraph %></p>
+        .events-container, .announcements-container {
+            width: 100%;
+            max-width: 1000px;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="public-dashboard-container">
+        <h1>Public Dashboard</h1>
+        <div class="slideshow-container">
+            <% if (images.length === 0) { %>
+                <p>No images available now.</p>
+            <% } else { %>
+                <% images.forEach((image, index) => { %>
+                    <div class="mySlides">
+                        <img src="/<%= image.image_url %>" alt="Slideshow Image">
+                        <div class="text"><%= image.caption %></div>
+                    </div>
+                <% }) %>
+            <% } %>
         </div>
-    <% }) %>
 
+        <% if (texts.length === 0) { %>
+            <p>No texts available now.</p>
+        <% } else { %>
+            <% texts.forEach(text => { %>
+                <div class="text-item">
+                    <h2><%= text.heading %></h2>
+                    <p><%= text.paragraph %></p>
+                </div>
+            <% }) %>
+        <% } %>
 
+        <div class="events-container">
+            <h2>Events</h2>
+            <ul>
+                <% if (events.length === 0) { %>
+                    <li>No events found</li>
+                <% } else { %>
+                    <% events.forEach(event => { %>
+                        <li><strong><%= event.name %></strong> - <%= new Date(event.event_date).toISOString().split('T')[0] %><br><%= event.details %></li>
+                    <% }) %>
+                <% } %>
+            </ul>
+        </div>
 
-    <div class="events-container">
-        <h2>Events</h2>
-        <ul>
-            <% if (events && events.length > 0) { %>
-                <% events.forEach(function(event) { %>
-                    <li><strong><%= event.name %></strong> - <%= new Date(event.event_date).toISOString().split('T')[0] %><br><%= event.details %></li>
-                <% }); %>
-            <% } else { %>
-                <li>No events found</li>
-            <% } %>
-        </ul>
+        <div class="announcements-container">
+            <h2>Announcements</h2>
+            <ul>
+                <% if (announcements.length === 0) { %>
+                    <li>No announcements found</li>
+                <% } else { %>
+                    <% announcements.forEach(announcement => { %>
+                        <li><%= announcement.message %></li>
+                    <% }) %>
+                <% } %>
+            </ul>
+        </div>
     </div>
 
-    <div class="announcements-container">
-        <h2>Announcements</h2>
-        <ul>
-            <% if (announcements && announcements.length > 0) { %>
-                <% announcements.forEach(function(announcement) { %>
-                    <li><%= announcement.message %></li>
-                <% }); %>
-            <% } else { %>
-                <li>No announcements found</li>
-            <% } %>
-        </ul>
-    </div>
-</div>
-
-<script>
-    function updateDateTime() {
-        const now = new Date();
-        document.getElementById('publicCurrentDate').innerText = now.toLocaleDateString();
-        document.getElementById('publicCurrentTime').innerText = now.toLocaleTimeString();
-    }
-    setInterval(updateDateTime, 1000);
-    updateDateTime();
-
-    let slideIndex = 0;
-    showSlides();
-
-    function showSlides() {
-        let slides = document.getElementsByClassName("mySlides");
-        for (let i = 0; i < slides.length; i++) {
-            slides[i].style.display = "none";
+    <script>
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('publicCurrentDate').innerText = now.toLocaleDateString();
+            document.getElementById('publicCurrentTime').innerText = now.toLocaleTimeString();
         }
-        slideIndex++;
-        if (slideIndex > slides.length) {
-            slideIndex = 1;
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+        let slideIndex = 0;
+        showSlides();
+
+        function showSlides() {
+            let slides = document.getElementsByClassName("mySlides");
+            for (let i = 0; i < slides.length; i++) {
+                slides[i].style.display = "none";
+            }
+            slideIndex++;
+            if (slideIndex > slides.length) {
+                slideIndex = 1;
+            }
+            slides[slideIndex - 1].style.display = "block";
+            setTimeout(showSlides, 2000); // Change image every 2 seconds
         }
-        slides[slideIndex - 1].style.display = "block";
-        setTimeout(showSlides, 2000); // Change image every 2 seconds
-    }
-</script>
+    </script>
+</body>
+</html>

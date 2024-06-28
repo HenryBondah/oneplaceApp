@@ -1,0 +1,13 @@
+
+    <div class="close-school-year-container">
+        <h1>Close School Year</h1>
+        <% schoolYears.forEach(schoolYear => { %>
+            <h2><%= schoolYear.year_label %></h2>
+            <ul>
+                <% schoolYear.terms.forEach(term => { %>
+                    <li><a href="/common/termDetails?termId=<%= term.term_id %>"><%= term.term_name %></a></li>
+                <% }) %>
+            </ul>
+        <% }) %>
+    </div>
+

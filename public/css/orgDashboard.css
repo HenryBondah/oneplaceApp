@@ -1,4 +1,5 @@
-/* Org Dashboard */
+/* orgdashboard */
+/* Add to your CSS file */
 .dashboard-buttons {
   display: flex;
   justify-content: center;
@@ -19,6 +20,7 @@
 .dashboard-buttons button.active {
   background-color: #0056b3;
 }
+
 
 .dashboard-container {
   margin-top: 20px;
@@ -80,14 +82,8 @@
   margin-bottom: 20px;
 }
 
-.line-divider {
-  width: 100%;
-  border-top: 2px solid #ddd;
-  margin: 20px 0;
-}
-
 @media (max-width: 768px) {
   .info-grid {
-      grid-template-columns: 1fr; /* Stack the items vertically on smaller screens */
+      grid-template-columns: 1fr; /* Stack the image and calendar vertically on smaller screens */
   }
 }

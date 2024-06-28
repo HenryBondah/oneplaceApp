@@ -1,50 +1,55 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Create Employee Account</title>
-    <link rel="stylesheet" href="/styles/main.css">
+    <title>Create Employee</title>
+    <link rel="stylesheet" type="text/css" href="/styles.css">
 </head>
 <body>
-<main class="create-employee-container">
-    <h1>Create New Employee</h1>
+    <div class="manage-employees-link" style="text-align: center; margin-top: 20px;">
+        <a href="/common/manageEmployees" class="btn btn-primary">Manage Employees</a>
+    </div>
+    <hr>
+    <% if (success_msg) { %>
+        <div class="alert alert-success"><%= success_msg %></div>
+    <% } %>
+    <% if (error_msg) { %>
+        <div class="alert alert-danger"><%= error_msg %></div>
+    <% } %>
+    <h1>Create Employee</h1>
     <form action="/common/createEmployee" method="POST">
-        <div class="form-group">
+        <div>
             <label for="firstName">First Name:</label>
             <input type="text" id="firstName" name="firstName" required>
         </div>
-        <div class="form-group">
+        <div>
             <label for="lastName">Last Name:</label>
             <input type="text" id="lastName" name="lastName" required>
         </div>
-        <div class="form-group">
+        <div>
             <label for="email">Email:</label>
             <input type="email" id="email" name="email" required>
         </div>
-        <div class="form-group">
+        <div>
             <label for="password">Password:</label>
             <input type="password" id="password" name="password" required>
         </div>
-        <div class="form-group">
+        <div>
             <label for="role">Role:</label>
             <select id="role" name="role" required>
-                <option value="">Select a role</option>
+                <option value="Admin">Admin</option>
+                <option value="Mini Admin">Mini Admin</option>
                 <option value="Manager">Manager</option>
                 <option value="Supervisor">Supervisor</option>
                 <option value="Teacher">Teacher</option>
             </select>
         </div>
-        <div class="form-group">
-            <label for="classSelect">Class:</label>
-            <select id="classSelect" name="classId" required>
-                <option value="">Select a Class</option>
-                <% classes.forEach(function(cls) { %>
-                    <option value="<%= cls.class_id %>"><%= cls.class_name %></option>
-                <% }); %>
-            </select>
+        <div>
+            <label for="classIds">Assign Classes:</label><br>
+            <% classes.forEach(function(cls) { %>
+                <input type="checkbox" name="classIds" value="<%= cls.class_id %>"> <%= cls.class_name %><br>
+            <% }); %>
         </div>
         <button type="submit">Create Employee</button>
     </form>
-</main>
 </body>
 </html>

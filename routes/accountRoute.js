@@ -1,4 +1,3 @@
-// routes/accountRoute.js
 const express = require('express');
 const bcrypt = require('bcrypt');
 const multer = require('multer');
@@ -272,7 +271,9 @@ module.exports = function(app, pool) {
             res.render('account/accountPersonalization', {
                 title: 'Account Personalization',
                 organizationId,
-                orgDetails
+                orgDetails,
+                success_msg: req.flash('success'),
+                error_msg: req.flash('error')
             });
         } catch (error) {
             console.error('Error rendering account personalization page:', error);
@@ -280,7 +281,6 @@ module.exports = function(app, pool) {
             res.redirect('/');
         }
     });
-    
 
     app.post('/account/personalization', upload.single('logo'), isAuthenticated, async (req, res) => {
         const { primaryColor, fontStyle } = req.body;
@@ -369,7 +369,9 @@ app.get('/account/managePublicContent', isAuthenticated, async (req, res) => {
         res.render('account/managePublicContent', {
             title: 'Manage Public Content',
             images: imagesResult.rows,
-            texts: textsResult.rows
+            texts: textsResult.rows,
+            success_msg: req.flash('success'),
+            error_msg: req.flash('error')
         });
     } catch (error) {
         console.error('Error fetching public content:', error);
@@ -384,23 +386,27 @@ app.post('/account/updateImage', isAuthenticated, async (req, res) => {
 
     try {
         await pool.query('UPDATE organization_images SET caption = $1 WHERE image_id = $2 AND organization_id = $3', [caption, imageId, organizationId]);
-        res.json({ success: true });
+        req.flash('success', 'Image updated successfully.');
+        res.redirect('/account/managePublicContent');
     } catch (error) {
         console.error('Error updating image:', error);
-        res.json({ success: false });
+        req.flash('error', 'Failed to update image. Please try again.');
+        res.redirect('/account/managePublicContent');
     }
 });
 
-app.post('/account/deleteImage', isAuthenticated, async (req, res) => {
-    const { imageId } = req.body;
+app.get('/account/deleteImage/:imageId', isAuthenticated, async (req, res) => {
+    const { imageId } = req.params;
     const { organizationId } = req.session;
 
     try {
         await pool.query('DELETE FROM organization_images WHERE image_id = $1 AND organization_id = $2', [imageId, organizationId]);
-        res.json({ success: true });
+        req.flash('success', 'Image deleted successfully.');
+        res.redirect('/account/managePublicContent');
     } catch (error) {
         console.error('Error deleting image:', error);
-        res.json({ success: false });
+        req.flash('error', 'Failed to delete image. Please try again.');
+        res.redirect('/account/managePublicContent');
     }
 });
 
@@ -410,23 +416,27 @@ app.post('/account/updateText', isAuthenticated, async (req, res) => {
 
     try {
         await pool.query('UPDATE organization_texts SET heading = $1, paragraph = $2 WHERE text_id = $3 AND organization_id = $4', [heading, paragraph, textId, organizationId]);
-        res.json({ success: true });
+        req.flash('success', 'Text updated successfully.');
+        res.redirect('/account/managePublicContent');
     } catch (error) {
         console.error('Error updating text:', error);
-        res.json({ success: false });
+        req.flash('error', 'Failed to update text. Please try again.');
+        res.redirect('/account/managePublicContent');
     }
 });
 
-app.post('/account/deleteText', isAuthenticated, async (req, res) => {
-    const { textId } = req.body;
+app.get('/account/deleteText/:textId', isAuthenticated, async (req, res) => {
+    const { textId } = req.params;
     const { organizationId } = req.session;
 
     try {
         await pool.query('DELETE FROM organization_texts WHERE text_id = $1 AND organization_id = $2', [textId, organizationId]);
-        res.json({ success: true });
+        req.flash('success', 'Text deleted successfully.');
+        res.redirect('/account/managePublicContent');
     } catch (error) {
         console.error('Error deleting text:', error);
-        res.json({ success: false });
+        req.flash('error', 'Failed to delete text. Please try again.');
+        res.redirect('/account/managePublicContent');
     }
 });
 

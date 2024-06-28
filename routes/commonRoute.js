@@ -171,6 +171,7 @@ app.get('/common/publicDashboardContent', async (req, res) => {
         const textsResult = await db.query('SELECT * FROM organization_texts WHERE organization_id = $1 ORDER BY text_id', [organizationId]);
         const texts = textsResult.rows;
 
+
         res.render('common/publicDashboard', {
             title: 'Public Dashboard',
             schoolYear,
@@ -187,6 +188,8 @@ app.get('/common/publicDashboardContent', async (req, res) => {
         res.status(500).send('Failed to load public dashboard data.');
     }
 });
+
+
 
 
 app.get('/common/addStudent', isAuthenticated, async (req, res) => {
@@ -697,62 +700,145 @@ app.post('/common/saveAttendanceForDate', isAuthenticated, async (req, res) => {
 
 
 
-    app.get('/common/createEmployee', isAuthenticated, async (req, res) => {
-        try {
-            const query = `
-                SELECT c.class_id, c.class_name, g.name AS graduation_year_group_name
-                FROM classes c
-                LEFT JOIN graduation_year_groups g ON c.graduation_year_group_id = g.id
-                WHERE c.organization_id = $1
-                ORDER BY c.class_name ASC;
-            `;
-            const result = await db.query(query, [req.session.organizationId]);
-            res.render('common/createEmployee', {
-                title: 'Create Employee',
-                classes: result.rows
-            });
-        } catch (err) {
-            console.error('Error fetching classes:', err);
-            res.status(500).send('Error fetching classes');
-        }
-    });
 
-    app.post('/common/createEmployee', isAuthenticated, async (req, res) => {
-        const { firstName, lastName, email, password, role, classId } = req.body;
+// Create Employee Route
+app.get('/common/createEmployee', isAuthenticated, async (req, res) => {
+    try {
+        const classesResult = await db.query('SELECT * FROM classes WHERE organization_id = $1', [req.session.organizationId]);
+        res.render('common/createEmployee', {
+            title: 'Create Employee',
+            classes: classesResult.rows,
+            success_msg: req.flash('success'),
+            error_msg: req.flash('error')
+        });
+    } catch (error) {
+        console.error('Error fetching classes:', error);
+        req.flash('error', 'Failed to load classes.');
+        res.redirect('/common/manageEmployees');
+    }
+});
 
-        if (!firstName || !lastName || !email || !password || !role) {
-            return res.status(400).send('All fields are required.');
-        }
+app.post('/common/createEmployee', isAuthenticated, async (req, res) => {
+    const { firstName, lastName, email, password, role, classIds } = req.body;
 
-        try {
-            // Hash the password before saving to the database
-            const hashedPassword = await bcrypt.hash(password, 10);
+    if (!firstName || !lastName || !email || !password || !role) {
+        req.flash('error', 'All fields are required.');
+        return res.redirect('/common/createEmployee');
+    }
 
-            // Insert the new employee into the users table
-            const result = await db.query(
-                `INSERT INTO users (first_name, last_name, email, password, account_type, organization_id)
-                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id`,
-                [firstName, lastName, email, hashedPassword, role, req.session.organizationId]
-            );
+    try {
+        // Hash the password before saving to the database
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-            const userId = result.rows[0].user_id;
+        // Insert the new employee into the users table
+        const result = await db.query(
+            `INSERT INTO users (first_name, last_name, email, password, account_type, organization_id, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING user_id`,
+            [firstName, lastName, email, hashedPassword, role, req.session.organizationId]
+        );
 
-            // You can handle the class association here if needed
-            if (classId) {
+        const userId = result.rows[0].user_id;
+
+        // Insert the class assignments into the user_classes table
+        if (Array.isArray(classIds)) {
+            for (const classId of classIds) {
                 await db.query(
-                    'UPDATE classes SET created_by = $1 WHERE class_id = $2 AND organization_id = $3',
-                    [userId, classId, req.session.organizationId]
+                    'INSERT INTO user_classes (user_id, class_id) VALUES ($1, $2)',
+                    [userId, classId]
                 );
             }
-
-            req.flash('success', 'Employee created successfully.');
-            res.redirect('/common/createEmployee');
-        } catch (error) {
-            console.error('Error creating employee:', error);
-            req.flash('error', 'Failed to create employee.');
-            res.redirect('/common/createEmployee');
         }
-    });
+
+        req.flash('success', 'Employee created successfully.');
+        res.redirect('/common/createEmployee');
+    } catch (error) {
+        console.error('Error creating employee:', error);
+        req.flash('error', 'Failed to create employee.');
+        res.redirect('/common/createEmployee');
+    }
+});
+// Manage Employees Route
+app.get('/common/manageEmployees', isAuthenticated, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT u.*, array_agg(uc.class_id) as class_ids
+            FROM users u
+            LEFT JOIN user_classes uc ON u.user_id = uc.user_id
+            WHERE u.organization_id = $1
+            GROUP BY u.user_id
+            ORDER BY u.first_name, u.last_name
+        `, [req.session.organizationId]);
+
+        const classesResult = await db.query('SELECT * FROM classes WHERE organization_id = $1', [req.session.organizationId]);
+
+        res.render('common/manageEmployees', {
+            title: 'Manage Employees',
+            employees: result.rows,
+            classes: classesResult.rows,
+            success_msg: req.flash('success'),
+            error_msg: req.flash('error')
+        });
+    } catch (error) {
+        console.error('Error fetching employees:', error);
+        req.flash('error', 'Failed to load employees.');
+        res.redirect('/common/createEmployee');
+    }
+});
+
+// Update Employee Route
+app.post('/common/updateEmployee/:userId', isAuthenticated, async (req, res) => {
+    const { userId } = req.params;
+    const { firstName, lastName, email, role, classIds } = req.body;
+
+    if (!firstName || !lastName || !email || !role) {
+        req.flash('error', 'All fields are required.');
+        return res.redirect('/common/manageEmployees');
+    }
+
+    try {
+        // Update the employee details
+        await db.query(
+            `UPDATE users
+             SET first_name = $1, last_name = $2, email = $3, account_type = $4, updated_at = NOW()
+             WHERE user_id = $5 AND organization_id = $6`,
+            [firstName, lastName, email, role, userId, req.session.organizationId]
+        );
+
+        // Update the class assignments
+        await db.query('DELETE FROM user_classes WHERE user_id = $1', [userId]);
+
+        if (Array.isArray(classIds)) {
+            for (const classId of classIds) {
+                await db.query(
+                    'INSERT INTO user_classes (user_id, class_id) VALUES ($1, $2)',
+                    [userId, classId]
+                );
+            }
+        }
+
+        req.flash('success', 'Employee updated successfully.');
+        res.redirect('/common/manageEmployees');
+    } catch (error) {
+        console.error('Error updating employee:', error);
+        req.flash('error', 'Failed to update employee.');
+        res.redirect('/common/manageEmployees');
+    }
+});
+
+// Delete Employee Route
+app.post('/common/deleteEmployee/:userId', isAuthenticated, async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        await db.query('DELETE FROM users WHERE user_id = $1 AND organization_id = $2', [userId, req.session.organizationId]);
+        req.flash('success', 'Employee deleted successfully.');
+        res.redirect('/common/manageEmployees');
+    } catch (error) {
+        console.error('Error deleting employee:', error);
+        req.flash('error', 'Failed to delete employee.');
+        res.redirect('/common/manageEmployees');
+    }
+});
 
 
     app.get('/common/assessment', isAuthenticated, async (req, res) => {
@@ -1785,7 +1871,95 @@ app.get('/common/studentListByClass', isAuthenticated, async (req, res) => {
     }
 });
 
+// Close School Year Page
+app.get('/common/closeSchoolYear', isAuthenticated, async (req, res) => {
+    try {
+        const schoolYearsResult = await db.query('SELECT * FROM school_years WHERE organization_id = $1 ORDER BY year_label', [req.session.organizationId]);
+        const termsResult = await db.query('SELECT * FROM terms WHERE organization_id = $1 ORDER BY start_date', [req.session.organizationId]);
 
+        const schoolYears = schoolYearsResult.rows.map(schoolYear => {
+            return {
+                ...schoolYear,
+                terms: termsResult.rows.filter(term => term.school_year_id === schoolYear.id)
+            };
+        });
+
+        res.render('common/closeSchoolYear', { title: 'Close School Year', schoolYears });
+    } catch (error) {
+        console.error('Error fetching school years and terms:', error);
+        res.status(500).send('Failed to load close school year page.');
+    }
+});
+
+// Term Details Page
+app.get('/common/termDetails', isAuthenticated, async (req, res) => {
+    const { termId } = req.query;
+    try {
+        // Fetch term details
+        const termResult = await db.query('SELECT * FROM terms WHERE term_id = $1 AND organization_id = $2', [termId, req.session.organizationId]);
+        if (termResult.rows.length === 0) {
+            return res.status(404).send('Term not found.');
+        }
+
+        // Fetch classes for the term
+        const classesResult = await db.query(`
+            SELECT c.class_id, c.class_name
+            FROM term_classes tc
+            JOIN classes c ON tc.class_id = c.class_id
+            WHERE tc.term_id = $1 AND c.organization_id = $2
+        `, [termId, req.session.organizationId]);
+
+        res.render('common/termDetails', { 
+            title: 'Term Details', 
+            term: termResult.rows[0], 
+            classes: classesResult.rows 
+        });
+    } catch (error) {
+        console.error('Error fetching term details:', error);
+        res.status(500).send('Failed to load term details page.');
+    }
+});
+
+
+// Close Graduation Year Group Page
+app.get('/common/closeGraduationYearGroup', isAuthenticated, async (req, res) => {
+    try {
+        const gradYearGroupsResult = await db.query('SELECT * FROM graduation_year_groups WHERE organization_id = $1 ORDER BY name', [req.session.organizationId]);
+        const studentsResult = await db.query('SELECT * FROM students WHERE organization_id = $1 ORDER BY last_name, first_name', [req.session.organizationId]);
+
+        const gradYearGroups = gradYearGroupsResult.rows.map(group => {
+            return {
+                ...group,
+                students: studentsResult.rows.filter(student => student.graduation_year_group_id === group.id)
+            };
+        });
+
+        res.render('common/closeGraduationYearGroup', { title: 'Close Graduation Year Group', gradYearGroups });
+    } catch (error) {
+        console.error('Error fetching graduation year groups and students:', error);
+        res.status(500).send('Failed to load close graduation year group page.');
+    }
+});
+
+// Handle Closing Graduation Year Group
+app.post('/common/closeGraduationYearGroup', isAuthenticated, async (req, res) => {
+    const { students, action } = req.body;
+    try {
+        const studentIds = Array.isArray(students) ? students : [students];
+        if (action.startsWith('end_')) {
+            const studentId = action.split('_')[1];
+            await db.query('UPDATE students SET graduated = TRUE WHERE student_id = $1 AND organization_id = $2', [studentId, req.session.organizationId]);
+        } else if (action.startsWith('change_')) {
+            const studentId = action.split('_')[1];
+            const newGradYearGroupId = req.body.newGradYearGroupId;
+            await db.query('UPDATE students SET graduation_year_group_id = $1 WHERE student_id = $2 AND organization_id = $3', [newGradYearGroupId, studentId, req.session.organizationId]);
+        }
+        res.redirect('/common/closeGraduationYearGroup');
+    } catch (error) {
+        console.error('Error closing graduation year group:', error);
+        res.status(500).send('Failed to close graduation year group.');
+    }
+});
 
 
 };

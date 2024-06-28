@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html>
-<head>
+
     <title>Manage Public Content</title>
     <link rel="stylesheet" type="text/css" href="/styles.css">
     <style>
@@ -8,12 +6,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-        }
-
-        .button-container {
-            display: flex;
-            justify-content: center;
-            margin: 20px 0;
         }
 
         .content-container {
@@ -28,17 +20,19 @@
 
         .content-item {
             margin-bottom: 20px;
-            text-align: center;
         }
 
         .content-item img {
             max-width: 100%;
             height: auto;
             display: block;
-            margin: 0 auto 10px;
+            margin-bottom: 10px;
         }
 
-        .content-item h2,
+        .content-item h2 {
+            margin: 10px 0;
+        }
+
         .content-item p {
             margin: 10px 0;
         }
@@ -51,55 +45,64 @@
             margin-right: 10px;
         }
 
-        .content-item .delete-link {
+        .delete-link {
             display: block;
             margin-top: 10px;
-            color: red;
-            cursor: pointer;
         }
     </style>
 </head>
 <body>
+    <div class="manage-public-content-link" style="text-align: center; margin-top: 20px;">
+        <a href="/account/managePublicContent" class="btn btn-primary">Manage Public Content</a>
+        <a href="/account/accountPersonalization" class="btn btn-primary">Back</a>
+    </div>
+    <hr>
+    <% if (success_msg) { %>
+        <div class="alert alert-success"><%= success_msg %></div>
+    <% } %>
+    <% if (error_msg) { %>
+        <div class="alert alert-danger"><%= error_msg %></div>
+    <% } %>
     <div class="manage-public-container">
-        <div class="button-container">
-            <a href="/account/accountPersonalization" class="btn btn-primary">
-                Back
-            </a>
-        
-            <hr>
-        </div>
-        <hr>
         <h1>Manage Public Content</h1>
         <div class="content-container">
-            
-                    <form action="/account/updateImage" method="POST">
-                        <% images.forEach(image => { %>
-                            <div class="content-item">
-                                <img src="/<%= image.image_url %>" alt="Image">
-                        <input type="hidden" name="imageId" value="<%= image.image_id %>">
-                        <label for="caption">Caption:</label>
-                        <input type="text" name="caption" value="<%= image.caption %>">
-                        <button type="submit">Update</button>
-                    </form>
-                    <a href="/account/deleteImage/<%= image.image_id %>" class="delete-link">Delete</a>
-                </div>
-            <% }) %>
+            <h2>Images</h2>
+            <% if (images.length === 0) { %>
+                <p>No images available now.</p>
+            <% } else { %>
+                <% images.forEach(image => { %>
+                    <div class="content-item">
+                        <form action="/account/updateImage" method="POST">
+                            <img src="/<%= image.image_url %>" alt="Image">
+                            <input type="hidden" name="imageId" value="<%= image.image_id %>">
+                            <label for="caption">Caption:</label>
+                            <input type="text" name="caption" value="<%= image.caption %>">
+                            <button type="submit">Update</button>
+                        </form>
+                        <a href="/account/deleteImage/<%= image.image_id %>" class="delete-link">Delete</a>
+                    </div>
+                <% }) %>
+            <% } %>
         </div>
         <div class="content-container">
-            <% texts.forEach(text => { %>
-                <div class="content-item">
-                    <form action="/account/updateText" method="POST">
-                        <h2>Texts</h2>
-                        <input type="hidden" name="textId" value="<%= text.text_id %>">
-                        <label for="heading">Heading:</label>
-                        <input type="text" name="heading" value="<%= text.heading %>">
-                        <label for="paragraph">Paragraph:</label>
-                        <textarea name="paragraph" rows="4"><%= text.paragraph %></textarea>
-                        <button type="submit">Update</button>
-                    </form>
-                    <a href="/account/deleteText/<%= text.text_id %>" class="delete-link">Delete</a>
-                </div>
-            <% }) %>
+            <h2>Texts</h2>
+            <% if (texts.length === 0) { %>
+                <p>No texts available now.</p>
+            <% } else { %>
+                <% texts.forEach(text => { %>
+                    <div class="content-item">
+                        <form action="/account/updateText" method="POST">
+                            <input type="hidden" name="textId" value="<%= text.text_id %>">
+                            <label for="heading">Heading:</label>
+                            <input type="text" name="heading" value="<%= text.heading %>">
+                            <label for="paragraph">Paragraph:</label>
+                            <textarea name="paragraph" rows="4"><%= text.paragraph %></textarea>
+                            <button type="submit">Update</button>
+                        </form>
+                        <a href="/account/deleteText/<%= text.text_id %>" class="delete-link">Delete</a>
+                    </div>
+                <% }) %>
+            <% } %>
         </div>
     </div>
 </body>

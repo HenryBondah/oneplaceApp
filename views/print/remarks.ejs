@@ -1,0 +1,53 @@
+
+    <div class="container">
+        <form action="/print/saveRemarks" method="POST">
+            <h1>Manage Remarks</h1>
+            <div>
+                <label for="teacherRemarks">Teacher's Remarks:</label>
+                <textarea name="teacherRemarks" id="teacherRemarks"></textarea>
+            </div>
+            <div>
+                <label for="headTeacherRemarks">Head Teacher's Remarks:</label>
+                <textarea name="headTeacherRemarks" id="headTeacherRemarks"></textarea>
+            </div>
+            <button type="submit">Save Remarks</button>
+            <div class="remarks-list">
+                <h2>Teacher's Remarks</h2>
+                <% teacherRemarks.forEach(function(remark) { %>
+                    <div>
+                        <p><%= remark.remarks %></p>
+                        <a href="/print/editRemarks/<%= remark.id %>">Edit</a>
+                        <a href="/print/deleteRemarks/<%= remark.id %>">Delete</a>
+                    </div>
+                <% }); %>
+                <h2>Head Teacher's Remarks</h2>
+                <% headTeacherRemarks.forEach(function(remark) { %>
+                    <div>
+                        <p><%= remark.remarks %></p>
+                        <a href="/print/deleteRemarks/<%= remark.id %>">Delete</a>
+                    </div>
+                <% }); %>
+            </div>    
+        </form>
+    </div>
+
+
+<style>
+.remarks {
+    margin-top: 20px;
+}
+
+.remarks textarea {
+    width: 100%;
+    height: 100px;
+}
+
+
+.remarks-list {
+    margin-top: 20px;
+}
+
+.remarks-list div {
+    margin-bottom: 10px;
+}
+</style>

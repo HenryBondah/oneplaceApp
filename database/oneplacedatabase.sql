@@ -280,3 +280,38 @@ CREATE TABLE organization_texts (
     paragraph TEXT NOT NULL,
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id)
 );
+ALTER TABLE users ADD COLUMN class_id INT REFERENCES classes(class_id) ON DELETE SET NULL;
+-- Create ENUM types for user roles
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('Admin', 'Mini Admin', 'Manager', 'Supervisor', 'Teacher');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+ALTER TYPE user_role ADD VALUE 'Teacher';
+ALTER TYPE user_role ADD VALUE 'Supervisor';
+
+
+CREATE TABLE IF NOT EXISTS user_classes (
+    user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
+    class_id INT REFERENCES classes(class_id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, class_id)
+);
+
+CREATE TABLE IF NOT EXISTS teacher_remarks (
+    student_id INT REFERENCES students(student_id) ON DELETE CASCADE,
+    remarks TEXT,
+    PRIMARY KEY (student_id)
+);
+
+CREATE TABLE IF NOT EXISTS head_teacher_remarks (
+    student_id INT REFERENCES students(student_id) ON DELETE CASCADE,
+    remarks TEXT,
+    PRIMARY KEY (student_id)
+);
+
+CREATE TABLE IF NOT EXISTS general_remarks (
+    id SERIAL PRIMARY KEY,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
+    type VARCHAR(50), -- 'teacher' or 'head_teacher'
+    remarks TEXT
+);

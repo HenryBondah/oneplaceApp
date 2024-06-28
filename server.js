@@ -2,6 +2,7 @@ const express = require('express');
 const { Pool } = require('pg');
 const session = require('express-session');
 const flash = require('connect-flash');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -13,6 +14,9 @@ const pool = new Pool({
     connectionString: process.env.DB_CONNECTION_STRING,
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
 });
+
+// Serve static files from the "uploads" directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Test the pool connection
 pool.query('SELECT NOW()', (err, res) => {

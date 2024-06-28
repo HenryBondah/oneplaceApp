@@ -1,0 +1,74 @@
+
+<h1>Term Details for <%= term.term_name %></h1>
+<div class="container">
+        <h2>Classes</h2>
+        <ul>
+            <% classes.forEach(cls => { %>
+                <li>
+                    <%= cls.class_name %> 
+                    <a href="/print/printStudentReport?classId=<%= cls.class_id %>" class="btn btn-primary">Generate Report</a>
+                </li>
+            <% }) %>
+        </ul>
+    </div>
+
+<style>body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f9f9f9;
+}
+
+h1 {
+    text-align: center;
+    margin-top: 20px;
+    color: #333;
+}
+
+.container {
+    width: 80%;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+    color: #555;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+li {
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f1f1f1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn {
+    display: inline-block;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: #fff;
+    background-color: #007BFF;
+    border: none;
+    border-radius: 4px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+</style>
