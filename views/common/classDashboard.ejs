@@ -2,17 +2,46 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Class Dashboard</title>
+    <title><%= title %></title>
+    <style>
+        .employee-list {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .employee-item {
+            display: flex;
+            align-items: center;
+        }
+        .employee-item input[type="radio"] {
+            margin-right: 10px;
+        }
+        .employee-item .main {
+            color: green;
+            font-size: 1.2em;
+            margin-left: 10px;
+        }
+    </style>
 </head>
 <body>
     <main class="class-dashboard-container">
-        <h1 id="className"><%= className %> <% if (graduationYearGroup) { %>
-            <p> <%= graduationYearGroup %></p>
-        <% } %></h1>
+        <h1 id="className"><%= className %> <% if (graduationYearGroup) { %><p><%= graduationYearGroup %></p><% } %></h1>
+        
+        <div class="employee-list">
+            <% employees.forEach(function(employee) { %>
+                <div class="employee-item">
+                    <input type="radio" name="main_employee" value="<%= employee.user_id %>" <% if (employee.main) { %> checked <% } %> onchange="setMainEmployee('<%= classId %>', '<%= employee.user_id %>')">
+                    <label><%= employee.name %></label>
+                    <% if (employee.main) { %><span class="main">•</span><% } %>
+                </div>
+            <% }); %>
+        </div>
+
         <div class="dashboard-buttons">
             <ul class="account-links">
                 <li><a href="/common/attendance?classId=<%= classId %>">Mark Attendance</a></li>
-                <li><a href="/common/attendanceCollection?classId=<%= classId %>">Attendance Records</a></li>
+                <li><a href="<%= attendanceLink %>">Attendance Records</a></li>
             </ul>
         </div>
 
@@ -44,5 +73,29 @@
             </ul>
         </div>
     </main>
+
+    <script>
+        function setMainEmployee(classId, userId) {
+            fetch('/common/setMainEmployee', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ class_id: classId, main_employee: userId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Main employee set successfully');
+                } else {
+                    alert('Failed to set main employee');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error setting main employee');
+            });
+        }
+    </script>
 </body>
 </html>

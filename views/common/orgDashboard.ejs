@@ -3,13 +3,11 @@
 <head>
     <title><%= title %></title>
     <style>
-
         .container {
             display: flex;
             flex-direction: column;
             align-items: center;
         }
-  
         ul {
             list-style: none;
             padding: 0;
@@ -19,9 +17,12 @@
         }
         .on-hold {
             color: red;
-            font-size: 1.5em;
+            font-size: 1.2em;
         }
-
+        .main {
+            color: green;
+            font-size: 1.2em;
+        }
     </style>
 </head>
 <body>
@@ -44,7 +45,7 @@
                                 <a href="/common/classDashboard?classId=<%= cls.class_id %>"><%= cls.class_name %></a>
                                 - Employees:
                                 <% cls.employees.forEach(function(emp, index) { %>
-                                    <%= emp.name %><% if (emp.on_hold) { %><span class="on-hold">•</span><% } %><%= index < cls.employees.length - 1 ? ' | ' : '' %>
+                                    <%= emp.name %><% if (emp.main) { %><span class="main">•</span><% } %><% if (emp.on_hold) { %><span class="on-hold">•</span><% } %><%= index < cls.employees.length - 1 ? ' | ' : '' %>
                                 <% }); %>
                             </li>
                         <% }); %>

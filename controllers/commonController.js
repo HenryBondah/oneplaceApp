@@ -52,7 +52,7 @@ function generateDates(startDate, endDate) {
 async function getClassesWithEmployees(db, organizationId) {
     const classesQuery = `
         SELECT c.class_id, c.class_name,
-            json_agg(json_build_object('name', u.first_name || ' ' || u.last_name, 'on_hold', u.on_hold)) AS employees
+            json_agg(json_build_object('name', u.first_name || ' ' || u.last_name, 'on_hold', u.on_hold, 'main', uc.main)) AS employees
         FROM classes c
         LEFT JOIN user_classes uc ON c.class_id = uc.class_id
         LEFT JOIN users u ON uc.user_id = u.user_id
@@ -61,6 +61,17 @@ async function getClassesWithEmployees(db, organizationId) {
         ORDER BY c.class_name;
     `;
     const result = await db.query(classesQuery, [organizationId]);
+    return result.rows;
+}
+
+async function getClassEmployeesWithMain(db, classId) {
+    const employeesQuery = `
+        SELECT u.user_id, u.first_name || ' ' || u.last_name as name, uc.main
+        FROM users u
+        JOIN user_classes uc ON u.user_id = uc.user_id
+        WHERE uc.class_id = $1;
+    `;
+    const result = await db.query(employeesQuery, [classId]);
     return result.rows;
 }
 
@@ -1108,24 +1119,9 @@ studentDetails: async (req, res, db) => {
             res.status(500).send("Failed to save scores.");
         }
     },
+
     
-    // getSubjectsForClass: async (req, res, db) => {
-    //     const { classId } = req.query;
-    
-    //     if (!classId) {
-    //         return res.status(400).json({ error: 'Class ID is required.' });
-    //     }
-    
-    //     try {
-    //         const subjectsResult = await db.query('SELECT * FROM subjects WHERE class_id = $1 AND organization_id = $2 ORDER BY subject_name', [classId, req.session.organizationId]);
-    //         res.json(subjectsResult.rows);
-    //     } catch (error) {
-    //         console.error('Error fetching subjects:', error);
-    //         res.status(500).json({ error: 'Failed to load subjects.' });
-    //     }
-    // },
-    
-    classDashboard: async (req, res, db) => {
+    classDashboard: async (req, res, db, csrfToken) => {
         const classId = req.query.classId;
         if (!classId) {
             res.redirect('/common/orgDashboard');
@@ -1137,19 +1133,19 @@ studentDetails: async (req, res, db) => {
                 FROM classes c
                 LEFT JOIN graduation_year_groups g ON c.graduation_year_group_id = g.id
                 WHERE c.class_id = $1 AND c.organization_id = $2`, [classId, req.session.organizationId]);
-
+    
             if (classResult.rows.length === 0) {
                 console.error('Class details not found');
                 return res.status(500).send('Error fetching class details or class not found');
             }
-
+    
             const className = classResult.rows[0].class_name;
             const graduationYearGroupName = classResult.rows[0].graduation_year_group_name;
-
+    
             const students = await fetchStudentsByClass(db, classId, req.session.organizationId);
-
             const subjectsResult = await db.query('SELECT subject_id, subject_name FROM subjects WHERE class_id = $1 AND organization_id = $2 ORDER BY subject_name', [classId, req.session.organizationId]);
-
+            const employees = await getClassEmployeesWithMain(db, classId);
+    
             res.render('common/classDashboard', {
                 title: 'Class Dashboard - ' + className,
                 className: className,
@@ -1157,14 +1153,35 @@ studentDetails: async (req, res, db) => {
                 students: students,
                 subjects: subjectsResult.rows,
                 classId: classId,
-                attendanceLink: `/common/attendanceCollection?classId=${classId}`
+                employees: employees,
+                attendanceLink: `/common/attendanceCollection?classId=${classId}`,
+                messages: req.flash(),
+                csrfToken: csrfToken
             });
         } catch (err) {
             console.error('Error fetching data:', err);
             res.status(500).send('Error loading class dashboard');
         }
     },
-    
+
+     
+    setMainEmployee: async (req, res, db) => {
+        const { class_id, main_employee } = req.body;
+        try {
+            await db.query('BEGIN');
+            await db.query('UPDATE user_classes SET main = FALSE WHERE class_id = $1 AND organization_id = $2', [class_id, req.session.organizationId]);
+            await db.query('UPDATE user_classes SET main = TRUE WHERE class_id = $1 AND user_id = $2 AND organization_id = $3', [class_id, main_employee, req.session.organizationId]);
+            await db.query('COMMIT');
+            res.json({ success: true, message: 'Main employee set successfully.' });
+        } catch (error) {
+            await db.query('ROLLBACK');
+            console.error('Error setting main employee:', error);
+            res.status(500).json({ success: false, message: 'Failed to set main employee.' });
+        }
+    },   
+
+
+
     assessment: async (req, res, db) => {
         const { classId, subjectId } = req.query;
         if (!classId || !subjectId) {

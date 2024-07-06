@@ -1,3 +1,4 @@
+// In your routes file (e.g., routes/commonRoute.js)
 const express = require('express');
 const router = express.Router();
 const { commonController } = require('../controllers/commonController');
@@ -34,6 +35,7 @@ module.exports = (db) => {
     router.post('/saveScores', isAuthenticated, (req, res) => commonController.saveScores(req, res, db));
     router.get('/getSubjectsForClass', isAuthenticated, (req, res) => commonController.getSubjectsForClass(req, res, db));
     router.get('/classDashboard', isAuthenticated, (req, res) => commonController.classDashboard(req, res, db));
+
     router.post('/registerSchoolYear', isAuthenticated, (req, res) => commonController.registerSchoolYear(req, res, db));
     router.get('/registerSchoolYear', isAuthenticated, (req, res) => commonController.registerSchoolYearGet(req, res, db));
     router.get('/getClasses', isAuthenticated, (req, res) => commonController.getClasses(req, res, db));
@@ -70,6 +72,7 @@ module.exports = (db) => {
     router.post('/deleteAnnouncement', isAuthenticated, (req, res) => commonController.deleteAnnouncement(req, res, db));
     router.post('/deleteSchoolYear', isAuthenticated, (req, res) => commonController.deleteSchoolYear(req, res, db));
     router.post('/deleteSchoolYearPost', isAuthenticated, (req, res) => commonController.deleteSchoolYearPost(req, res, db));
+    router.post('/setMainEmployee', isAuthenticated, (req, res) => commonController.setMainEmployee(req, res, db));
 
     return router;
 };
