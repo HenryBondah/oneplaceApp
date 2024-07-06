@@ -1,12 +1,13 @@
 <main>
-    <h1>Student Details</h1>
-    <h2><%= student.first_name %> <%= student.last_name %></h2>
+    <h1>Student Information</h1>
     <div class="student-image-container">
         <% if (student.image_url) { %>
             <img src="/<%= student.image_url %>" alt="Student Image" class="student-image">
         <% } else { %>
             <p>No image available</p>
         <% } %>
+        <h2><%= student.first_name %> <%= student.last_name %></h2>
+
     </div>
     <div class="student-info">
         <p>Class: <%= student.class_name %></p>

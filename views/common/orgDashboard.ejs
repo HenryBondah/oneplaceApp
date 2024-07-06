@@ -1,121 +1,125 @@
-<div class="dashboard-buttons">
-    <button id="orgDashboardBtn" class="active">Org Dashboard</button>
-    <button id="publicDashboardBtn">Public Dashboard</button>
-</div>
-<div class="line-divider"></div>
+<!DOCTYPE html>
+<html>
+<head>
+    <title><%= title %></title>
+</head>
+<body>
+    <div class="dashboard-buttons">
+        <button id="orgDashboardBtn" class="active">Org Dashboard</button>
+        <button id="publicDashboardBtn">Public Dashboard</button>
+    </div>
+    <div class="line-divider"></div>
 
-<div class="container">
-    <div id="orgDashboardSection">
-        <h1>Organization Dashboard</h1>
-        <div class="dashboard-container">
-            <div class="classes-container">
-                <h2>Classes</h2>
-                <ul>
-                    <% if (classes && classes.length > 0) { %>
-                        <% classes.forEach(function(cls) { %>
-                            <li><a href="/common/classDashboard?classId=<%= cls.class_id %>"><%= cls.class_name %></a></li>
-                        <% }); %>
-                    <% } else { %>
-                        <li>No classes found</li>
-                    <% } %>
-                </ul>
-            </div>
-
-            <div class="info-grid">
-                <div class="calendar-container">
-                    <h2>Today's Date and Time</h2>
-                    <div class="date" id="currentDate"></div>
-                    <div class="time" id="currentTime"></div>
-                </div>
-
-                <div class="school-year-info">
-                    <% if (schoolYear) { %>
-                        <h2>Current School Year: <%= schoolYear.year_label %></h2>
-                        <% if (currentTerm) { %>
-                            <div>
-                                <strong><%= currentTerm.term_name %>:</strong>
-                                Start: <%= new Date(currentTerm.start_date).toISOString().split('T')[0] %>,
-                                End: <%= new Date(currentTerm.end_date).toISOString().split('T')[0] %>
-                                <div class="countdown" data-start-date="<%= currentTerm.start_date.toISOString() %>" data-end-date="<%= currentTerm.end_date.toISOString() %>" data-term-name="<%= currentTerm.term_name %>"></div>
-                            </div>
-                            <div>
-                                <strong>Days until end of term: </strong>
-                                <span id="daysUntilEnd"><%= Math.ceil((new Date(currentTerm.end_date) - new Date()) / (1000 * 60 * 60 * 24)) %></span>
-                            </div>
+    <div class="container">
+        <div id="orgDashboardSection">
+            <h1>Organization Dashboard</h1>
+            <div class="dashboard-container">
+                <div class="classes-container">
+                    <h2>Classes</h2>
+                    <ul>
+                        <% if (classes && classes.length > 0) { %>
+                            <% classes.forEach(function(cls) { %>
+                                <li><a href="/common/classDashboard?classId=<%= cls.class_id %>"><%= cls.class_name %></a></li>
+                            <% }); %>
                         <% } else { %>
-                            <p>No current term information available.</p>
+                            <li>No classes found</li>
                         <% } %>
-                    <% } else { %>
-                        <div class="school-year-info">
-                            <h2>No current school year information available.</h2>
-                        </div>
-                    <% } %>
+                    </ul>
                 </div>
-            </div>
 
-            <div class="events-container">
-                <h2>Events</h2>
-                <ul>
-                    <% if (events && events.length > 0) { %>
-                        <% events.forEach(function(event) { %>
-                            <li><strong><%= event.name %></strong> - <%= new Date(event.event_date).toISOString().split('T')[0] %><br><%= event.details %></li>
-                        <% }); %>
-                    <% } else { %>
-                        <li>No events found</li>
-                    <% } %>
-                </ul>
-            </div>
+                <div class="info-grid">
+                    <div class="calendar-container">
+                        <h2>Today's Date and Time</h2>
+                        <div class="date" id="currentDate"></div>
+                        <div class="time" id="currentTime"></div>
+                    </div>
 
-            <div class="announcements-container">
-                <h2>Announcements</h2>
-                <ul>
-                    <% if (announcements && announcements.length > 0) { %>
-                        <% announcements.forEach(function(announcement) { %>
-                            <li><%= announcement.message %></li>
-                        <% }); %>
-                    <% } else { %>
-                        <li>No announcements found</li>
-                    <% } %>
-                </ul>
+                    <div class="school-year-info">
+                        <% if (schoolYear) { %>
+                            <h2>Current School Year: <%= schoolYear.year_label %></h2>
+                            <% if (currentTerm) { %>
+                                <div>
+                                    <strong><%= currentTerm.term_name %>:</strong>
+                                    Start: <%= new Date(currentTerm.start_date).toISOString().split('T')[0] %>,
+                                    End: <%= new Date(currentTerm.end_date).toISOString().split('T')[0] %>
+                                    <div class="countdown" data-start-date="<%= currentTerm.start_date.toISOString() %>" data-end-date="<%= currentTerm.end_date.toISOString() %>" data-term-name="<%= currentTerm.term_name %>"></div>
+                                </div>
+                                <div>
+                                    <strong>Days until end of term: </strong>
+                                    <span id="daysUntilEnd"><%= Math.ceil((new Date(currentTerm.end_date) - new Date()) / (1000 * 60 * 60 * 24)) %></span>
+                                </div>
+                            <% } else { %>
+                                <p>No current term information available.</p>
+                            <% } %>
+                        <% } else { %>
+                            <div class="school-year-info">
+                                <h2>No current school year information available.</h2>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+
+                <div class="events-container">
+                    <h2>Events</h2>
+                    <ul>
+                        <% if (events && events.length > 0) { %>
+                            <% events.forEach(function(event) { %>
+                                <li><strong><%= event.name %></strong> - <%= new Date(event.event_date).toISOString().split('T')[0] %><br><%= event.details %></li>
+                            <% }); %>
+                        <% } else { %>
+                            <li>No events found</li>
+                        <% } %>
+                    </ul>
+                </div>
+
+                <div class="announcements-container">
+                    <h2>Announcements</h2>
+                    <ul>
+                        <% if (announcements && announcements.length > 0) { %>
+                            <% announcements.forEach(function(announcement) { %>
+                                <li><%= announcement.message %></li>
+                            <% }); %>
+                        <% } else { %>
+                            <li>No announcements found</li>
+                        <% } %>
+                    </ul>
+                </div>
             </div>
         </div>
+        
+        <div id="publicDashboardSection" style="display: none;">
+            <h1>Public Dashboard</h1>
+            <!-- Content will be fetched and inserted here -->
+        </div>
     </div>
-    
-    <div id="publicDashboardSection" style="display: none;">
-        <h1>Public Dashboard</h1>
-        <!-- Content will be fetched and inserted here -->
-    </div>
-</div>
 
-<script>
-    const organizationId = <%= JSON.stringify(organizationId) %>;
+    <script>
+        const organizationId = <%= JSON.stringify(organizationId) %>;
 
-    document.getElementById('orgDashboardBtn').addEventListener('click', () => {
-        document.getElementById('orgDashboardSection').style.display = 'block';
-        document.getElementById('publicDashboardSection').style.display = 'none';
-        document.getElementById('orgDashboardBtn').classList.add('active');
-        document.getElementById('publicDashboardBtn').classList.remove('active');
-    });
+        document.getElementById('orgDashboardBtn').addEventListener('click', () => {
+            document.getElementById('orgDashboardSection').style.display = 'block';
+            document.getElementById('publicDashboardSection').style.display = 'none';
+            document.getElementById('orgDashboardBtn').classList.add('active');
+            document.getElementById('publicDashboardBtn').classList.remove('active');
+        });
 
-    document.getElementById('publicDashboardBtn').addEventListener('click', () => {
-        document.getElementById('orgDashboardSection').style.display = 'none';
-        document.getElementById('publicDashboardSection').style.display = 'block';
-        document.getElementById('orgDashboardBtn').classList.remove('active');
-        document.getElementById('publicDashboardBtn').classList.add('active');
-    });
+        document.getElementById('publicDashboardBtn').addEventListener('click', () => {
+            document.getElementById('orgDashboardSection').style.display = 'none';
+            document.getElementById('publicDashboardSection').style.display = 'block';
+            document.getElementById('orgDashboardBtn').classList.remove('active');
+            document.getElementById('publicDashboardBtn').classList.add('active');
+        });
 
-    fetch(`/common/publicDashboardContent?organizationId=${organizationId}`)
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('publicDashboardSection').innerHTML = html;
-        })
-        .catch(error => console.error('Error fetching public dashboard content:', error));
+        fetch(`/common/publicDashboardContent?organizationId=${organizationId}`)
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('publicDashboardSection').innerHTML = html;
+            })
+            .catch(error => console.error('Error fetching public dashboard content:', error));
 
-    // function updateDateTime() {
-    //     const now = new Date();
-    //     document.getElementById('currentDate').innerText = now.toLocaleDateString();
-    //     document.getElementById('currentTime').innerText = now.toLocaleTimeString();
-    // }
-    setInterval(updateDateTime, 1000);
-    updateDateTime();
-</script>
+       
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+    </script>
+</body>
+</html>

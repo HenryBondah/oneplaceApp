@@ -2,24 +2,15 @@
   overflow-x: auto;
   white-space: nowrap;
 }
+
 .attendance-sheet {
-  border-collapse: collapse;
   width: 100%;
 }
-.attendance-sheet th, .attendance-sheet td {
-  border: 1px solid #ddd;
-  text-align: center;
-  padding: 8px;
-}
-.student-name, .total-attendance {
-  position: sticky;
-  left: 0;
-  background: #fff;
-  z-index: 1;
-}
+
 .total-attendance {
-  left: 150px; /* Adjust this value according to the width of the name column */
+  left: 100px; /* Adjust this value according to the width of the name column */
 }
+
 .edit-save-link {
   display: inline-block;
   margin-top: 5px;

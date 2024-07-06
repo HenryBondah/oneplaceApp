@@ -1,3 +1,25 @@
+-- Drop all tables to ensure a clean slate
+DO $$ DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
+        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+    END LOOP;
+END $$;
+
+-- Drop all types to avoid conflicts
+DO $$ DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT n.nspname as schema, t.typname as type
+              FROM pg_type t
+              LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
+              WHERE (t.typname = 'user_role' OR t.typname = 'application_status' OR t.typname = 'attendance_status')
+              AND (n.nspname NOT IN ('pg_catalog', 'information_schema'))) LOOP
+        EXECUTE 'DROP TYPE IF EXISTS ' || quote_ident(r.schema) || '.' || quote_ident(r.type) || ' CASCADE';
+    END LOOP;
+END $$;
+
 -- Create ENUM types for user roles, application status, and attendance status
 DO $$ BEGIN
     CREATE TYPE user_role AS ENUM ('Admin', 'Mini Admin', 'Manager', 'Supervisor', 'Teacher');
@@ -37,6 +59,14 @@ CREATE TABLE IF NOT EXISTS organizations (
     deleted BOOLEAN DEFAULT false
 );
 
+CREATE OR REPLACE FUNCTION update_modified_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now(); 
+    RETURN NEW; 
+END;
+$$ LANGUAGE 'plpgsql';
+
 CREATE TRIGGER update_organizations_modtime
     BEFORE UPDATE ON organizations
     FOR EACH ROW
@@ -52,17 +82,9 @@ CREATE TABLE IF NOT EXISTS users (
     account_type user_role NOT NULL,
     organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    class_id INT REFERENCES classes(class_id) ON DELETE SET NULL
 );
-
--- Trigger function to update the 'updated_at' column
-CREATE OR REPLACE FUNCTION update_modified_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = now(); 
-    RETURN NEW; 
-END;
-$$ LANGUAGE 'plpgsql';
 
 CREATE TRIGGER update_users_modtime
     BEFORE UPDATE ON users
@@ -72,7 +94,8 @@ CREATE TRIGGER update_users_modtime
 -- Graduation Year Groups Table
 CREATE TABLE IF NOT EXISTS graduation_year_groups (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) UNIQUE NOT NULL
+    name VARCHAR(255) UNIQUE NOT NULL,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE
 );
 
 -- Classes Table
@@ -90,7 +113,8 @@ CREATE TABLE IF NOT EXISTS subjects (
     subject_name VARCHAR(255) NOT NULL,
     class_id INT REFERENCES classes(class_id) ON DELETE CASCADE,
     created_by INT REFERENCES users(user_id) ON DELETE SET NULL,
-    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
+    grad_year_group_id INT REFERENCES graduation_year_groups(id) ON DELETE CASCADE
 );
 
 -- Students Table
@@ -199,7 +223,8 @@ CREATE TABLE IF NOT EXISTS announcements (
     announcement_id SERIAL PRIMARY KEY,
     message TEXT NOT NULL,
     organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    visibility VARCHAR(10) DEFAULT 'both'
 );
 
 -- School Events Table
@@ -209,7 +234,8 @@ CREATE TABLE IF NOT EXISTS school_events (
     event_date DATE,
     details TEXT,
     organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    visibility VARCHAR(10) DEFAULT 'both'
 );
 
 -- School Years Table
@@ -229,7 +255,8 @@ CREATE TABLE IF NOT EXISTS terms (
     start_date DATE,
     end_date DATE,
     organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
-    year_id INT
+    year_id INT,
+    current BOOLEAN DEFAULT FALSE
 );
 
 -- Term Classes Table (many-to-many relationship between terms and classes)
@@ -253,19 +280,8 @@ ALTER TABLE attendance_records
 ADD CONSTRAINT unique_attendance_record
 UNIQUE (student_id, class_id, date);
 
-
--- Add organization_id to graduation_year_groups if missing
-ALTER TABLE graduation_year_groups
-ADD COLUMN organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE;
-
-ALTER TABLE subjects
-ADD COLUMN grad_year_group_id INT REFERENCES graduation_year_groups(id) ON DELETE CASCADE;
-
-ALTER TABLE terms ADD COLUMN current BOOLEAN DEFAULT FALSE;
-
-ALTER TABLE school_events ADD COLUMN visibility VARCHAR(10) DEFAULT 'both';
-ALTER TABLE announcements ADD COLUMN visibility VARCHAR(10) DEFAULT 'both';
-CREATE TABLE organization_images (
+-- Organization Images Table
+CREATE TABLE IF NOT EXISTS organization_images (
     image_id SERIAL PRIMARY KEY,
     organization_id INTEGER NOT NULL,
     image_url TEXT NOT NULL,
@@ -273,45 +289,62 @@ CREATE TABLE organization_images (
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id)
 );
 
-CREATE TABLE organization_texts (
+-- Organization Texts Table
+CREATE TABLE IF NOT EXISTS organization_texts (
     text_id SERIAL PRIMARY KEY,
     organization_id INTEGER NOT NULL,
     heading TEXT NOT NULL,
     paragraph TEXT NOT NULL,
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id)
 );
-ALTER TABLE users ADD COLUMN class_id INT REFERENCES classes(class_id) ON DELETE SET NULL;
--- Create ENUM types for user roles
-DO $$ BEGIN
-    CREATE TYPE user_role AS ENUM ('Admin', 'Mini Admin', 'Manager', 'Supervisor', 'Teacher');
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
-ALTER TYPE user_role ADD VALUE 'Teacher';
-ALTER TYPE user_role ADD VALUE 'Supervisor';
 
-
+-- Users Classes Table
 CREATE TABLE IF NOT EXISTS user_classes (
     user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
     class_id INT REFERENCES classes(class_id) ON DELETE CASCADE,
     PRIMARY KEY (user_id, class_id)
 );
 
+-- Teacher Remarks Table
 CREATE TABLE IF NOT EXISTS teacher_remarks (
     student_id INT REFERENCES students(student_id) ON DELETE CASCADE,
     remarks TEXT,
     PRIMARY KEY (student_id)
 );
 
+-- Head Teacher Remarks Table
 CREATE TABLE IF NOT EXISTS head_teacher_remarks (
     student_id INT REFERENCES students(student_id) ON DELETE CASCADE,
     remarks TEXT,
     PRIMARY KEY (student_id)
 );
 
+-- General Remarks Table
 CREATE TABLE IF NOT EXISTS general_remarks (
     id SERIAL PRIMARY KEY,
     organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
-    type VARCHAR(50), -- 'teacher' or 'head_teacher'
+    type VARCHAR(50),
     remarks TEXT
+);
+
+-- Ensure user_role ENUM values
+DO $$ BEGIN
+    ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'Teacher';
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'Supervisor';
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+
+ALTER TABLE announcements ADD COLUMN visibility VARCHAR(10);
+
+CREATE TABLE user_subjects (
+    user_id INTEGER REFERENCES users(user_id),
+    subject_id INTEGER REFERENCES subjects(subject_id),
+    PRIMARY KEY (user_id, subject_id)
 );

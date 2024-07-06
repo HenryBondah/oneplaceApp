@@ -1,25 +1,4 @@
-/* Add to your CSS file */
-.dashboard-buttons {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-
-.dashboard-buttons button {
-  margin: 0 10px;
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.dashboard-buttons button:hover,
-.dashboard-buttons button.active {
-  background-color: #0056b3;
-}
-
+/* orgdashboard and public dashboard */
 .dashboard-container, .public-dashboard-container {
   margin-top: 20px;
   display: flex;
@@ -73,6 +52,6 @@
 
 @media (max-width: 768px) {
   .info-grid, .public-info-grid {
-      grid-template-columns: 1fr; /* Stack the items vertically on smaller screens */
+      grid-template-columns: 1fr; 
   }
 }

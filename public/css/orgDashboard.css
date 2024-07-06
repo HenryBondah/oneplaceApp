@@ -1,28 +1,5 @@
-/* orgdashboard */
-/* Add to your CSS file */
-.dashboard-buttons {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-
-.dashboard-buttons button {
-  margin: 0 10px;
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.dashboard-buttons button:hover,
-.dashboard-buttons button.active {
-  background-color: #0056b3;
-}
-
-
-.dashboard-container {
+/* orgdashboard and public dashboard */
+.dashboard-container, .public-dashboard-container {
   margin-top: 20px;
   display: flex;
   flex-direction: column;
@@ -32,7 +9,7 @@
   margin: auto;
 }
 
-.classes-container {
+.classes-container, .events-container, .announcements-container {
   width: 100%;
   background: #f9f9f9;
   padding: 20px;
@@ -40,18 +17,12 @@
   margin-bottom: 20px;
 }
 
-.info-grid {
+.info-grid, .public-info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   width: 100%;
   margin-bottom: 20px;
-}
-
-.school-image-container img {
-  width: 100%;
-  height: auto;
-  border-radius: 8px;
 }
 
 .calendar-container {
@@ -66,7 +37,6 @@
 .date {
   font-size: 24px;
   font-weight: bold;
-  margin-bottom: 8px;
 }
 
 .time {
@@ -74,16 +44,14 @@
   color: #555;
 }
 
-.events-container, .announcements-container {
+.line-divider {
   width: 100%;
-  background: #f9f9f9;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  border-top: 2px solid #ddd;
+  margin: 20px 0;
 }
 
 @media (max-width: 768px) {
-  .info-grid {
-      grid-template-columns: 1fr; /* Stack the image and calendar vertically on smaller screens */
+  .info-grid, .public-info-grid {
+      grid-template-columns: 1fr; 
   }
 }

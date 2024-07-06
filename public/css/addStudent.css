@@ -1,17 +1,12 @@
 /* add student */
 .add-student-container {
-    padding: 20px;
-  }
-  
-  .form-group {
-    margin-bottom: 10px;
-  }
-  
-  .error {
-    color: red;
-  }
-  
-  .success {
-    color: green;
-  }
-  
+  padding: 20px;
+}
+
+.error {
+  color: red;
+}
+
+.success {
+  color: green;
+}

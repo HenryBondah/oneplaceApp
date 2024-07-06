@@ -1,22 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Create Employee</title>
-    <link rel="stylesheet" type="text/css" href="/styles.css">
+    <meta charset="UTF-8">
+    <title><%= title %></title>
+    <style>
+        .flash-message {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .flash-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .flash-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        form {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        form div {
+            margin-bottom: 10px;
+        }
+        form label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        form input, form select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .checkbox-group label {
+            width: 50%;
+        }
+    </style>
+    <script>
+        async function fetchSubjects() {
+            const classCheckboxes = document.querySelectorAll('input[name="classIds"]:checked');
+            const selectedClassIds = Array.from(classCheckboxes).map(cb => cb.value);
+
+            if (selectedClassIds.length === 0) {
+                document.getElementById('subjectsContainer').innerHTML = '';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/common/getSubjectsForClasses?classIds=${selectedClassIds.join(',')}`);
+                const subjects = await response.json();
+
+                let subjectsHtml = '';
+                subjects.forEach(subject => {
+                    subjectsHtml += `
+                        <label>
+                            <input type="checkbox" name="subjectIds" value="${subject.subject_id}"> ${subject.subject_name} (Class: ${subject.class_id})
+                        </label>
+                    `;
+                });
+
+                document.getElementById('subjectsContainer').innerHTML = subjectsHtml;
+            } catch (error) {
+                console.error('Error fetching subjects:', error);
+            }
+        }
+    </script>
 </head>
 <body>
-    <div class="manage-employees-link" style="text-align: center; margin-top: 20px;">
-        <a href="/common/manageEmployees" class="btn btn-primary">Manage Employees</a>
-    </div>
-    <hr>
-    <% if (success_msg) { %>
-        <div class="alert alert-success"><%= success_msg %></div>
+    <% if (success_msg.length > 0) { %>
+        <div class="flash-message flash-success">
+            <%= success_msg %>
+        </div>
     <% } %>
-    <% if (error_msg) { %>
-        <div class="alert alert-danger"><%= error_msg %></div>
+    <% if (error_msg.length > 0) { %>
+        <div class="flash-message flash-error">
+            <%= error_msg %>
+        </div>
     <% } %>
+
     <h1>Create Employee</h1>
-    <form action="/common/createEmployee" method="POST">
+    <form action="/common/createEmployee" method="post">
         <div>
             <label for="firstName">First Name:</label>
             <input type="text" id="firstName" name="firstName" required>
@@ -36,18 +105,24 @@
         <div>
             <label for="role">Role:</label>
             <select id="role" name="role" required>
-                <option value="Admin">Admin</option>
-                <option value="Mini Admin">Mini Admin</option>
-                <option value="Manager">Manager</option>
-                <option value="Supervisor">Supervisor</option>
-                <option value="Teacher">Teacher</option>
+                <option value="teacher">Teacher</option>
+                <option value="admin">Admin</option>
+                <!-- Add more roles as needed -->
             </select>
         </div>
         <div>
-            <label for="classIds">Assign Classes:</label><br>
-            <% classes.forEach(function(cls) { %>
-                <input type="checkbox" name="classIds" value="<%= cls.class_id %>"> <%= cls.class_name %><br>
-            <% }); %>
+            <label for="classIds">Assign Classes:</label>
+            <div id="classContainer" class="checkbox-group">
+                <% classes.forEach(cls => { %>
+                    <label>
+                        <input type="checkbox" name="classIds" value="<%= cls.class_id %>" onchange="fetchSubjects()"> <%= cls.class_name %>
+                    </label>
+                <% }); %>
+            </div>
+        </div>
+        <div>
+            <label>Assign Subjects:</label>
+            <div id="subjectsContainer" class="checkbox-group"></div>
         </div>
         <button type="submit">Create Employee</button>
     </form>

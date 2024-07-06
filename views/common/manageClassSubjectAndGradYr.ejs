@@ -1,9 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Class, Subject, and Graduation Year</title>
+
     <style>
         .link-to-add-class-subject {
             text-align: center;
@@ -25,9 +20,35 @@
             border-bottom: 1px solid #ccc;
             margin: 20px 0;
         }
+        .flash-message {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .flash-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .flash-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
     </style>
 </head>
 <body>
+    <!-- Flash Messages -->
+    <% if (messages && messages.success && messages.success.length > 0) { %>
+        <div class="flash-message flash-success">
+            <%= messages.success[0] %>
+        </div>
+    <% } %>
+    <% if (messages && messages.error && messages.error.length > 0) { %>
+        <div class="flash-message flash-error">
+            <%= messages.error[0] %>
+        </div>
+    <% } %>
+
     <!-- Add the link to the Add Class and Subject page -->
     <div class="link-to-add-class-subject">
         <a href="/common/addClassSubject">Add Class, Subject & Graduation Year Group</a>
@@ -41,12 +62,12 @@
             <legend>Graduation Year Groups</legend>
             <% graduationYearGroups.forEach(group => { %>
                 <div>
-                    <form action="/editGraduationYearGroup" method="post">
+                    <form action="/common/editGraduationYearGroup" method="post">
                         <input type="hidden" name="id" value="<%= group.id %>">
                         <input type="text" name="newName" value="<%= group.name %>">
                         <button type="submit">Update</button>
                     </form>
-                    <a href="/deleteGraduationYearGroup?id=<%= group.id %>" class="delete-link">Delete</a>
+                    <a href="/common/deleteGraduationYearGroup?id=<%= group.id %>" class="delete-link">Delete</a>
                 </div>
             <% }); %>
         </fieldset>
@@ -55,20 +76,20 @@
             <legend>Classes</legend>
             <% classes.forEach(cls => { %>
                 <div>
-                    <form action="/editClass" method="post">
+                    <form action="/common/editClass" method="post">
                         <input type="hidden" name="classId" value="<%= cls.class_id %>">
                         <input type="text" name="newClassName" value="<%= cls.class_name %>">
                         <button type="submit">Update</button>
                     </form>
-                    <a href="/deleteClass?classId=<%= cls.class_id %>" class="delete-link">Delete</a>
+                    <a href="/common/deleteClass?classId=<%= cls.class_id %>" class="delete-link">Delete</a>
                 </div>
             <% }); %>
         </fieldset>
 
         <fieldset>
             <legend>Subjects</legend>
-            <form action="/common/manageClassSubjectAndGradYr" method="GET">
-                <select id="classSelect" name="classId">
+            <form>
+                <select id="classSelect" name="classId" onchange="loadSubjects(this.value)">
                     <option value="">Select a Class</option>
                     <% classes.forEach(function(cls) { %>
                         <option value="<%= cls.class_id %>"><%= cls.class_name %></option>
@@ -79,7 +100,58 @@
             <div id="subjectsContainer"></div>
         </fieldset>
     </div>
+<script>function fetchSubjects() {
+    const classId = document.getElementById('classSelect').value;
+    if (!classId) {
+        document.getElementById('subjectsContainer').innerHTML = '';
+        return;
+    }
 
-    <script src="/js/manageClassSubjectAndGradYr.js"></script>
-</body>
-</html>
+    fetch(`/api/getSubjectsByClass?classId=${classId}`)
+        .then(response => response.json())
+        .then(subjects => {
+            let html = subjects.map(subject =>
+                `<div>
+                    <span>${subject.subject_name}</span>
+                    <button onclick="editSubject('${subject.subject_id}', '${subject.subject_name}')">Edit</button>
+                    <button onclick="deleteSubject('${subject.subject_id}')">Delete</button>
+                </div>`
+            ).join('');
+            document.getElementById('subjectsContainer').innerHTML = html;
+        })
+        .catch(error => console.error('Error fetching subjects:', error));
+}
+
+document.getElementById('classSelect').addEventListener('change', async function() {
+    const classId = this.value;
+    if (!classId) return;
+
+    try {
+        const response = await fetch(`/common/getSubjectsByClass?classId=${classId}`);
+        const subjects = await response.json();
+        
+        if (subjects.error) {
+            throw new Error(subjects.error);
+        }
+
+        const subjectsContainer = document.getElementById('subjectsContainer');
+        subjectsContainer.innerHTML = '';
+
+        subjects.forEach(subject => {
+            const subjectElement = document.createElement('div');
+            subjectElement.innerHTML = `
+                <form action="/common/editSubject" method="post" style="display:inline;">
+                    <input type="hidden" name="subjectId" value="${subject.subject_id}">
+                    <input type="text" name="newName" value="${subject.subject_name}">
+                    <button type="submit">Update</button>
+                </form>
+                <a href="/common/deleteSubject?subjectId=${subject.subject_id}" class="delete-link">Delete</a>
+            `;
+            subjectsContainer.appendChild(subjectElement);
+        });
+    } catch (error) {
+        console.error('Failed to load subjects:', error);
+        alert('Failed to load subjects.');
+    }
+});
+</script>

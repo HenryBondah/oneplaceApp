@@ -1,71 +1,71 @@
 <header id="top-header">
-    <span class="siteName">
-      <img src="/images/1place.png" alt="Logo" class="logo">
-      <% if (session.organizationName) { %>
-        <a href="/common/orgDashboard" title="Go to dashboard"><%= session.organizationName %></a>
-      <% } else { %>
-        <a href="/" title="Return to home page">OnePlace</a>
-      <% } %>
-    </span>
-    <div id="tools">
-      <% if (session.firstName) { %>
-        <a href="#" title="Go to management page">Welcome, <%= session.firstName %>!</a> 
-        <div style="margin-left: 15px;">
-          <div class="hamburger" id="hamburger">
-            <span class="bar"></span>
-            <span class="bar"></span>
-            <span class="bar"></span>
-          </div>
-          <ul class="nav-menu" id="nav-menu">
-            <li class="nav-item">
-              <a href="/account/update">Update Account</a>
-            </li>
-            <li class="nav-item">
-              <a href="#" class="submenu-toggle" data-target="management-submenu">Management Tools <span class="arrow">&#9660;</span></a>
-              <ul class="management-links submenu" id="management-submenu">
-                <li><a href="/common/manageRecords">Events, Announcements & Sch Year</a></li>
-                <li><a href="/common/manageClassSubjectAndGradYr">Class, Subject & Graduation Year</a></li>
-                <li><a href="/common/manageStudents">Students (Create, Edit & Delete)</a></li>
-                <li><a href="/common/createEmployee">Employee (Create, Edit & Delete)</a></li>
-              </ul>
-            </li>
-            <li class="nav-item">
-              <a href="#" class="submenu-toggle" data-target="settings-submenu">Settings <span class="arrow">&#9660;</span></a>
-              <ul class="management-links submenu" id="settings-submenu">
-                <li><a href="/common/management">Term Mnagement</a></li>
-                <li><a href="/account/personalization">Customize Organization</a></li>
-              </ul>
-            </li>
-            <li class="nav-item">
-              <a href="/account/logout">Logout</a>
-            </li>
-          </ul>
+  <span class="siteName">
+    <img src="/images/1place.png" alt="Logo" class="logo">
+    <% if (session.organizationName) { %>
+      <a href="/common/orgDashboard" title="Go to dashboard"><%= session.organizationName %></a>
+    <% } else { %>
+      <a href="/" title="Return to home page">OnePlace</a>
+    <% } %>
+  </span>
+  <div id="tools">
+    <% if (session.firstName) { %>
+      <a href="#" title="Go to management page" class="header-welcome">Welcome, <%= session.firstName %>!</a> 
+      <div style="margin-left: 15px;">
+        <div class="hamburger" id="hamburger">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
         </div>
-      <% } else { %>
-        <a title="Click to log in" href="/account/login">Login | Register</a>
-      <% } %>
-    </div>
-  </header>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const hamburger = document.getElementById('hamburger');
-      const navMenu = document.getElementById('nav-menu');
-      const submenuToggles = document.querySelectorAll('.submenu-toggle');
-  
-      hamburger.addEventListener('click', () => {
-        hamburger.classList.toggle('active');
-        navMenu.classList.toggle('show');
-      });
-  
-      submenuToggles.forEach(toggle => {
-        toggle.addEventListener('click', (e) => {
-          e.preventDefault();
-          const target = document.getElementById(toggle.dataset.target);
-          const arrow = toggle.querySelector('.arrow');
-          target.classList.toggle('show');
-          arrow.classList.toggle('open');
-        });
+        <ul class="nav-menu" id="nav-menu">
+          <li class="nav-item">
+            <a href="/account/update">Update Account</a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="submenu-toggle" data-target="management-submenu">Management Tools <span class="arrow">&#9660;</span></a>
+            <ul class="management-links submenu" id="management-submenu">
+              <li><a href="/common/manageRecords">Events, Announcements & Sch Year</a></li>
+              <li><a href="/common/manageClassSubjectAndGradYr">Class, Subject & Graduation Year</a></li>
+              <li><a href="/common/manageStudents">Students (Create, Edit & Delete)</a></li>
+              <li><a href="/common/createEmployee">Employee (Create, Edit & Delete)</a></li>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="submenu-toggle" data-target="settings-submenu">Settings <span class="arrow">&#9660;</span></a>
+            <ul class="management-links submenu" id="settings-submenu">
+              <li><a href="/common/management">Term Mnagement</a></li>
+              <li><a href="/account/personalization">Customize Organization</a></li>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a href="/account/logout">Logout</a>
+          </li>
+        </ul>
+      </div>
+    <% } else { %>
+      <a title="Click to log in" href="/account/login">Login | Register</a>
+    <% } %>
+  </div>
+</header>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const hamburger = document.getElementById('hamburger');
+    const navMenu = document.getElementById('nav-menu');
+    const submenuToggles = document.querySelectorAll('.submenu-toggle');
+
+    hamburger.addEventListener('click', () => {
+      hamburger.classList.toggle('active');
+      navMenu.classList.toggle('show');
+    });
+
+    submenuToggles.forEach(toggle => {
+      toggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = document.getElementById(toggle.dataset.target);
+        const arrow = toggle.querySelector('.arrow');
+        target.classList.toggle('show');
+        arrow.classList.toggle('open');
       });
     });
-  </script>
-  
+  });
+</script>
