@@ -348,3 +348,5 @@ CREATE TABLE user_subjects (
     subject_id INTEGER REFERENCES subjects(subject_id),
     PRIMARY KEY (user_id, subject_id)
 );
+
+ALTER TABLE users ADD COLUMN on_hold BOOLEAN DEFAULT FALSE;

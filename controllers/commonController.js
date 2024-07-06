@@ -49,6 +49,22 @@ function generateDates(startDate, endDate) {
     return dates;
 }
 
+async function getClassesWithEmployees(db, organizationId) {
+    const classesQuery = `
+        SELECT c.class_id, c.class_name,
+            json_agg(json_build_object('name', u.first_name || ' ' || u.last_name, 'on_hold', u.on_hold)) AS employees
+        FROM classes c
+        LEFT JOIN user_classes uc ON c.class_id = uc.class_id
+        LEFT JOIN users u ON uc.user_id = u.user_id
+        WHERE c.organization_id = $1
+        GROUP BY c.class_id
+        ORDER BY c.class_name;
+    `;
+    const result = await db.query(classesQuery, [organizationId]);
+    return result.rows;
+}
+
+
 // Fetch students by class function
 async function fetchStudentsByClass(db, classId) {
     try {
@@ -103,7 +119,7 @@ const commonController = {
     orgDashboard: async (req, res, db) => {
         try {
             const organizationId = req.session.organizationId;
-    
+            
             const schoolYearResult = await db.query(`
                 SELECT sy.id as school_year_id, sy.year_label, t.term_id, t.term_name, t.start_date, t.end_date, t.current
                 FROM school_years sy
@@ -130,8 +146,7 @@ const commonController = {
                 currentTerm = schoolYearResult.rows.find(row => row.current);
             }
     
-            const classesResult = await db.query('SELECT class_id, class_name FROM classes WHERE organization_id = $1 ORDER BY class_name', [organizationId]);
-            const classes = classesResult.rows;
+            const classes = await getClassesWithEmployees(db, organizationId);
     
             const eventsResult = await db.query('SELECT * FROM school_events WHERE organization_id = $1 ORDER BY event_date', [organizationId]);
             const events = eventsResult.rows.filter(event => event.visibility === 'org' || event.visibility === 'both');
@@ -141,12 +156,12 @@ const commonController = {
     
             res.render('common/orgDashboard', {
                 title: 'Organization Dashboard',
-                schoolYear: schoolYear,
-                currentTerm: currentTerm,
-                classes: classes,
-                events: events,
-                announcements: announcements,
-                organizationId: organizationId,
+                schoolYear,
+                currentTerm,
+                classes,
+                events,
+                announcements,
+                organizationId,
                 messages: req.flash()
             });
         } catch (error) {
@@ -154,8 +169,7 @@ const commonController = {
             req.flash('error', 'Failed to load dashboard data.');
             res.redirect('/');
         }
-    },
-    
+    },    
     
     publicDashboardContent: async (req, res, db) => {
         try {
@@ -683,47 +697,52 @@ studentDetails: async (req, res, db) => {
 
     createEmployeeGet: async (req, res, db) => {
         try {
-            const classesResult = await db.query('SELECT class_id, class_name FROM classes WHERE organization_id = $1', [req.session.organizationId]);
+            const classesResult = await db.query('SELECT * FROM classes WHERE organization_id = $1', [req.session.organizationId]);
             res.render('common/createEmployee', {
                 title: 'Create Employee',
                 classes: classesResult.rows,
-                success_msg: req.flash('success'),
-                error_msg: req.flash('error')
+                messages: {
+                    success: req.flash('success'),
+                    error: req.flash('error')
+                }
             });
         } catch (error) {
             console.error('Error fetching classes:', error);
             req.flash('error', 'Failed to load classes.');
             res.redirect('/common/manageEmployees');
         }
-    },
+      },
 
-    createEmployeePost: async (req, res, db) => {
-        const { firstName, lastName, email, password, role, classIds, subjectIds } = req.body;
-
-        if (!firstName || !lastName || !email || !password || !role) {
+      createEmployeePost: async (req, res, db) => {
+        const { firstName, lastName, email, password, account_type, classes, subjects } = req.body;
+    
+        if (!firstName || !lastName || !email || !password || !account_type) {
             req.flash('error', 'All fields are required.');
             return res.redirect('/common/createEmployee');
         }
-
+    
         try {
             const hashedPassword = await bcrypt.hash(password, 10);
             const result = await db.query(
                 `INSERT INTO users (first_name, last_name, email, password, account_type, organization_id, created_at, updated_at)
-                 VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING user_id`, [firstName, lastName, email, hashedPassword, role, req.session.organizationId]);
-
+                 VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING user_id`, 
+                [firstName, lastName, email, hashedPassword, account_type, req.session.organizationId]
+            );
+    
             const userId = result.rows[0].user_id;
-            if (Array.isArray(classIds)) {
-                for (const classId of classIds) {
+    
+            if (Array.isArray(classes)) {
+                for (const classId of classes) {
                     await db.query('INSERT INTO user_classes (user_id, class_id) VALUES ($1, $2)', [userId, classId]);
                 }
             }
-
-            if (Array.isArray(subjectIds)) {
-                for (const subjectId of subjectIds) {
+    
+            if (Array.isArray(subjects)) {
+                for (const subjectId of subjects) {
                     await db.query('INSERT INTO user_subjects (user_id, subject_id) VALUES ($1, $2)', [userId, subjectId]);
                 }
             }
-
+    
             req.flash('success', 'Employee created successfully.');
             res.redirect('/common/createEmployee');
         } catch (error) {
@@ -732,8 +751,9 @@ studentDetails: async (req, res, db) => {
             res.redirect('/common/createEmployee');
         }
     },
+        
 
-    
+
     manageEmployees: async (req, res, db) => {
         try {
             const result = await db.query(`
@@ -746,12 +766,23 @@ studentDetails: async (req, res, db) => {
 
             const classesResult = await db.query('SELECT * FROM classes WHERE organization_id = $1', [req.session.organizationId]);
 
+            const employees = result.rows;
+            for (let employee of employees) {
+                const classIds = employee.class_ids || [];
+                employee.classes = await db.query('SELECT class_name FROM classes WHERE class_id = ANY($1)', [classIds]).then(res => res.rows);
+                
+                const subjects = await db.query('SELECT sub.subject_name FROM subjects sub JOIN user_subjects us ON sub.subject_id = us.subject_id WHERE us.user_id = $1', [employee.user_id]);
+                employee.subjects = subjects.rows;
+            }
+
             res.render('common/manageEmployees', {
                 title: 'Manage Employees',
-                employees: result.rows,
+                employees: employees,
                 classes: classesResult.rows,
-                success_msg: req.flash('success'),
-                error_msg: req.flash('error')
+                messages: {
+                    success: req.flash('success'),
+                    error: req.flash('error')
+                }
             });
         } catch (error) {
             console.error('Error fetching employees:', error);
@@ -760,43 +791,133 @@ studentDetails: async (req, res, db) => {
         }
     },
 
-    updateEmployee: async (req, res, db) => {
+    toggleHoldEmployee: async (req, res, db) => {
         const { userId } = req.params;
-        const { firstName, lastName, email, role, classIds } = req.body;
-
-        if (!firstName || !lastName || !email || !role) {
-            req.flash('error', 'All fields are required.');
-            return res.redirect('/common/manageEmployees');
+        try {
+            const result = await db.query('UPDATE users SET on_hold = NOT on_hold WHERE user_id = $1 AND organization_id = $2 RETURNING on_hold', [userId, req.session.organizationId]);
+            const newStatus = result.rows[0].on_hold ? 'on hold' : 'resumed';
+            req.flash('success', `Employee has been ${newStatus}.`);
+            res.redirect(`/common/modifyEmployee?userId=${userId}`);
+        } catch (error) {
+            console.error('Error toggling hold status:', error);
+            req.flash('error', 'Failed to update employee status.');
+            res.redirect(`/common/modifyEmployee?userId=${userId}`);
         }
+    },
+    
+    modifyEmployeeGet: async (req, res, db) => {
+        const { userId } = req.query;
+
+        if (!userId) {
+            res.status(400).send('User ID is required.');
+            return;
+        }
+
+        try {
+            const userResult = await db.query('SELECT * FROM users WHERE user_id = $1 AND organization_id = $2', [userId, req.session.organizationId]);
+            if (userResult.rows.length === 0) {
+                res.status(404).send('User not found.');
+                return;
+            }
+            const user = userResult.rows[0];
+
+            const classesResult = await db.query(`
+                SELECT c.class_id, c.class_name
+                FROM classes c
+                WHERE c.organization_id = $1
+                ORDER BY c.class_name ASC`, [req.session.organizationId]);
+
+            const subjectsResult = await db.query(`
+                SELECT s.subject_id, s.subject_name, s.class_id
+                FROM subjects s
+                WHERE s.organization_id = $1`, [req.session.organizationId]);
+
+            const classMap = classesResult.rows.reduce((map, cls) => {
+                map[cls.class_id] = { ...cls, subjects: [] };
+                return map;
+            }, {});
+
+            subjectsResult.rows.forEach(subject => {
+                if (classMap[subject.class_id]) {
+                    classMap[subject.class_id].subjects.push(subject);
+                }
+            });
+
+            const classes = Object.values(classMap);
+
+            const enrolledSubjectsResult = await db.query(`
+                SELECT us.subject_id
+                FROM user_subjects us
+                WHERE us.user_id = $1`, [userId]);
+            const enrolledSubjects = enrolledSubjectsResult.rows.map(subject => subject.subject_id);
+
+            const employeeClassesResult = await db.query(`
+                SELECT class_id
+                FROM user_classes
+                WHERE user_id = $1`, [userId]);
+            const enrolledClasses = employeeClassesResult.rows.map(cls => cls.class_id);
+
+            res.render('common/modifyEmployee', {
+                title: 'Modify Employee',
+                user,
+                classes,
+                enrolledClasses,
+                enrolledSubjects,
+                messages: req.flash()
+            });
+        } catch (error) {
+            console.error('Error loading modify employee page:', error);
+            res.status(500).send('Failed to load employee details.');
+        }
+    },
+
+    
+    modifyEmployeePost: async (req, res, db) => {
+        const { userId } = req.params;
+        const { firstName, lastName, email, accountType, classIds = [], subjects = [] } = req.body;
 
         try {
             await db.query(
                 `UPDATE users
                  SET first_name = $1, last_name = $2, email = $3, account_type = $4, updated_at = NOW()
-                 WHERE user_id = $5 AND organization_id = $6`, [firstName, lastName, email, role, userId, req.session.organizationId]);
+                 WHERE user_id = $5 AND organization_id = $6`, [firstName, lastName, email, accountType, userId, req.session.organizationId]);
 
             await db.query('DELETE FROM user_classes WHERE user_id = $1', [userId]);
-
             if (Array.isArray(classIds)) {
                 for (const classId of classIds) {
                     await db.query('INSERT INTO user_classes (user_id, class_id) VALUES ($1, $2)', [userId, classId]);
                 }
             }
 
-            req.flash('success', 'Employee updated successfully.');
+            await db.query('DELETE FROM user_subjects WHERE user_id = $1', [userId]);
+            if (Array.isArray(subjects)) {
+                for (const subjectId of subjects) {
+                    await db.query('INSERT INTO user_subjects (user_id, subject_id) VALUES ($1, $2)', [userId, subjectId]);
+                }
+            }
+
+            req.flash('success', 'Employee details updated successfully.');
             res.redirect('/common/manageEmployees');
         } catch (error) {
-            console.error('Error updating employee:', error);
-            req.flash('error', 'Failed to update employee.');
-            res.redirect('/common/manageEmployees');
+            console.error('Error updating employee details:', error);
+            req.flash('error', 'Failed to update employee details.');
+            res.redirect(`/common/modifyEmployee?userId=${userId}`);
         }
     },
 
+    
     deleteEmployee: async (req, res, db) => {
         const { userId } = req.params;
 
+        if (!userId) {
+            return res.status(400).send('User ID is required.');
+        }
+
         try {
+            await db.query('DELETE FROM user_classes WHERE user_id = $1', [userId]);
+            await db.query('DELETE FROM user_subjects WHERE user_id = $1', [userId]);
             await db.query('DELETE FROM users WHERE user_id = $1 AND organization_id = $2', [userId, req.session.organizationId]);
+
             req.flash('success', 'Employee deleted successfully.');
             res.redirect('/common/manageEmployees');
         } catch (error) {

@@ -11,7 +11,6 @@ module.exports = (db) => {
     router.get('/studentDetails', isAuthenticated, (req, res) => commonController.studentDetails(req, res, db));
     router.get('/management', isAuthenticated, (req, res) => commonController.management(req, res, db));
     router.get('/getStudentsByClass', isAuthenticated, (req, res) => commonController.getStudentsByClass(req, res, db));
-
     router.get('/studentsByClass', isAuthenticated, (req, res) => commonController.getStudentsByClass(req, res, db));
     router.get('/editStudent', isAuthenticated, (req, res) => commonController.editStudentGet(req, res, db));
     router.post('/editStudent/:studentId', upload.single('studentImage'), isAuthenticated, (req, res) => commonController.editStudentPost(req, res, db));
@@ -23,8 +22,10 @@ module.exports = (db) => {
     router.get('/createEmployee', isAuthenticated, (req, res) => commonController.createEmployeeGet(req, res, db));
     router.post('/createEmployee', isAuthenticated, (req, res) => commonController.createEmployeePost(req, res, db));
     router.get('/manageEmployees', isAuthenticated, (req, res) => commonController.manageEmployees(req, res, db));
-    router.post('/updateEmployee/:userId', isAuthenticated, (req, res) => commonController.updateEmployee(req, res, db));
+    router.get('/modifyEmployee', isAuthenticated, (req, res) => commonController.modifyEmployeeGet(req, res, db));
+    router.post('/modifyEmployee/:userId', isAuthenticated, (req, res) => commonController.modifyEmployeePost(req, res, db));
     router.post('/deleteEmployee/:userId', isAuthenticated, (req, res) => commonController.deleteEmployee(req, res, db));
+    router.post('/toggleHoldEmployee/:userId', isAuthenticated, (req, res) => commonController.toggleHoldEmployee(req, res, db));
     router.get('/assessment', isAuthenticated, (req, res) => commonController.assessment(req, res, db));
     router.post('/createTest', isAuthenticated, (req, res) => commonController.createTest(req, res, db));
     router.get('/getAssessments', isAuthenticated, (req, res) => commonController.getAssessments(req, res, db));

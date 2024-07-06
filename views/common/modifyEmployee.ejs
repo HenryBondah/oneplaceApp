@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title><%= title %></title>
+    <style>
+        .flash-message {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .flash-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .flash-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .link-button {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .link-button a {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .link-button a:hover {
+            background-color: #0056b3;
+        }
+        .separator {
+            border-bottom: 1px solid #ccc;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <% if (messages && messages.success && messages.success.length > 0) { %>
+        <div class="flash-message flash-success">
+            <%= messages.success[0] %>
+        </div>
+    <% } %>
+    <% if (messages && messages.error && messages.error.length > 0) { %>
+        <div class="flash-message flash-error">
+            <%= messages.error[0] %>
+        </div>
+    <% } %>
+
+    <div class="link-button">
+        <a href="/common/manageEmployees">Manage Employees</a>
+    </div>
+
+    <div class="separator"></div>
+
+    <h1><%= title %></h1>
+
+    <form action="/common/modifyEmployee/<%= user.user_id %>" method="post">
+        <div>
+            <label for="firstName">First Name:</label>
+            <input type="text" name="firstName" value="<%= user.first_name %>">
+        </div>
+        <div>
+            <label for="lastName">Last Name:</label>
+            <input type="text" name="lastName" value="<%= user.last_name %>">
+        </div>
+        <div>
+            <label for="email">Email:</label>
+            <input type="email" name="email" value="<%= user.email %>">
+        </div>
+        <div>
+            <label for="accountType">Role:</label>
+            <select name="accountType">
+                <option value="">-- Select Role --</option>
+                <option value="Manager" <%= user.account_type === 'Manager' ? 'selected' : '' %>>Manager</option>
+                <option value="Supervisor" <%= user.account_type === 'Supervisor' ? 'selected' : '' %>>Supervisor</option>
+                <option value="Teacher" <%= user.account_type === 'Teacher' ? 'selected' : '' %>>Teacher</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Classes:</label>
+            <% classes.forEach(cls => { %>
+                <div>
+                    <input type="checkbox" name="classIds[]" value="<%= cls.class_id %>" <%= enrolledClasses.includes(cls.class_id) ? 'checked' : '' %>> <%= cls.class_name %>
+                </div>
+                <div id="class-<%= cls.class_id %>-subjects" style="display: none;">
+                    <% cls.subjects.forEach(sub => { %>
+                        <div>
+                            <input type="checkbox" name="subjects[]" value="<%= sub.subject_id %>" <%= enrolledSubjects.includes(sub.subject_id) ? 'checked' : '' %>> <%= sub.subject_name %>
+                        </div>
+                    <% }); %>
+                </div>
+            <% }); %>
+        </div>
+
+        <button type="submit">Save Changes</button>
+    </form>
+
+    <form action="/common/deleteEmployee/<%= user.user_id %>" method="post" onsubmit="return confirm('Are you sure you want to delete this employee?');">
+        <button type="submit">Delete Employee</button>
+    </form>
+
+    <form action="/common/toggleHoldEmployee/<%= user.user_id %>" method="post">
+        <button type="submit"><%= user.on_hold ? 'Resume' : 'Hold' %> Employee</button>
+    </form>
+
+    <script>
+        // JavaScript to toggle subjects based on class selection
+        document.querySelectorAll('input[name="classIds[]"]').forEach(classCheckbox => {
+            classCheckbox.addEventListener('change', function() {
+                const subjectsDiv = document.getElementById(`class-${this.value}-subjects`);
+                if (this.checked) {
+                    subjectsDiv.style.display = 'block';
+                } else {
+                    subjectsDiv.style.display = 'none';
+                }
+            });
+
+            // Trigger change event to show already checked classes' subjects
+            classCheckbox.dispatchEvent(new Event('change'));
+        });
+    </script>
+</body>
+</html>

@@ -2,6 +2,27 @@
 <html>
 <head>
     <title><%= title %></title>
+    <style>
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+  
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        .on-hold {
+            color: red;
+            font-size: 1.5em;
+        }
+
+    </style>
 </head>
 <body>
     <div class="dashboard-buttons">
@@ -13,20 +34,27 @@
     <div class="container">
         <div id="orgDashboardSection">
             <h1>Organization Dashboard</h1>
-            <div class="dashboard-container">
-                <div class="classes-container">
-                    <h2>Classes</h2>
-                    <ul>
-                        <% if (classes && classes.length > 0) { %>
-                            <% classes.forEach(function(cls) { %>
-                                <li><a href="/common/classDashboard?classId=<%= cls.class_id %>"><%= cls.class_name %></a></li>
-                            <% }); %>
-                        <% } else { %>
-                            <li>No classes found</li>
-                        <% } %>
-                    </ul>
-                </div>
 
+            <div class="classes-container">
+                <h2>Classes</h2>
+                <ul>
+                    <% if (classes && classes.length > 0) { %>
+                        <% classes.forEach(function(cls) { %>
+                            <li>
+                                <a href="/common/classDashboard?classId=<%= cls.class_id %>"><%= cls.class_name %></a>
+                                - Employees:
+                                <% cls.employees.forEach(function(emp, index) { %>
+                                    <%= emp.name %><% if (emp.on_hold) { %><span class="on-hold">•</span><% } %><%= index < cls.employees.length - 1 ? ' | ' : '' %>
+                                <% }); %>
+                            </li>
+                        <% }); %>
+                    <% } else { %>
+                        <li>No classes found</li>
+                    <% } %>
+                </ul>
+            </div>
+
+            <div class="dashboard-container">
                 <div class="info-grid">
                     <div class="calendar-container">
                         <h2>Today's Date and Time</h2>
@@ -64,7 +92,10 @@
                     <ul>
                         <% if (events && events.length > 0) { %>
                             <% events.forEach(function(event) { %>
-                                <li><strong><%= event.name %></strong> - <%= new Date(event.event_date).toISOString().split('T')[0] %><br><%= event.details %></li>
+                                <li>
+                                    <strong><%= event.name %></strong> - <%= new Date(event.event_date).toISOString().split('T')[0] %>
+                                    <br><%= event.details %>
+                                </li>
                             <% }); %>
                         <% } else { %>
                             <li>No events found</li>
@@ -117,7 +148,13 @@
             })
             .catch(error => console.error('Error fetching public dashboard content:', error));
 
-       
+        function updateDateTime() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString(undefined, options);
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString();
+        }
+        
         setInterval(updateDateTime, 1000);
         updateDateTime();
     </script>
