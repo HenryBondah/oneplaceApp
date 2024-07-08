@@ -45,7 +45,10 @@
                                 <a href="/common/classDashboard?classId=<%= cls.class_id %>"><%= cls.class_name %></a>
                                 - Employees:
                                 <% cls.employees.forEach(function(emp, index) { %>
-                                    <%= emp.name %><% if (emp.main) { %><span class="main">•</span><% } %><% if (emp.on_hold) { %><span class="on-hold">•</span><% } %><%= index < cls.employees.length - 1 ? ' | ' : '' %>
+                                    <% if (emp.main) { %><span class="main">•</span><% } %>
+                                    <%= emp.name %>
+                                    <% if (emp.on_hold) { %><span class="on-hold">•</span><% } %>
+                                    <%= index < cls.employees.length - 1 ? ' | ' : '' %>
                                 <% }); %>
                             </li>
                         <% }); %>

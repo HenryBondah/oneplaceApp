@@ -1,9 +1,3 @@
-/* assessment */
-.assessment-container {
-  max-width: 800px;
-  margin: auto;
-  overflow-x: auto; /* Ensures table is scrollable on small screens */
-}
 
 .submit-btn {
   display: block;

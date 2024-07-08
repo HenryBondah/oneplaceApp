@@ -35,7 +35,7 @@ module.exports = (db) => {
     router.post('/saveScores', isAuthenticated, (req, res) => commonController.saveScores(req, res, db));
     router.get('/getSubjectsForClass', isAuthenticated, (req, res) => commonController.getSubjectsForClass(req, res, db));
     router.get('/classDashboard', isAuthenticated, (req, res) => commonController.classDashboard(req, res, db));
-
+    router.post('/saveScores', isAuthenticated, (req, res) => commonController.saveScores(req, res, db));
     router.post('/registerSchoolYear', isAuthenticated, (req, res) => commonController.registerSchoolYear(req, res, db));
     router.get('/registerSchoolYear', isAuthenticated, (req, res) => commonController.registerSchoolYearGet(req, res, db));
     router.get('/getClasses', isAuthenticated, (req, res) => commonController.getClasses(req, res, db));

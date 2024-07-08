@@ -968,6 +968,14 @@ studentDetails: async (req, res, db) => {
                 JOIN assessments a ON ar.assessment_id = a.assessment_id
                 WHERE a.class_id = $1 AND a.subject_id = $2 AND s.organization_id = $3`, [classId, subjectId, req.session.organizationId]);
 
+            const employeesResult = await db.query(`
+                SELECT u.user_id, u.first_name || ' ' || u.last_name as name, uc.main
+                FROM users u
+                JOIN user_classes uc ON u.user_id = uc.user_id
+                WHERE uc.class_id = $1 AND u.organization_id = $2`, [classId, req.session.organizationId]);
+
+            const employees = employeesResult.rows;
+
             const results = resultsResult.rows;
             const studentScores = {};
             results.forEach(result => {
@@ -977,58 +985,55 @@ studentDetails: async (req, res, db) => {
                 studentScores[result.student_id][result.assessment_id] = result.score;
             });
 
-            students.forEach(student => {
-                student.scores = studentScores[student.student_id] || {};
-                let totalPercentage = 0;
-                assessmentsResult.rows.forEach(assessment => {
-                    const score = student.scores[assessment.assessment_id];
-                    if (score !== undefined) {
-                        totalPercentage += score * (assessment.weight / 100);
-                    }
-                });
-                student.total_percentage = totalPercentage;
-                student.grade = calculateGrade(totalPercentage);
+            const studentsWithScores = students.map(student => {
+                return {
+                    ...student,
+                    scores: studentScores[student.student_id] || {}
+                };
             });
 
             res.render('common/assessment', {
-                title: `${subjectName} Assessment for ${className}`,
-                className,
-                subjectName,
-                students,
-                assessments: assessmentsResult.rows,
-                results,
+                title: 'Assessment',
                 classId,
-                subjectId
+                className,
+                subjectId,
+                subjectName,
+                assessments: assessmentsResult.rows,
+                students: studentsWithScores,
+                employees // Pass employees data to the template
             });
         } catch (err) {
-            console.error('Error on /common/assessment route:', err);
-            res.status(500).send('Error loading assessment data.');
+            console.error('Error fetching assessment data:', err);
+            res.status(500).send('Error fetching assessment data.');
         }
     },
+
+
 
     createTest: async (req, res, db) => {
         const { testName, testWeight, classId, subjectId } = req.body;
         if (!testName || isNaN(parseFloat(testWeight)) || !classId || !subjectId) {
-            return res.status(400).send("Missing or invalid input");
+            return res.status(400).json({ success: false, message: "Missing or invalid input" });
         }
-    
+
         try {
             const result = await db.query(
                 `INSERT INTO assessments (title, weight, class_id, subject_id, created_by, organization_id)
                  VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`, 
                  [testName, parseFloat(testWeight), classId, subjectId, req.session.userId, req.session.organizationId]
             );
-    
+
             if (result.rows.length > 0) {
-                res.status(201).json(result.rows[0]);
+                res.status(201).json({ success: true, test: result.rows[0] });
             } else {
-                res.status(500).send("Failed to insert the test into the database.");
+                res.status(500).json({ success: false, message: "Failed to insert the test into the database." });
             }
         } catch (err) {
             console.error('Failed to create test:', err);
-            res.status(500).send("Failed to create test");
+            res.status(500).json({ success: false, message: "Failed to create test" });
         }
     },
+    
     
     getAssessments: async (req, res, db) => {
         const { classId, subjectId } = req.query;
@@ -1080,47 +1085,55 @@ studentDetails: async (req, res, db) => {
     },
 
     saveScores: async (req, res, db) => {
-        const { scores } = req.body;
-    
-        try {
-            for (const { studentId, assessmentId, score } of scores) {
-                await db.query(`
-                    INSERT INTO assessment_results (student_id, assessment_id, score, organization_id)
-                    VALUES ($1, $2, $3, $4)
-                    ON CONFLICT (student_id, assessment_id)
-                    DO UPDATE SET score = EXCLUDED.score, organization_id = EXCLUDED.organization_id;
-                `, [studentId, assessmentId, score, req.session.organizationId]);
-            }
-    
-            const classId = (await db.query('SELECT class_id FROM assessments WHERE assessment_id = $1 AND organization_id = $2', [scores[0].assessmentId, req.session.organizationId])).rows[0].class_id;
-            for (const { studentId } of scores) {
-                const totalResult = await db.query(`
-                    SELECT SUM(a.weight * ar.score / 100) as total_percentage
-                    FROM assessments a
-                    JOIN assessment_results ar ON a.assessment_id = ar.assessment_id
-                    WHERE ar.student_id = $1 AND a.class_id = $2 AND a.organization_id = $3
-                `, [studentId, classId, req.session.organizationId]);
-    
-                const totalPercentage = totalResult.rows[0].total_percentage || 0;
-    
-                let grade;
-                if (totalPercentage >= 90) grade = 'A';
-                else if (totalPercentage >= 80) grade = 'B';
-                else if (totalPercentage >= 70) grade = 'C';
-                else if (totalPercentage >= 60) grade = 'D';
-                else grade = 'F';
-    
-                await db.query('UPDATE students SET total_percentage = $1, grade = $2 WHERE student_id = $3 AND organization_id = $4', [totalPercentage, grade, studentId, req.session.organizationId]);
-            }
-    
-            res.json({ success: true, message: "Scores and total percentage updated successfully." });
-        } catch (err) {
-            console.error('Error saving scores:', err);
-            res.status(500).send("Failed to save scores.");
-        }
-    },
+        const { scores, classId, subjectId } = req.body;
 
-    
+        if (!classId || !subjectId) {
+            return res.status(400).json({ message: 'Class ID and Subject ID are required.' });
+        }
+
+        try {
+            await db.query('BEGIN');
+
+            for (const studentId in scores) {
+                for (const assessmentId in scores[studentId]) {
+                    let score = scores[studentId][assessmentId];
+                    if (score === '') {
+                        score = null;
+                    } else {
+                        score = parseFloat(score);
+                    }
+
+                    await db.query(`
+                        INSERT INTO assessment_results (student_id, assessment_id, score, grade, organization_id, created_by)
+                        VALUES ($1, $2, $3, $4, $5, $6)
+                        ON CONFLICT (student_id, assessment_id)
+                        DO UPDATE SET score = EXCLUDED.score, grade = EXCLUDED.grade, updated_at = NOW()
+                    `, [studentId, assessmentId, score, calculateGrade(score), req.session.organizationId, req.session.userId]);
+                }
+            }
+
+            await db.query('COMMIT');
+
+            const updatedScores = [];
+            for (const studentId in scores) {
+                for (const assessmentId in scores[studentId]) {
+                    updatedScores.push({
+                        student_id: studentId,
+                        assessment_id: assessmentId,
+                        score: scores[studentId][assessmentId] === '' ? null : scores[studentId][assessmentId]
+                    });
+                }
+            }
+
+            req.flash('success', 'Scores saved successfully.');
+            res.json(updatedScores);
+        } catch (err) {
+            await db.query('ROLLBACK');
+            console.error('Error saving scores:', err);
+            req.flash('error', 'Error saving scores.');
+            res.status(500).json({ message: 'Error saving scores.' });
+        }
+    },    
     classDashboard: async (req, res, db, csrfToken) => {
         const classId = req.query.classId;
         if (!classId) {
@@ -1169,8 +1182,8 @@ studentDetails: async (req, res, db) => {
         const { class_id, main_employee } = req.body;
         try {
             await db.query('BEGIN');
-            await db.query('UPDATE user_classes SET main = FALSE WHERE class_id = $1 AND organization_id = $2', [class_id, req.session.organizationId]);
-            await db.query('UPDATE user_classes SET main = TRUE WHERE class_id = $1 AND user_id = $2 AND organization_id = $3', [class_id, main_employee, req.session.organizationId]);
+            await db.query('UPDATE user_classes SET main = FALSE WHERE class_id = $1', [class_id]);
+            await db.query('UPDATE user_classes SET main = TRUE WHERE class_id = $1 AND user_id = $2', [class_id, main_employee]);
             await db.query('COMMIT');
             res.json({ success: true, message: 'Main employee set successfully.' });
         } catch (error) {
@@ -1178,7 +1191,7 @@ studentDetails: async (req, res, db) => {
             console.error('Error setting main employee:', error);
             res.status(500).json({ success: false, message: 'Failed to set main employee.' });
         }
-    },   
+    },  
 
 
 
@@ -1198,21 +1211,36 @@ studentDetails: async (req, res, db) => {
 
             const className = classNameResult.rows[0].class_name;
             const subjectName = subjectNameResult.rows[0].subject_name;
-            const students = await fetchStudentsByClass(db, classId, req.session.organizationId);
+
+            // Fetch students in the class
+            const studentsResult = await db.query(`
+                SELECT s.student_id, s.first_name, s.last_name
+                FROM students s
+                WHERE s.class_id = $1 AND s.organization_id = $2
+                ORDER BY s.last_name, s.first_name
+            `, [classId, req.session.organizationId]);
+            const students = studentsResult.rows;
+
+            // Fetch assessments for the subject in the class
             const assessmentsResult = await db.query(`
                 SELECT a.assessment_id, a.title, a.weight
                 FROM assessments a
                 WHERE a.class_id = $1 AND a.subject_id = $2 AND a.organization_id = $3
-                ORDER BY a.assessment_id`, [classId, subjectId, req.session.organizationId]);
+                ORDER BY a.assessment_id
+            `, [classId, subjectId, req.session.organizationId]);
+            const assessments = assessmentsResult.rows;
 
+            // Fetch assessment results
             const resultsResult = await db.query(`
                 SELECT ar.assessment_id, ar.student_id, ar.score
                 FROM assessment_results ar
                 JOIN students s ON ar.student_id = s.student_id
-                JOIN assessments a ON ar.assessment_id = a.assessment_id
-                WHERE a.class_id = $1 AND a.subject_id = $2 AND s.organization_id = $3`, [classId, subjectId, req.session.organizationId]);
-
+                WHERE s.class_id = $1 AND ar.assessment_id IN (SELECT assessment_id FROM assessments WHERE subject_id = $2 AND class_id = $3)
+                AND s.organization_id = $4
+            `, [classId, subjectId, classId, req.session.organizationId]);
             const results = resultsResult.rows;
+
+            // Map student scores
             const studentScores = {};
             results.forEach(result => {
                 if (!studentScores[result.student_id]) {
@@ -1221,35 +1249,55 @@ studentDetails: async (req, res, db) => {
                 studentScores[result.student_id][result.assessment_id] = result.score;
             });
 
+            // Calculate total percentage and grades for each student
             students.forEach(student => {
-                student.scores = studentScores[student.student_id] || {};
                 let totalPercentage = 0;
-                assessmentsResult.rows.forEach(assessment => {
-                    const score = student.scores[assessment.assessment_id];
-                    if (score !== undefined) {
-                        totalPercentage += score * (assessment.weight / 100);
+                let totalWeight = 0;
+                assessments.forEach(assessment => {
+                    const score = studentScores[student.student_id] ? studentScores[student.student_id][assessment.assessment_id] : null;
+                    if (score !== null) {
+                        totalPercentage += (score * assessment.weight) / 100;
+                        totalWeight += assessment.weight;
                     }
                 });
-                student.total_percentage = totalPercentage;
-                student.grade = calculateGrade(totalPercentage);
+                student.total_percentage = totalWeight > 0 ? totalPercentage : 0;
+                student.grade = calculateGrade(student.total_percentage);
             });
 
+            // Fetch assigned employees
+            const employeesResult = await db.query(`
+                SELECT u.user_id, u.first_name, u.last_name, uc.main
+                FROM user_classes uc
+                JOIN users u ON uc.user_id = u.user_id
+                WHERE uc.class_id = $1 AND u.organization_id = $2 AND uc.main = TRUE
+                UNION
+                SELECT u.user_id, u.first_name, u.last_name, FALSE AS main
+                FROM user_subjects us
+                JOIN users u ON us.user_id = u.user_id
+                WHERE us.subject_id = $3 AND u.organization_id = $2
+            `, [classId, req.session.organizationId, subjectId]);
+            const employees = employeesResult.rows;
+
             res.render('common/assessment', {
-                title: `${subjectName} Assessment for ${className}`,
-                className,
-                subjectName,
-                students,
-                assessments: assessmentsResult.rows,
-                results,
+                title: 'Assessment',
                 classId,
-                subjectId
+                className,
+                subjectId,
+                subjectName,
+                assessments,
+                students,
+                employees,
+                messages: req.flash()
             });
         } catch (err) {
-            console.error('Error on /common/assessment route:', err);
-            res.status(500).send('Error loading assessment data.');
+            console.error('Error fetching assessment data:', err);
+            res.status(500).send('Error fetching assessment data.');
         }
     },
 
+
+    
+    
     registerSchoolYear: async (req, res, db) => {
         const { schoolYear, terms } = req.body;
         try {
