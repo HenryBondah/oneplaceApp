@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manage Assessments</title>
+    <style>
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .flash-success {
+            color: green;
+            font-weight: bold;
+        }
+        .flash-error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <a href="/common/assessment?classId=<%= classId %>&subjectId=<%= subjectId %>">Back to Assessment</a>
+    <hr>
+    <h1>Manage Assessments for <%= className %></h1>
+    <h1>Subject: <%= subjectName %></h1>
+
+    <% if (messages.success && messages.success.length > 0) { %>
+        <div class="flash-success"><%= messages.success %></div>
+    <% } %>
+    <% if (messages.error && messages.error.length > 0) { %>
+        <div class="flash-error"><%= messages.error %></div>
+    <% } %>
+
+   
+    <table>
+        <thead>
+            <tr>
+                <th>Test Name</th>
+                <th>Weight</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% assessments.forEach(function(assessment) { %>
+                <tr>
+                    <form action="/common/updateAssessment" method="post">
+                        <td>
+                            <input type="text" name="title" value="<%= assessment.title %>" required>
+                            <input type="hidden" name="assessmentId" value="<%= assessment.assessment_id %>">
+                        </td>
+                        <td>
+                            <input type="number" name="weight" value="<%= assessment.weight %>" step="0.1" required>
+                        </td>
+                        <td>
+                            <button type="submit">Update</button>
+                        </td>
+                    </form>
+                    <td>
+                        <form action="/common/deleteAssessment" method="post">
+                            <input type="hidden" name="assessmentId" value="<%= assessment.assessment_id %>">
+                            <button type="submit">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+</body>
+</html>

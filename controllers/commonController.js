@@ -105,6 +105,20 @@ async function classDashboard(req, res) {
         res.redirect('/common/management');
     }
 }
+
+const calculateTotalPercentage = (scores, assessments) => {
+    let totalPercentage = 0;
+    let totalWeight = 0;
+    assessments.forEach(assessment => {
+        const score = scores[assessment.assessment_id];
+        if (score !== null && score !== undefined) {
+            totalPercentage += (score * assessment.weight) / 100;
+            totalWeight += assessment.weight;
+        }
+    });
+    return totalWeight > 0 ? totalPercentage : 0;
+};
+
 const calculateGrade = (totalPercentage) => {
     if (totalPercentage >= 90) return 'A';
     if (totalPercentage >= 80) return 'B';
@@ -364,7 +378,9 @@ const commonController = {
             console.error('Error fetching subjects:', err);
             res.status(500).json({ error: 'Failed to load subjects.' });
         }
-    },                
+    },     
+    
+    
 studentDetails: async (req, res, db) => {
     const studentId = req.query.studentId;
 
@@ -938,7 +954,9 @@ studentDetails: async (req, res, db) => {
         }
     },
 
-    assessment: async (req, res, db) => {
+
+
+assessment: async (req, res, db) => {
         const { classId, subjectId } = req.query;
         if (!classId || !subjectId) {
             return res.status(400).send('Class ID and Subject ID are required for the assessment.');
@@ -954,29 +972,23 @@ studentDetails: async (req, res, db) => {
 
             const className = classNameResult.rows[0].class_name;
             const subjectName = subjectNameResult.rows[0].subject_name;
-            const students = await fetchStudentsByClass(db, classId, req.session.organizationId);
+            const students = await (db, classId);
+
             const assessmentsResult = await db.query(`
                 SELECT a.assessment_id, a.title, a.weight
                 FROM assessments a
                 WHERE a.class_id = $1 AND a.subject_id = $2 AND a.organization_id = $3
                 ORDER BY a.assessment_id`, [classId, subjectId, req.session.organizationId]);
+            const assessments = assessmentsResult.rows;
 
             const resultsResult = await db.query(`
                 SELECT ar.assessment_id, ar.student_id, ar.score
                 FROM assessment_results ar
                 JOIN students s ON ar.student_id = s.student_id
-                JOIN assessments a ON ar.assessment_id = a.assessment_id
-                WHERE a.class_id = $1 AND a.subject_id = $2 AND s.organization_id = $3`, [classId, subjectId, req.session.organizationId]);
-
-            const employeesResult = await db.query(`
-                SELECT u.user_id, u.first_name || ' ' || u.last_name as name, uc.main
-                FROM users u
-                JOIN user_classes uc ON u.user_id = uc.user_id
-                WHERE uc.class_id = $1 AND u.organization_id = $2`, [classId, req.session.organizationId]);
-
-            const employees = employeesResult.rows;
-
+                WHERE s.class_id = $1 AND ar.assessment_id IN (SELECT assessment_id FROM assessments WHERE subject_id = $2 AND class_id = $3)
+                AND s.organization_id = $4`, [classId, subjectId, classId, req.session.organizationId]);
             const results = resultsResult.rows;
+
             const studentScores = {};
             results.forEach(result => {
                 if (!studentScores[result.student_id]) {
@@ -985,12 +997,23 @@ studentDetails: async (req, res, db) => {
                 studentScores[result.student_id][result.assessment_id] = result.score;
             });
 
-            const studentsWithScores = students.map(student => {
-                return {
-                    ...student,
-                    scores: studentScores[student.student_id] || {}
-                };
+            students.forEach(student => {
+                student.scores = studentScores[student.student_id] || {};
+                student.total_percentage = calculateTotalPercentage(student.scores, assessments);
+                student.grade = calculateGrade(student.total_percentage);
             });
+
+            const employeesResult = await db.query(`
+                SELECT u.user_id, u.first_name, u.last_name, uc.main
+                FROM user_classes uc
+                JOIN users u ON uc.user_id = u.user_id
+                WHERE uc.class_id = $1 AND u.organization_id = $2 AND uc.main = TRUE
+                UNION
+                SELECT u.user_id, u.first_name, u.last_name, FALSE AS main
+                FROM user_subjects us
+                JOIN users u ON us.user_id = u.user_id
+                WHERE us.subject_id = $3 AND u.organization_id = $2`, [classId, req.session.organizationId, subjectId]);
+            const employees = employeesResult.rows;
 
             res.render('common/assessment', {
                 title: 'Assessment',
@@ -998,9 +1021,10 @@ studentDetails: async (req, res, db) => {
                 className,
                 subjectId,
                 subjectName,
-                assessments: assessmentsResult.rows,
-                students: studentsWithScores,
-                employees // Pass employees data to the template
+                assessments,
+                students,
+                employees,
+                messages: req.flash()
             });
         } catch (err) {
             console.error('Error fetching assessment data:', err);
@@ -1067,74 +1091,106 @@ studentDetails: async (req, res, db) => {
         }
     },
 
+    manageAssessment: async (req, res, db) => {
+        const { classId, subjectId } = req.query;
+        if (!classId || !subjectId) {
+            return res.status(400).send('Class ID and Subject ID are required for managing assessments.');
+        }
+
+        try {
+            const classNameResult = await db.query('SELECT class_name FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, req.session.organizationId]);
+            const subjectNameResult = await db.query('SELECT subject_name FROM subjects WHERE subject_id = $1 AND organization_id = $2', [subjectId, req.session.organizationId]);
+
+            if (classNameResult.rows.length === 0 || subjectNameResult.rows.length === 0) {
+                return res.status(404).send('Class or Subject not found.');
+            }
+
+            const className = classNameResult.rows[0].class_name;
+            const subjectName = subjectNameResult.rows[0].subject_name;
+
+            const assessmentsResult = await db.query(`
+                SELECT assessment_id, title, weight
+                FROM assessments
+                WHERE class_id = $1 AND subject_id = $2 AND organization_id = $3
+                ORDER BY assessment_id`, [classId, subjectId, req.session.organizationId]);
+
+            res.render('common/manageAssessment', {
+                title: 'Manage Assessments',
+                classId,
+                className,
+                subjectId,
+                subjectName,
+                assessments: assessmentsResult.rows,
+                messages: req.flash()
+            });
+        } catch (err) {
+            console.error('Error fetching manage assessment data:', err);
+            res.status(500).send('Error fetching manage assessment data.');
+        }
+    },
+
     updateAssessment: async (req, res, db) => {
         const { assessmentId, title, weight } = req.body;
         try {
-            const results = await db.query(
-                'UPDATE assessments SET title = $1, weight = $2 WHERE assessment_id = $3 AND organization_id = $4 RETURNING *', [title, parseFloat(weight), assessmentId, req.session.organizationId]);
-
-            if (results.rows.length > 0) {
-                res.json(results.rows[0]);
-            } else {
-                res.status(404).send('Assessment not found');
-            }
+            await db.query('UPDATE assessments SET title = $1, weight = $2 WHERE assessment_id = $3 AND organization_id = $4', [title, weight, assessmentId, req.session.organizationId]);
+            req.flash('success', 'Assessment updated successfully.');
+            res.redirect('back');
         } catch (err) {
             console.error('Error updating assessment:', err);
-            res.status(500).send('Server error');
+            req.flash('error', 'Failed to update assessment.');
+            res.redirect('back');
+        }
+    },
+
+    deleteAssessment: async (req, res, db) => {
+        const { assessmentId } = req.body;
+        try {
+            await db.query('DELETE FROM assessments WHERE assessment_id = $1 AND organization_id = $2', [assessmentId, req.session.organizationId]);
+            req.flash('success', 'Assessment deleted successfully.');
+            res.redirect('back');
+        } catch (err) {
+            console.error('Error deleting assessment:', err);
+            req.flash('error', 'Failed to delete assessment.');
+            res.redirect('back');
         }
     },
 
     saveScores: async (req, res, db) => {
-        const { scores, classId, subjectId } = req.body;
+        const { scores, classId, subjectId, assessmentId } = req.body;
 
-        if (!classId || !subjectId) {
-            return res.status(400).json({ message: 'Class ID and Subject ID are required.' });
+        if (!classId || !subjectId || !assessmentId) {
+            return res.status(400).json({ message: 'Class ID, Subject ID, and Assessment ID are required.' });
         }
 
         try {
             await db.query('BEGIN');
 
             for (const studentId in scores) {
-                for (const assessmentId in scores[studentId]) {
-                    let score = scores[studentId][assessmentId];
-                    if (score === '') {
-                        score = null;
-                    } else {
-                        score = parseFloat(score);
-                    }
-
-                    await db.query(`
-                        INSERT INTO assessment_results (student_id, assessment_id, score, grade, organization_id, created_by)
-                        VALUES ($1, $2, $3, $4, $5, $6)
-                        ON CONFLICT (student_id, assessment_id)
-                        DO UPDATE SET score = EXCLUDED.score, grade = EXCLUDED.grade, updated_at = NOW()
-                    `, [studentId, assessmentId, score, calculateGrade(score), req.session.organizationId, req.session.userId]);
+                let score = scores[studentId];
+                if (score === '') {
+                    score = null;
+                } else {
+                    score = parseFloat(score);
                 }
+
+                await db.query(`
+                    INSERT INTO assessment_results (student_id, assessment_id, score, organization_id, created_by)
+                    VALUES ($1, $2, $3, $4, $5)
+                    ON CONFLICT (student_id, assessment_id)
+                    DO UPDATE SET score = EXCLUDED.score, updated_at = NOW()
+                `, [studentId, assessmentId, score, req.session.organizationId, req.session.userId]);
             }
 
             await db.query('COMMIT');
-
-            const updatedScores = [];
-            for (const studentId in scores) {
-                for (const assessmentId in scores[studentId]) {
-                    updatedScores.push({
-                        student_id: studentId,
-                        assessment_id: assessmentId,
-                        score: scores[studentId][assessmentId] === '' ? null : scores[studentId][assessmentId]
-                    });
-                }
-            }
-
-            req.flash('success', 'Scores saved successfully.');
-            res.json(updatedScores);
+            res.status(200).json({ message: 'Scores saved successfully.' });
         } catch (err) {
             await db.query('ROLLBACK');
             console.error('Error saving scores:', err);
-            req.flash('error', 'Error saving scores.');
             res.status(500).json({ message: 'Error saving scores.' });
         }
-    },    
-    classDashboard: async (req, res, db, csrfToken) => {
+    },
+
+        classDashboard: async (req, res, db, csrfToken) => {
         const classId = req.query.classId;
         if (!classId) {
             res.redirect('/common/orgDashboard');
@@ -1211,36 +1267,23 @@ studentDetails: async (req, res, db) => {
 
             const className = classNameResult.rows[0].class_name;
             const subjectName = subjectNameResult.rows[0].subject_name;
+            const students = await fetchStudentsByClass(db, classId);
 
-            // Fetch students in the class
-            const studentsResult = await db.query(`
-                SELECT s.student_id, s.first_name, s.last_name
-                FROM students s
-                WHERE s.class_id = $1 AND s.organization_id = $2
-                ORDER BY s.last_name, s.first_name
-            `, [classId, req.session.organizationId]);
-            const students = studentsResult.rows;
-
-            // Fetch assessments for the subject in the class
             const assessmentsResult = await db.query(`
                 SELECT a.assessment_id, a.title, a.weight
                 FROM assessments a
                 WHERE a.class_id = $1 AND a.subject_id = $2 AND a.organization_id = $3
-                ORDER BY a.assessment_id
-            `, [classId, subjectId, req.session.organizationId]);
+                ORDER BY a.assessment_id`, [classId, subjectId, req.session.organizationId]);
             const assessments = assessmentsResult.rows;
 
-            // Fetch assessment results
             const resultsResult = await db.query(`
                 SELECT ar.assessment_id, ar.student_id, ar.score
                 FROM assessment_results ar
                 JOIN students s ON ar.student_id = s.student_id
                 WHERE s.class_id = $1 AND ar.assessment_id IN (SELECT assessment_id FROM assessments WHERE subject_id = $2 AND class_id = $3)
-                AND s.organization_id = $4
-            `, [classId, subjectId, classId, req.session.organizationId]);
+                AND s.organization_id = $4`, [classId, subjectId, classId, req.session.organizationId]);
             const results = resultsResult.rows;
 
-            // Map student scores
             const studentScores = {};
             results.forEach(result => {
                 if (!studentScores[result.student_id]) {
@@ -1249,22 +1292,12 @@ studentDetails: async (req, res, db) => {
                 studentScores[result.student_id][result.assessment_id] = result.score;
             });
 
-            // Calculate total percentage and grades for each student
             students.forEach(student => {
-                let totalPercentage = 0;
-                let totalWeight = 0;
-                assessments.forEach(assessment => {
-                    const score = studentScores[student.student_id] ? studentScores[student.student_id][assessment.assessment_id] : null;
-                    if (score !== null) {
-                        totalPercentage += (score * assessment.weight) / 100;
-                        totalWeight += assessment.weight;
-                    }
-                });
-                student.total_percentage = totalWeight > 0 ? totalPercentage : 0;
+                student.scores = studentScores[student.student_id] || {};
+                student.total_percentage = calculateTotalPercentage(student.scores, assessments);
                 student.grade = calculateGrade(student.total_percentage);
             });
 
-            // Fetch assigned employees
             const employeesResult = await db.query(`
                 SELECT u.user_id, u.first_name, u.last_name, uc.main
                 FROM user_classes uc
@@ -1274,8 +1307,7 @@ studentDetails: async (req, res, db) => {
                 SELECT u.user_id, u.first_name, u.last_name, FALSE AS main
                 FROM user_subjects us
                 JOIN users u ON us.user_id = u.user_id
-                WHERE us.subject_id = $3 AND u.organization_id = $2
-            `, [classId, req.session.organizationId, subjectId]);
+                WHERE us.subject_id = $3 AND u.organization_id = $2`, [classId, req.session.organizationId, subjectId]);
             const employees = employeesResult.rows;
 
             res.render('common/assessment', {
@@ -1293,9 +1325,8 @@ studentDetails: async (req, res, db) => {
             console.error('Error fetching assessment data:', err);
             res.status(500).send('Error fetching assessment data.');
         }
-    },
-
-
+    },  
+    
     
     
     registerSchoolYear: async (req, res, db) => {

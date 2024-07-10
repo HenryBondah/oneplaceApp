@@ -1,95 +1,187 @@
-
-    <div class="container">
-        <div class="actions">
-            <button onclick="window.print()">Print All Reports</button>
-            <a href="/print/remarks">Manage Remarks</a>
-        </div>
-  
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .actions {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .student-report {
+            border: 1px solid #ccc;
+            padding: 20px;
+            width: 100%;
+            page-break-after: always;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .header h1 {
+            margin: 0;
+            flex-grow: 1;
+            text-align: center;
+        }
+        .header h2 {
+            margin: 0;
+            flex-grow: 1;
+            text-align: center;
+            font-size: 1.2em;
+        }
+        .info, .attendance-info, .remarks, .signature-info, .print {
+            width: 100%;
+            margin: 20px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .remarks, .signature-info {
+            display: flex;
+            justify-content: space-between;
+        }
+        .remarks textarea {
+            width: 48%;
+            height: 100px;
+        }
+        .signature textarea {
+            width: 48%;
+            height: 50px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 8px 12px;
+            font-size: 14px;
+            color: #fff;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 4px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="actions">
+        <button class="btn btn-primary" onclick="window.print()">Print All Reports</button>
+        <a href="/print/remarks" class="btn btn-primary">Manage Remarks</a>
+    </div>
+    <hr>
+    <% if (students.length === 0) { %>
+        <p>No student data available</p>
+    <% } else { %>
         <% students.forEach((student, index) => { %>
             <div class="student-report" id="report-<%= index %>">
                 <div class="header">
-                    <h1><%= orgName %></h1>
-                    <p>Date: <%= date %></p>
-                </div>
-                <div class="info">
-                    <img src="<%= student.image_url %>" alt="Student Image" class="student-image">
+                    <img src="/path/to/logo.png" alt="Logo">
                     <div>
-                        <h2><%= student.first_name %> <%= student.last_name %></h2>
-                        <p>Graduation Year Group: <%= student.graduation_year_group %></p>
-                        <p>Class: <%= student.class_name %></p>
+                        <h1><%= orgName %></h1>
+                        <h2><%= orgAddress %></h2>
                     </div>
+                    <% if (student.image_url) { %>
+                        <img src="/<%= student.image_url %>" alt="Student Image" class="student-image">
+                    <% } else { %>
+                        <p>No image available</p>
+                    <% } %>
+                </div>
+                <h2 style="text-align: center;">Student Report</h2>
+                <div class="info">
+                    <table>
+                        <tr>
+                            <td>Student No:</td>
+                            <td><%= student.student_id %></td>
+                            <td>Academic year:</td>
+                            <td>2023-2024</td>
+                        </tr>
+                        <tr>
+                            <td>Student Name:</td>
+                            <td><%= student.first_name %> <%= student.last_name %></td>
+                            <td>Term:</td>
+                            <td><%= term.term_name %></td>
+                        </tr>
+                        <tr>
+                            <td>Class:</td>
+                            <td><%= student.class_name %></td>
+                            <td>School Reopens:</td>
+                            <td>01-09-2024</td>
+                        </tr>
+                    </table>
                 </div>
                 <div class="subjects">
                     <h3>Enrolled Subjects and Grades</h3>
                     <table>
                         <tr>
                             <th>Subject</th>
+                            <th>Class Score</th>
+                            <th>Exams Score</th>
+                            <th>Total Score</th>
                             <th>Grade</th>
+                            <th>Position</th>
+                            <th>Remarks</th>
                         </tr>
                         <% student.subjects.forEach(function(subject) { %>
                             <tr>
                                 <td><%= subject.subject_name %></td>
+                                <td><%= subject.class_score %></td>
+                                <td><%= subject.exams_score %></td>
+                                <td><%= subject.total_score %></td>
                                 <td><%= subject.grade %></td>
+                                <td><%= subject.position %></td>
+                                <td><%= subject.remarks %></td>
                             </tr>
                         <% }); %>
                     </table>
                 </div>
+                <div class="attendance-info">
+                    <table>
+                        <tr>
+                            <td>Attendance:</td>
+                            <td><%= student.attendance %></td>
+                            <td>Position in Class:</td>
+                            <td><%= student.position %></td>
+                            <td>Promoted:</td>
+                            <td>Yes</td>
+                        </tr>
+                    </table>
+                </div>
                 <div class="remarks">
-                    <label for="teacherRemarks-<%= index %>">Teacher's Remarks:</label>
-                    <select onchange="updateRemarks(<%= index %>, 'teacher', this.value)">
-                        <option value="">Select Remarks</option>
-                        <% teacherRemarks.forEach(function(remark) { %>
-                            <option value="<%= remark.remarks %>"><%= remark.remarks %></option>
-                        <% }); %>
-                    </select>
+                    <h3>Teacher's Remarks</h3>
                     <textarea id="teacherRemarks-<%= index %>"><%= student.teacherRemarks %></textarea>
-
-                    <label for="headTeacherRemarks-<%= index %>">Head Teacher's Remarks:</label>
-                    <select onchange="updateRemarks(<%= index %>, 'headTeacher', this.value)">
-                        <option value="">Select Remarks</option>
-                        <% headTeacherRemarks.forEach(function(remark) { %>
-                            <option value="<%= remark.remarks %>"><%= remark.remarks %></option>
-                        <% }); %>
-                    </select>
-                    <textarea id="headTeacherRemarks-<%= index %>"><%= student.headTeacherRemarks %></textarea>
-
-                    <button onclick="saveRemarks(<%= student.student_id %>, <%= index %>)">Save Remarks</button>
+                </div>
+                <div class="signature-info">
+                    <h3>Signature</h3>
+                    <textarea></textarea>
                 </div>
                 <div class="print">
-                    <button onclick="printReport(<%= index %>)">Print Report</button>
+                    <a href="javascript:void(0);" class="btn btn-primary" onclick="printReport(<%= index %>)">Print Report</a>
                 </div>
             </div>
         <% }); %>
-    </div>
+    <% } %>
 
     <script>
-        function updateRemarks(index, type, value) {
-            document.getElementById(type + 'Remarks-' + index).value = value;
-        }
-
-        function saveRemarks(studentId, index) {
-            const teacherRemarks = document.getElementById('teacherRemarks-' + index).value;
-            const headTeacherRemarks = document.getElementById('headTeacherRemarks-' + index).value;
-
-            fetch('/print/saveRemarks', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    studentId,
-                    teacherRemarks,
-                    headTeacherRemarks
-                })
-            }).then(response => response.json()).then(data => {
-                if (data.success) {
-                    alert('Remarks saved successfully.');
-                } else {
-                    alert('Failed to save remarks.');
-                }
-            });
-        }
-
         function printReport(index) {
             const printContents = document.getElementById('report-' + index).innerHTML;
             const originalContents = document.body.innerHTML;
@@ -100,65 +192,3 @@
     </script>
 </body>
 </html>
-
-<style>
-.container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-}
-
-.student-report {
-    border: 1px solid #ccc;
-    padding: 20px;
-    width: 80%;
-    page-break-after: always;
-}
-
-.header {
-    text-align: center;
-}
-
-.info {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.student-image {
-    width: 100px;
-    height: auto;
-    border-radius: 50%;
-}
-
-.subjects table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.subjects th, .subjects td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-}
-
-.remarks {
-    margin-top: 20px;
-}
-
-.remarks textarea {
-    width: 100%;
-    height: 100px;
-}
-
-.print-all {
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-.print {
-    text-align: center;
-    margin-top: 20px;
-}
-</style>

@@ -8,37 +8,22 @@ const printController = (db) => ({
             const classResult = await db.query('SELECT * FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, organizationId]);
             const classData = classResult.rows[0];
 
-            // Fetch students in the class
-            const studentsResult = await db.query(`
-                SELECT s.*, c.class_name, g.name as graduation_year_group
-                FROM students s
-                LEFT JOIN classes c ON s.class_id = c.class_id
-                LEFT JOIN graduation_year_groups g ON c.graduation_year_group_id = g.id
-                WHERE s.class_id = $1 AND s.organization_id = $2
-            `, [classId, organizationId]);
-            const students = studentsResult.rows;
+            // Fetch organization details
+            const organizationResult = await db.query('SELECT organization_name, organization_address FROM organizations WHERE organization_id = $1', [organizationId]);
+            const organization = organizationResult.rows[0];
 
-            // Fetch subjects and grades for each student
+            // Fetch students by class
+            const students = await fetchStudentsByClass(db, classId);
+
+            // Hardcoded subjects and scores for each student
+            const hardcodedSubjects = [
+                { subject_name: 'Mathematics', class_score: 80, exams_score: 90, total_score: 170, grade: 'A', position: 1, remarks: 'Excellent' },
+                { subject_name: 'Science', class_score: 75, exams_score: 85, total_score: 160, grade: 'B+', position: 2, remarks: 'Very Good' },
+                { subject_name: 'History', class_score: 70, exams_score: 80, total_score: 150, grade: 'B', position: 3, remarks: 'Good' }
+            ];
+
             for (const student of students) {
-                const subjectsResult = await db.query(`
-                    SELECT s.subject_name, ss.grade
-                    FROM student_subjects ss
-                    JOIN subjects s ON ss.subject_id = s.subject_id
-                    WHERE ss.student_id = $1
-                `, [student.student_id]);
-                student.subjects = subjectsResult.rows;
-
-                // Fetch attendance
-                const attendanceResult = await db.query(`
-                    SELECT date, status
-                    FROM attendance_records
-                    WHERE student_id = $1
-                `, [student.student_id]);
-                student.attendance = attendanceResult.rows;
-
-                // Calculate final grade and position
-                student.final_grade = printController.calculateFinalGrade(student.subjects);
-                student.position = await printController.calculatePosition(student.student_id, classId, db);
+                student.subjects = hardcodedSubjects;
 
                 // Fetch teacher remarks
                 const teacherRemarksResult = await db.query(`
@@ -55,6 +40,14 @@ const printController = (db) => ({
                     WHERE student_id = $1
                 `, [student.student_id]);
                 student.headTeacherRemarks = headTeacherRemarksResult.rows.length > 0 ? headTeacherRemarksResult.rows[0].remarks : "";
+
+                // Fetch attendance
+                const attendanceResult = await db.query(`
+                    SELECT COUNT(*) as attendance
+                    FROM attendance_records
+                    WHERE student_id = $1 AND status = 'Present'
+                `, [student.student_id]);
+                student.attendance = attendanceResult.rows[0].attendance;
             }
 
             // Fetch all remarks for dropdown
@@ -63,14 +56,20 @@ const printController = (db) => ({
             const teacherRemarks = teacherRemarksResult.rows;
             const headTeacherRemarks = headTeacherRemarksResult.rows;
 
+            // Fetch term details
+            const termResult = await db.query('SELECT * FROM terms WHERE organization_id = $1 AND current = TRUE', [organizationId]);
+            const term = termResult.rows[0];
+
             res.render('print/printStudentReport', {
                 title: 'Student Final Report',
                 class: classData,
                 students: students,
-                orgName: classData.organization_name || 'Default School Name',
+                orgName: organization.organization_name || 'Default School Name',
+                orgAddress: organization.organization_address,
                 date: new Date().toLocaleDateString(),
                 teacherRemarks: teacherRemarks,
-                headTeacherRemarks: headTeacherRemarks
+                headTeacherRemarks: headTeacherRemarks,
+                term: term // Pass term data to the view
             });
         } catch (error) {
             console.error('Error generating student report:', error);
@@ -213,5 +212,21 @@ const printController = (db) => ({
         }
     }
 });
+
+// Fetch students by class function
+async function fetchStudentsByClass(db, classId) {
+    try {
+        const studentsResult = await db.query(`
+            SELECT student_id, first_name, last_name, image_url, class_id
+            FROM students
+            WHERE class_id = $1
+            ORDER BY first_name, last_name
+        `, [classId]);
+        return studentsResult.rows;
+    } catch (error) {
+        console.error('Error fetching students:', error);
+        throw error;
+    }
+}
 
 module.exports = printController;

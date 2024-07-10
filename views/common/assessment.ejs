@@ -46,6 +46,8 @@
 </head>
 <body>
 <main>
+    <a href="/common/manageAssessment?classId=<%= classId %>&subjectId=<%= subjectId %>">Manage Assessment</a>
+    <hr>
     <% if (messages.success && messages.success.length > 0) { %>
         <div class="flash-success"><%= messages.success %></div>
     <% } %>
@@ -55,8 +57,9 @@
     <h1>Assessments for <%= className %></h1>
     <h2>Subject: <%= subjectName %></h2>
 
+    
+
     <div class="assigned-employees">
-        <h3>Assigned Employees:</h3>
         <% employees.forEach(function(employee) { %>
             <div>
                 <% if (employee.main) { %>
@@ -89,7 +92,10 @@
             <tr>
                 <th>Student Name</th>
                 <% assessments.forEach(function(assessment) { %>
-                    <th><%= assessment.title %> (<%= assessment.weight %>%)</th>
+                    <th>
+                        <%= assessment.title %> (<%= assessment.weight %>%) 
+                        <button class="save-button" onclick="saveColumnScores(<%= assessment.assessment_id %>)">Save</button>
+                    </th>
                 <% }); %>
                 <th>Total Percentage</th>
                 <th>Grade</th>
@@ -101,7 +107,7 @@
                     <td><%= student.first_name %> <%= student.last_name %></td>
                     <% assessments.forEach(function(assessment) { %>
                         <td>
-                            <input type="number" name="scores[<%= student.student_id %>][<%= assessment.assessment_id %>]" min="0" max="100" step="0.1" value="<%= student.scores[assessment.assessment_id] ? student.scores[assessment.assessment_id].score : '' %>" oninput="calculateTotalAndGrade(<%= student.student_id %>)">
+                            <input type="number" name="scores[<%= student.student_id %>][<%= assessment.assessment_id %>]" min="0" max="100" step="0.1" value="<%= student.scores[assessment.assessment_id] || '' %>" oninput="calculateTotalAndGrade(<%= student.student_id %>)">
                         </td>
                     <% }); %>
                     <td>
@@ -114,7 +120,30 @@
             <% }); %>
         </tbody>
     </table>
-    <button onclick="saveAllScores()">Save All Scores</button>
+
+    <div id="savedScores">
+        <h3>Saved Scores</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Student Name</th>
+                    <% assessments.forEach(function(assessment) { %>
+                        <th><%= assessment.title %></th>
+                    <% }); %>
+                </tr>
+            </thead>
+            <tbody>
+                <% students.forEach(function(student) { %>
+                    <tr>
+                        <td><%= student.first_name %> <%= student.last_name %></td>
+                        <% assessments.forEach(function(assessment) { %>
+                            <td><%= student.scores[assessment.assessment_id] || 'N/A' %></td>
+                        <% }); %>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
 </main>
 <script>
     document.getElementById('addTestForm').addEventListener('submit', async function(event) {
@@ -145,11 +174,11 @@
         }
     });
 
-    async function saveAllScores() {
+    async function saveColumnScores(assessmentId) {
         const formData = new FormData();
-        const inputs = document.querySelectorAll('input[name^="scores"]');
+        const inputs = document.querySelectorAll(`input[name^="scores"][name$="[${assessmentId}]"]`);
         inputs.forEach(input => {
-            const name = input.name;
+            const name = input.name.match(/\[([0-9]+)\]/)[1];
             formData.append(name, input.value);
         });
 
@@ -157,12 +186,17 @@
         const subjectId = document.getElementById('subjectId').value;
 
         try {
-            const response = await fetch('/common/saveScores', {
+            const response = await fetch('/common/saveSingleScore', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(Object.fromEntries(formData.entries()))
+                body: JSON.stringify({
+                    scores: Object.fromEntries(formData.entries()),
+                    classId,
+                    subjectId,
+                    assessmentId
+                })
             });
 
             if (response.ok) {
@@ -184,37 +218,34 @@
         }
     }
 
-    function calculateTotalAndGrade() {
-        const rows = document.querySelectorAll('tbody tr');
-        rows.forEach(row => {
-            const studentId = row.querySelector('input[name^="scores"]').name.match(/\[(\d+)\]/)[1];
-            let totalPercentage = 0;
-            let totalWeight = 0;
+    function calculateTotalAndGrade(studentId) {
+        const row = document.querySelector(`tbody tr td input[name^="scores"][name*="[${studentId}]"]`).closest('tr');
+        let totalPercentage = 0;
+        let totalWeight = 0;
 
-            row.querySelectorAll('input[name^="scores"]').forEach(input => {
-                const score = parseFloat(input.value);
-                const weight = parseFloat(input.closest('th').innerText.match(/\((\d+)%\)/)[1]);
-                if (!isNaN(score) && !isNaN(weight)) {
-                    totalPercentage += (score * weight) / 100;
-                    totalWeight += weight;
-                }
-            });
-
-            const totalPercentageSpan = document.getElementById(`total-percentage-${studentId}`);
-            const gradeSpan = document.getElementById(`grade-${studentId}`);
-
-            totalPercentage = totalWeight ? totalPercentage : 0;
-            totalPercentageSpan.textContent = totalPercentage.toFixed(2);
-
-            let grade;
-            if (totalPercentage >= 90) grade = 'A';
-            else if (totalPercentage >= 80) grade = 'B';
-            else if (totalPercentage >= 70) grade = 'C';
-            else if (totalPercentage >= 60) grade = 'D';
-            else grade = 'F';
-
-            gradeSpan.textContent = grade;
+        row.querySelectorAll('input[name^="scores"]').forEach(input => {
+            const score = parseFloat(input.value);
+            const weight = parseFloat(input.closest('td').previousElementSibling.innerText.match(/\((\d+)%\)/)[1]);
+            if (!isNaN(score) && !isNaN(weight)) {
+                totalPercentage += (score * weight) / 100;
+                totalWeight += weight;
+            }
         });
+
+        const totalPercentageSpan = document.getElementById(`total-percentage-${studentId}`);
+        const gradeSpan = document.getElementById(`grade-${studentId}`);
+
+        totalPercentage = totalWeight ? totalPercentage : 0;
+        totalPercentageSpan.textContent = totalPercentage.toFixed(2);
+
+        let grade;
+        if (totalPercentage >= 90) grade = 'A';
+        else if (totalPercentage >= 80) grade = 'B';
+        else if (totalPercentage >= 70) grade = 'C';
+        else if (totalPercentage >= 60) grade = 'D';
+        else grade = 'F';
+
+        gradeSpan.textContent = grade;
     }
 
     document.addEventListener('DOMContentLoaded', () => {

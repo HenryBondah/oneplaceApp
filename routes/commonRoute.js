@@ -31,7 +31,9 @@ module.exports = (db) => {
     router.post('/createTest', isAuthenticated, (req, res) => commonController.createTest(req, res, db));
     router.get('/getAssessments', isAuthenticated, (req, res) => commonController.getAssessments(req, res, db));
     router.get('/getScores', isAuthenticated, (req, res) => commonController.getScores(req, res, db));
+    router.get('/manageAssessment', isAuthenticated, (req, res) => commonController.manageAssessment(req, res, db));
     router.post('/updateAssessment', isAuthenticated, (req, res) => commonController.updateAssessment(req, res, db));
+    router.post('/deleteAssessment', isAuthenticated, (req, res) => commonController.deleteAssessment(req, res, db));
     router.post('/saveScores', isAuthenticated, (req, res) => commonController.saveScores(req, res, db));
     router.get('/getSubjectsForClass', isAuthenticated, (req, res) => commonController.getSubjectsForClass(req, res, db));
     router.get('/classDashboard', isAuthenticated, (req, res) => commonController.classDashboard(req, res, db));
