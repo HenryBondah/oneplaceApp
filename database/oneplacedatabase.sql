@@ -305,27 +305,6 @@ CREATE TABLE IF NOT EXISTS user_classes (
     PRIMARY KEY (user_id, class_id)
 );
 
--- Teacher Remarks Table
-CREATE TABLE IF NOT EXISTS teacher_remarks (
-    student_id INT REFERENCES students(student_id) ON DELETE CASCADE,
-    remarks TEXT,
-    PRIMARY KEY (student_id)
-);
-
--- Head Teacher Remarks Table
-CREATE TABLE IF NOT EXISTS head_teacher_remarks (
-    student_id INT REFERENCES students(student_id) ON DELETE CASCADE,
-    remarks TEXT,
-    PRIMARY KEY (student_id)
-);
-
--- General Remarks Table
-CREATE TABLE IF NOT EXISTS general_remarks (
-    id SERIAL PRIMARY KEY,
-    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
-    type VARCHAR(50),
-    remarks TEXT
-);
 
 -- Ensure user_role ENUM values
 DO $$ BEGIN
@@ -352,3 +331,14 @@ CREATE TABLE user_subjects (
 ALTER TABLE users ADD COLUMN on_hold BOOLEAN DEFAULT FALSE;
 
 ALTER TABLE user_classes ADD COLUMN main BOOLEAN DEFAULT FALSE;
+
+CREATE TABLE report_settings (
+    id SERIAL PRIMARY KEY,
+    organization_id INT NOT NULL,
+    cut_off_point INT DEFAULT 50,
+    promoted_class VARCHAR(255) DEFAULT 'Next Class',
+    repeated_class VARCHAR(255) DEFAULT 'Same Class',
+    school_reopen_date DATE,
+    score_remark JSONB,
+    teacher_remarks TEXT[]
+);

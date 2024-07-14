@@ -2,11 +2,12 @@
     <div class="close-graduation-year-group-container">
         <h1>Close Graduation Year Group</h1>
         <% gradYearGroups.forEach(group => { %>
-            <h2><%= group.name %></h2>
             <form action="/common/closeGraduationYearGroup" method="POST">
-                <ul>
-                    <% group.students.forEach(student => { %>
+                <ul>            
+                    <h2><%= group.name %></h2>
                         <li>
+                            <% group.students.forEach(student => { %>
+
                             <input type="checkbox" name="students" value="<%= student.student_id %>">
                             <%= student.first_name %> <%= student.last_name %>
                             <button type="submit" name="action" value="end_<%= student.student_id %>">End</button>

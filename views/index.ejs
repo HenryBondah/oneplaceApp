@@ -1,76 +1,68 @@
 <main>
-    <div class="content">
-      <!-- Slideshow container -->
-      <div class="slideshow-container">
-        <div class="mySlides fade">
-          <img src="/images/home.jpeg" alt="Image 1" style="width:100%">
-        </div>
-        <div class="mySlides fade">
-          <img src="/images/bea.jpeg" alt="Image 2" style="width:100%">
-        </div>
-        <div class="mySlides fade">
-          <img src="/images/beach.jpeg" alt="Image 3" style="width:100%">
-        </div>
-        <!-- Next and previous buttons -->
-        <a class="prev" onclick="plusSlides(-1)">&#10094;</a>
-        <a class="next" onclick="plusSlides(1)">&#10095;</a>
-      </div>
+  <div id="hero">
+    <picture>
+      <source srcset="images/herosmall.webp" media="(max-width:560px)" />
+      <source srcset="images/heromedium.webp" media="(max-width:1200px)" />
+      <img src="images/hero-large.webp" alt="Hero image" />
+    </picture>
+    <div id="herostuff">
+      <h2>One Place where everything about school becomes easy</h2>
     </div>
-  
-    <section class="info">
+  </div>
+ 
+  <section class="info">
+    <p>
+      Discover the freedom to manage your organization with complete control.
+      OnePlace offers you the tools and flexibility to tailor your management
+      system to fit your team's unique needs. Join us and start shaping the
+      future of your organization today. Enjoy seamless collaboration, intuitive
+      organization, and comprehensive control over your projects and tasks.
+    </p>
+  </section>
+  <div class="services">
+    <h2>Our Services and Features</h2>
+  </div>
+ 
+  <section id="features">
+    <section class="feature">
+      <h3>Streamlined Project Management</h3>
+      <img id="img-feature" src="/images/home.jpeg" alt="Image 1" />
       <p>
-        Discover the freedom to manage your organization with complete control.
-        OnePlace offers you the tools and flexibility to tailor your management
-        system to fit your team's unique needs. Join us and start shaping the
-        future of your organization today. Enjoy seamless collaboration, intuitive
-        organization, and comprehensive control over your projects and tasks.
+        Our platform provides a comprehensive project management system designed
+        to help you oversee every aspect of your projects effortlessly. With
+        intuitive task assignment, progress tracking, and deadline management,
+        you can ensure that your team stays on track and meets their goals
+        efficiently. Real-time updates and notifications keep everyone informed,
+        facilitating seamless collaboration and ensuring that no detail is
+        overlooked.
       </p>
     </section>
-    <div class="services">
-      <h2>Our Services and Features</h2>
-    </div>
-  
-    <section id="features">
-      <section class="feature">
-        <h3>Streamlined Project Management:</h3>
-        <img id="img-feature" src="/images/home.jpeg" alt="Image 1" />
-        <p>
-          Our platform provides a comprehensive project management system designed
-          to help you oversee every aspect of your projects effortlessly. With
-          intuitive task assignment, progress tracking, and deadline management,
-          you can ensure that your team stays on track and meets their goals
-          efficiently. Real-time updates and notifications keep everyone informed,
-          facilitating seamless collaboration and ensuring that no detail is
-          overlooked.
-        </p>
-      </section>
-  
-      <section class="feature">
-        <h3>Customizable Workflows</h3>
-        <img id="img-feature" src="/images/home.jpeg" alt="Image 2" />
-        <p>
-          OnePlace offers highly customizable workflows to fit the unique needs of
-          your organization. Whether you need a simple task list or a complex
-          multi-step process, our system allows you to design workflows that match
-          your operational requirements. Drag-and-drop functionality makes it easy
-          to adjust and refine processes, enabling your team to adapt quickly to
-          changing priorities and maintain productivity.
-        </p>
-      </section>
-  
-      <section class="feature">
-        <h3>Integrated Communication Tools</h3>
-        <img id="img-feature" src="/images/home.jpeg" alt="Feature 3" />
-        <p>
-          Effective communication is at the heart of successful project
-          management, and our platform integrates a range of communication tools
-          to support your team. From in-app messaging and discussion boards to
-          file sharing and video conferencing, OnePlace ensures that your team can
-          collaborate and share information seamlessly. This integration helps
-          reduce email clutter, keeps conversations contextually relevant, and
-          ensures that important information is always accessible when needed.
-        </p>
-      </section>
+ 
+    <section class="feature">
+      <h3>Customizable Workflows</h3>
+      <img id="img-feature" src="/images/home.jpeg" alt="Image 2" />
+      <p>
+        OnePlace offers highly customizable workflows to fit the unique needs of
+        your organization. Whether you need a simple task list or a complex
+        multi-step process, our system allows you to design workflows that match
+        your operational requirements. Drag-and-drop functionality makes it easy
+        to adjust and refine processes, enabling your team to adapt quickly to
+        changing priorities and maintain productivity.
+      </p>
     </section>
-  </main>
-  
+ 
+    <section class="feature">
+      <h3>Integrated Communication Tools</h3>
+      <img id="img-feature" src="/images/home.jpeg" alt="Feature 3" />
+      <p>
+        Effective communication is at the heart of successful project
+        management, and our platform integrates a range of communication tools
+        to support your team. From in-app messaging and discussion boards to
+        file sharing and video conferencing, OnePlace ensures that your team can
+        collaborate and share information seamlessly. This integration helps
+        reduce email clutter, keeps conversations contextually relevant, and
+        ensures that important information is always accessible when needed.
+      </p>
+    </section>
+  </section>
+</main>

@@ -58,7 +58,7 @@
             display: flex;
             justify-content: space-between;
         }
-        .remarks textarea {
+        .remarks select {
             width: 48%;
             height: 100px;
         }
@@ -125,7 +125,7 @@
                             <td>Class:</td>
                             <td><%= student.class_name %></td>
                             <td>School Reopens:</td>
-                            <td>01-09-2024</td>
+                            <td><%= new Date(term.school_reopen_date).toLocaleDateString() %></td>
                         </tr>
                     </table>
                 </div>
@@ -161,14 +161,18 @@
                             <td><%= student.attendance %></td>
                             <td>Position in Class:</td>
                             <td><%= student.position %></td>
-                            <td>Promoted:</td>
-                            <td>Yes</td>
+                            <td>Promotion Status:</td>
+                            <td><%= student.promotionStatus %></td>
                         </tr>
                     </table>
                 </div>
                 <div class="remarks">
                     <h3>Teacher's Remarks</h3>
-                    <textarea id="teacherRemarks-<%= index %>"><%= student.teacherRemarks %></textarea>
+                    <select id="teacherRemarks-<%= index %>" name="teacherRemarks-<%= index %>">
+                        <% teacherRemarks.forEach(function(remark) { %>
+                            <option value="<%= remark.remarks %>" <%= remark.remarks === student.teacherRemarks ? 'selected' : '' %>><%= remark.remarks %></option>
+                        <% }); %>
+                    </select>
                 </div>
                 <div class="signature-info">
                     <h3>Signature</h3>

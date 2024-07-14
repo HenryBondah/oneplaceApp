@@ -4,16 +4,48 @@ const printController = (db) => ({
         const organizationId = req.session.organizationId;
 
         try {
+            if (!organizationId) {
+                throw new Error('Organization ID is not set in session.');
+            }
+
             // Fetch class details
             const classResult = await db.query('SELECT * FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, organizationId]);
             const classData = classResult.rows[0];
+            if (!classData) {
+                throw new Error('Class not found for the given class ID and organization ID.');
+            }
 
             // Fetch organization details
             const organizationResult = await db.query('SELECT organization_name, organization_address FROM organizations WHERE organization_id = $1', [organizationId]);
             const organization = organizationResult.rows[0];
+            if (!organization) {
+                throw new Error('Organization not found');
+            }
 
             // Fetch students by class
             const students = await fetchStudentsByClass(db, classId);
+            if (!students || students.length === 0) {
+                res.render('print/printStudentReport', {
+                    title: 'Student Final Report',
+                    class: classData,
+                    students: [],
+                    orgName: organization.organization_name,
+                    orgAddress: organization.organization_address,
+                    date: new Date().toLocaleDateString(),
+                    teacherRemarks: [],
+                    term: {},
+                });
+                return;
+            }
+
+            // Fetch report settings
+            const settingsResult = await db.query('SELECT * FROM report_settings WHERE organization_id = $1 LIMIT 1', [organizationId]);
+            const reportSettings = settingsResult.rows[0] || {};
+            const cutOffPoint = reportSettings.cut_off_point || 50;
+            const promotedClass = reportSettings.promoted_class || 'Next Class';
+            const repeatedClass = reportSettings.repeated_class || 'Same Class';
+            const scoreRemark = reportSettings.score_remark || [];
+            const teacherRemarks = reportSettings.teacher_remarks || [];
 
             // Hardcoded subjects and scores for each student
             const hardcodedSubjects = [
@@ -25,22 +57,6 @@ const printController = (db) => ({
             for (const student of students) {
                 student.subjects = hardcodedSubjects;
 
-                // Fetch teacher remarks
-                const teacherRemarksResult = await db.query(`
-                    SELECT remarks
-                    FROM teacher_remarks
-                    WHERE student_id = $1
-                `, [student.student_id]);
-                student.teacherRemarks = teacherRemarksResult.rows.length > 0 ? teacherRemarksResult.rows[0].remarks : "";
-
-                // Fetch head teacher remarks
-                const headTeacherRemarksResult = await db.query(`
-                    SELECT remarks
-                    FROM head_teacher_remarks
-                    WHERE student_id = $1
-                `, [student.student_id]);
-                student.headTeacherRemarks = headTeacherRemarksResult.rows.length > 0 ? headTeacherRemarksResult.rows[0].remarks : "";
-
                 // Fetch attendance
                 const attendanceResult = await db.query(`
                     SELECT COUNT(*) as attendance
@@ -48,13 +64,11 @@ const printController = (db) => ({
                     WHERE student_id = $1 AND status = 'Present'
                 `, [student.student_id]);
                 student.attendance = attendanceResult.rows[0].attendance;
-            }
 
-            // Fetch all remarks for dropdown
-            const teacherRemarksResult = await db.query('SELECT DISTINCT remarks FROM general_remarks WHERE type = $1 AND organization_id = $2', ['teacher', organizationId]);
-            const headTeacherRemarksResult = await db.query('SELECT DISTINCT remarks FROM general_remarks WHERE type = $1 AND organization_id = $2', ['head_teacher', organizationId]);
-            const teacherRemarks = teacherRemarksResult.rows;
-            const headTeacherRemarks = headTeacherRemarksResult.rows;
+                // Determine promotion status
+                const totalScore = student.subjects.reduce((acc, subject) => acc + subject.total_score, 0) / student.subjects.length;
+                student.promotionStatus = totalScore >= cutOffPoint ? `Promoted to: ${promotedClass}` : `Repeated: ${repeatedClass}`;
+            }
 
             // Fetch term details
             const termResult = await db.query('SELECT * FROM terms WHERE organization_id = $1 AND current = TRUE', [organizationId]);
@@ -68,8 +82,7 @@ const printController = (db) => ({
                 orgAddress: organization.organization_address,
                 date: new Date().toLocaleDateString(),
                 teacherRemarks: teacherRemarks,
-                headTeacherRemarks: headTeacherRemarks,
-                term: term // Pass term data to the view
+                term: term || {} // Pass term data to the view
             });
         } catch (error) {
             console.error('Error generating student report:', error);
@@ -77,54 +90,31 @@ const printController = (db) => ({
         }
     },
 
-    calculateFinalGrade: (subjects) => {
-        let total = 0;
-        subjects.forEach(subject => {
-            total += printController.gradeToPoint(subject.grade);
-        });
-        return total / subjects.length;
-    },
-
-    gradeToPoint: (grade) => {
-        const gradePoints = {
-            'A': 4.0,
-            'B+': 3.5,
-            'B': 3.0,
-            'C+': 2.5,
-            'C': 2.0,
-            'D+': 1.5,
-            'D': 1.0,
-            'F': 0.0
-        };
-        return gradePoints[grade] || 0.0;
-    },
-
-    calculatePosition: async (studentId, classId, db) => {
-        const studentsResult = await db.query('SELECT * FROM students WHERE class_id = $1 AND organization_id = $2', [classId, organizationId]);
-        const students = studentsResult.rows;
-
-        students.forEach(student => {
-            student.final_grade = printController.calculateFinalGrade(student.subjects || []);
-        });
-
-        students.sort((a, b) => b.final_grade - a.final_grade);
-
-        return students.findIndex(student => student.student_id === studentId) + 1;
-    },
-
-    // Other functions for remarks management as defined earlier
-
     remarksPage: async (req, res) => {
         const organizationId = req.session.organizationId;
 
         try {
-            const teacherRemarks = await db.query('SELECT * FROM general_remarks WHERE type = $1 AND organization_id = $2', ['teacher', organizationId]);
-            const headTeacherRemarks = await db.query('SELECT * FROM general_remarks WHERE type = $1 AND organization_id = $2', ['head_teacher', organizationId]);
+            if (!organizationId) {
+                throw new Error('Organization ID is not set in session.');
+            }
+
+            const classesResult = await db.query('SELECT * FROM classes WHERE organization_id = $1', [organizationId]);
+            const classes = classesResult.rows;
+
+            const settingsResult = await db.query('SELECT * FROM report_settings WHERE organization_id = $1 LIMIT 1', [organizationId]);
+            const settings = settingsResult.rows[0] || { 
+                cut_off_point: 50, 
+                promoted_class: 'Next Class', 
+                repeated_class: 'Same Class', 
+                school_reopen_date: new Date().toISOString().split('T')[0], 
+                score_remark: [], 
+                teacher_remarks: [] 
+            };
 
             res.render('print/remarks', {
                 title: 'Manage Remarks',
-                teacherRemarks: teacherRemarks.rows,
-                headTeacherRemarks: headTeacherRemarks.rows
+                settings: settings,
+                classes: classes
             });
         } catch (error) {
             console.error('Error fetching remarks:', error);
@@ -133,25 +123,26 @@ const printController = (db) => ({
     },
 
     saveRemarks: async (req, res) => {
-        const { teacherRemarks, headTeacherRemarks } = req.body;
+        const { cutOffPoint, promotedClass, repeatedClass, schoolReopenDate, scoreRemarks, teacherRemarks } = req.body;
         const organizationId = req.session.organizationId;
 
         try {
-            if (teacherRemarks) {
-                await db.query(`
-                    INSERT INTO general_remarks (organization_id, type, remarks)
-                    VALUES ($1, $2, $3)
-                    ON CONFLICT (organization_id, type, remarks) DO NOTHING
-                `, [organizationId, 'teacher', teacherRemarks]);
+            if (!organizationId) {
+                throw new Error('Organization ID is not set in session.');
             }
 
-            if (headTeacherRemarks) {
-                await db.query(`
-                    INSERT INTO general_remarks (organization_id, type, remarks)
-                    VALUES ($1, $2, $3)
-                    ON CONFLICT (organization_id, type, remarks) DO NOTHING
-                `, [organizationId, 'head_teacher', headTeacherRemarks]);
-            }
+            // Save or update the report settings
+            await db.query(`
+                INSERT INTO report_settings (organization_id, cut_off_point, promoted_class, repeated_class, school_reopen_date, score_remark, teacher_remarks)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                ON CONFLICT (organization_id) DO UPDATE
+                SET cut_off_point = EXCLUDED.cut_off_point,
+                    promoted_class = EXCLUDED.promoted_class,
+                    repeated_class = EXCLUDED.repeated_class,
+                    school_reopen_date = EXCLUDED.school_reopen_date,
+                    score_remark = EXCLUDED.score_remark,
+                    teacher_remarks = EXCLUDED.teacher_remarks
+            `, [organizationId, cutOffPoint, promotedClass, repeatedClass, schoolReopenDate, scoreRemarks, teacherRemarks]);
 
             res.redirect('/print/remarks');
         } catch (error) {
@@ -165,6 +156,10 @@ const printController = (db) => ({
         const organizationId = req.session.organizationId;
 
         try {
+            if (!organizationId) {
+                throw new Error('Organization ID is not set in session.');
+            }
+
             await db.query('DELETE FROM general_remarks WHERE id = $1 AND organization_id = $2', [id, organizationId]);
             res.redirect('/print/remarks');
         } catch (error) {
@@ -178,6 +173,10 @@ const printController = (db) => ({
         const organizationId = req.session.organizationId;
 
         try {
+            if (!organizationId) {
+                throw new Error('Organization ID is not set in session.');
+            }
+
             const remarkResult = await db.query('SELECT * FROM general_remarks WHERE id = $1 AND organization_id = $2', [id, organizationId]);
             if (remarkResult.rows.length === 0) {
                 return res.status(404).send('Remark not found.');
@@ -199,6 +198,10 @@ const printController = (db) => ({
         const organizationId = req.session.organizationId;
 
         try {
+            if (!organizationId) {
+                throw new Error('Organization ID is not set in session.');
+            }
+
             await db.query(`
                 UPDATE general_remarks
                 SET remarks = $1

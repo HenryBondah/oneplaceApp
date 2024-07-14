@@ -16,9 +16,10 @@ module.exports = (db) => {
     router.get('/editStudent', isAuthenticated, (req, res) => commonController.editStudentGet(req, res, db));
     router.post('/editStudent/:studentId', upload.single('studentImage'), isAuthenticated, (req, res) => commonController.editStudentPost(req, res, db));
     router.post('/deleteStudent/:studentId', isAuthenticated, (req, res) => commonController.deleteStudent(req, res, db));
-    router.post('/saveAttendanceForDate', isAuthenticated, (req, res) => commonController.saveAttendanceForDate(req, res, db));
+    router.post('/common/saveAttendanceForDate', (req, res) => commonController.saveAttendanceForDate(req, res, db));
     router.get('/getAttendanceForClass', isAuthenticated, (req, res) => commonController.getAttendanceForClass(req, res, db));
-    router.get('/attendance', isAuthenticated, (req, res) => commonController.attendanceCollection(req, res, db));
+    router.get('/attendance', isAuthenticated, (req, res) => commonController.attendance(req, res, db));
+    router.post('/common/saveAttendanceForDate', isAuthenticated, (req, res) => commonController.saveAttendanceForDate(req, res, db));
     router.get('/attendanceCollection', isAuthenticated, (req, res) => commonController.attendanceCollection(req, res, db));
     router.get('/createEmployee', isAuthenticated, (req, res) => commonController.createEmployeeGet(req, res, db));
     router.post('/createEmployee', isAuthenticated, (req, res) => commonController.createEmployeePost(req, res, db));
