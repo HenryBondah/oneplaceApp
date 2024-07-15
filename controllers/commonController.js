@@ -3,13 +3,11 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcrypt');
 
-// Create upload directory if it doesn't exist
 const uploadDirectory = './uploads';
 if (!fs.existsSync(uploadDirectory)) {
     fs.mkdirSync(uploadDirectory, { recursive: true });
 }
 
-// Set up multer storage configuration
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'uploads/');
@@ -29,11 +27,12 @@ function isAuthenticated(req, res, next) {
     }
 }
 
-// Helper functions
+// Ensure this function is defined to fetch class names
 async function getClassName(db, classId) {
     const result = await db.query('SELECT class_name FROM classes WHERE class_id = $1', [classId]);
     return result.rows.length > 0 ? result.rows[0].class_name : 'Unknown Class';
 }
+
 
 function generateDates(startDate, endDate) {
     const dates = [];
@@ -74,14 +73,16 @@ async function getClassEmployeesWithMain(db, classId) {
     return result.rows;
 }
 
-async function fetchStudentsByClass(db, classId, organizationId) {
+
+// Fetch students by class function
+async function fetchStudentsByClass(db, classId) {
     try {
         const studentsResult = await db.query(`
             SELECT student_id, first_name, last_name
             FROM students
-            WHERE class_id = $1 AND organization_id = $2
+            WHERE class_id = $1
             ORDER BY first_name, last_name
-        `, [classId, organizationId]);
+        `, [classId]);
         return studentsResult.rows;
     } catch (error) {
         console.error('Error fetching students:', error);
@@ -89,7 +90,19 @@ async function fetchStudentsByClass(db, classId, organizationId) {
     }
 }
 
-
+async function classDashboard(req, res) {
+    try {
+        const classId = req.query.classId;
+        const organizationId = req.session.organizationId;
+        const classDetails = await db.query('SELECT * FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, organizationId]);
+        const students = await fetchStudentsByClass(classId);
+        res.render('common/classDashboard', { classDetails: classDetails.rows[0], students });
+    } catch (error) {
+        console.error('Error loading class dashboard:', error);
+        req.flash('error', 'Error loading class dashboard.');
+        res.redirect('/common/management');
+    }
+}
 
 const calculateTotalPercentage = (scores, assessments) => {
     let totalPercentage = 0;
@@ -112,11 +125,12 @@ const calculateGrade = (totalPercentage) => {
     return 'F';
 };
 
-// Controller with consolidated methods
 const commonController = {
-    // Common actions
     deleteTerm: async (req, res, db) => {
         const { term_id } = req.body;
+        if (!term_id) {
+            return res.status(400).json({ success: false, message: 'Term ID is required.' });
+        }
         try {
             await db.query('DELETE FROM terms WHERE term_id = $1 AND organization_id = $2', [term_id, req.session.organizationId]);
             res.json({ success: true, message: 'Term deleted successfully.' });
@@ -125,6 +139,8 @@ const commonController = {
             res.status(500).json({ success: false, message: 'Failed to delete term.', error: error.message });
         }
     },
+
+    
 
     orgDashboard: async (req, res, db) => {
         try {
@@ -180,7 +196,7 @@ const commonController = {
             res.redirect('/');
         }
     },    
-
+    
     publicDashboardContent: async (req, res, db) => {
         try {
             const organizationId = parseInt(req.query.organizationId, 10);
@@ -242,8 +258,7 @@ const commonController = {
             res.status(500).send('Failed to load public dashboard data.');
         }
     }, 
-
-    // Student management
+    
     addStudentGet: async (req, res, db) => {
         try {
             const query = `
@@ -316,88 +331,177 @@ const commonController = {
         }
     },
 
-    studentDetails: async (req, res, db) => {
-        const studentId = req.query.studentId;
+    getMajorityGraduationYearGroup: async (req, res, db) => {
+        const { classId } = req.query;
 
-        if (!studentId) {
-            return res.status(400).send('Student ID is required.');
+        if (!classId) {
+            return res.status(400).json({ error: 'Class ID is required.' });
         }
 
         try {
-            const studentResult = await db.query(`
-                SELECT s.*, c.class_name, g.name AS grad_year_group_name
-                FROM students s
-                LEFT JOIN classes c ON s.class_id = c.class_id
-                LEFT JOIN graduation_year_groups g ON c.graduation_year_group_id = g.id
-                WHERE s.student_id = $1 AND c.organization_id = $2
-            `, [studentId, req.session.organizationId]);
+            const result = await db.query(`
+                SELECT graduation_year_group_id, COUNT(*) as count
+                FROM students
+                WHERE class_id = $1 AND organization_id = $2
+                GROUP BY graduation_year_group_id
+                ORDER BY count DESC
+                LIMIT 1;
+            `, [classId, req.session.organizationId]);
 
-            if (studentResult.rows.length === 0) {
-                return res.status(404).send('Student not found.');
+            if (result.rows.length > 0) {
+                res.json({ majorityGraduationYearGroupId: result.rows[0].graduation_year_group_id });
+            } else {
+                res.json({ majorityGraduationYearGroupId: null });
             }
-
-            const student = studentResult.rows[0];
-
-            const guardiansResult = await db.query(`
-                SELECT * FROM guardians
-                WHERE student_id = $1
-            `, [studentId]);
-
-            const guardians = guardiansResult.rows;
-
-            const subjectsResult = await db.query(`
-                SELECT ss.subject_id, sub.subject_name, ss.grade
-                FROM student_subjects ss
-                LEFT JOIN subjects sub ON ss.subject_id = sub.subject_id
-                WHERE ss.student_id = $1
-            `, [studentId]);
-
-            const subjects = subjectsResult.rows;
-
-            const assessmentsResult = await db.query(`
-                SELECT a.assessment_id, a.title, a.weight, ar.score, a.subject_id
-                FROM assessments a
-                LEFT JOIN assessment_results ar ON a.assessment_id = ar.assessment_id
-                WHERE ar.student_id = $1
-            `, [studentId]);
-
-            const assessments = assessmentsResult.rows;
-
-            const subjectsWithGrades = subjects.map(subject => {
-                let totalPercentage = 0;
-                let totalWeight = 0;
-                assessments.forEach(assessment => {
-                    if (assessment.subject_id === subject.subject_id && assessment.score !== null) {
-                        totalPercentage += assessment.score * (assessment.weight / 100);
-                        totalWeight += assessment.weight;
-                    }
-                });
-                totalPercentage = totalWeight > 0 ? totalPercentage : 0;
-
-                let grade;
-                if (totalPercentage >= 90) grade = 'A';
-                else if (totalPercentage >= 80) grade = 'B';
-                else if (totalPercentage >= 70) grade = 'C';
-                else if (totalPercentage >= 60) grade = 'D';
-                else grade = 'F';
-
-                return {
-                    ...subject,
-                    total_percentage: totalPercentage.toFixed(2),
-                    grade: grade
-                };
-            });
-
-            res.render('common/studentDetails', {
-                title: 'Student Details',
-                student,
-                guardians,
-                subjects: subjectsWithGrades,
-                gradYearGroupName: student.grad_year_group_name || 'No graduation year group assigned'
-            });
         } catch (err) {
-            console.error('Error fetching student details:', err);
-            res.status(500).send('Failed to fetch student details');
+            console.error('Error fetching majority graduation year group:', err);
+            res.status(500).json({ error: 'Failed to fetch majority graduation year group.' });
+        }
+    },
+
+    getSubjectsForClass: async (req, res, db) => {
+        const { classId } = req.query;
+
+        if (!classId) {
+            return res.status(400).json({ error: 'Class ID is required.' });
+        }
+
+        try {
+            const subjectsResult = await db.query(`
+                SELECT subject_id, subject_name
+                FROM subjects
+                WHERE class_id = $1 AND organization_id = $2
+                ORDER BY subject_name ASC;
+            `, [classId, req.session.organizationId]);
+
+            res.json(subjectsResult.rows);
+        } catch (err) {
+            console.error('Error fetching subjects:', err);
+            res.status(500).json({ error: 'Failed to load subjects.' });
+        }
+    },     
+    
+    
+studentDetails: async (req, res, db) => {
+    const studentId = req.query.studentId;
+
+    if (!studentId) {
+        return res.status(400).send('Student ID is required.');
+    }
+
+    try {
+        const studentResult = await db.query(`
+            SELECT s.*, c.class_name, g.name AS grad_year_group_name
+            FROM students s
+            LEFT JOIN classes c ON s.class_id = c.class_id
+            LEFT JOIN graduation_year_groups g ON c.graduation_year_group_id = g.id
+            WHERE s.student_id = $1 AND c.organization_id = $2
+        `, [studentId, req.session.organizationId]);
+
+        if (studentResult.rows.length === 0) {
+            return res.status(404).send('Student not found.');
+        }
+
+        const student = studentResult.rows[0];
+
+        const guardiansResult = await db.query(`
+            SELECT * FROM guardians
+            WHERE student_id = $1
+        `, [studentId]);
+
+        const guardians = guardiansResult.rows;
+
+        const subjectsResult = await db.query(`
+            SELECT ss.subject_id, sub.subject_name, ss.grade
+            FROM student_subjects ss
+            LEFT JOIN subjects sub ON ss.subject_id = sub.subject_id
+            WHERE ss.student_id = $1
+        `, [studentId]);
+
+        const subjects = subjectsResult.rows;
+
+        const assessmentsResult = await db.query(`
+            SELECT a.assessment_id, a.title, a.weight, ar.score, a.subject_id
+            FROM assessments a
+            LEFT JOIN assessment_results ar ON a.assessment_id = ar.assessment_id
+            WHERE ar.student_id = $1
+        `, [studentId]);
+
+        const assessments = assessmentsResult.rows;
+
+        const subjectsWithGrades = subjects.map(subject => {
+            let totalPercentage = 0;
+            let totalWeight = 0;
+            assessments.forEach(assessment => {
+                if (assessment.subject_id === subject.subject_id && assessment.score !== null) {
+                    totalPercentage += assessment.score * (assessment.weight / 100);
+                    totalWeight += assessment.weight;
+                }
+            });
+            totalPercentage = totalWeight > 0 ? totalPercentage : 0;
+
+            let grade;
+            if (totalPercentage >= 90) grade = 'A';
+            else if (totalPercentage >= 80) grade = 'B';
+            else if (totalPercentage >= 70) grade = 'C';
+            else if (totalPercentage >= 60) grade = 'D';
+            else grade = 'F';
+
+            return {
+                ...subject,
+                total_percentage: totalPercentage.toFixed(2),
+                grade: grade
+            };
+        });
+
+        res.render('common/studentDetails', {
+            title: 'Student Details',
+            student,
+            guardians,
+            subjects: subjectsWithGrades,
+            gradYearGroupName: student.grad_year_group_name || 'No graduation year group assigned'
+        });
+    } catch (err) {
+        console.error('Error fetching student details:', err);
+        res.status(500).send('Failed to fetch student details');
+    }
+},
+
+    management: async (req, res, db) => {
+        try {
+            const schoolYears = await db.query(`
+                SELECT sy.*, t.*
+                FROM school_years sy
+                LEFT JOIN terms t ON t.year_id = sy.id
+                ORDER BY sy.year_label DESC, t.start_date ASC;
+            `);
+
+            let structuredSchoolYears = {};
+            schoolYears.rows.forEach(row => {
+                if (!structuredSchoolYears[row.id]) {
+                    structuredSchoolYears[row.id] = {
+                        id: row.id,
+                        year_label: row.year_label,
+                        terms: []
+                    };
+                }
+                if (row.term_id) {
+                    structuredSchoolYears[row.id].terms.push({
+                        term_id: row.term_id,
+                        term_name: row.term_name,
+                        start_date: row.start_date,
+                        end_date: row.end_date
+                    });
+                }
+            });
+
+            res.render('common/management', {
+                title: 'Management Tools',
+                schoolYears: Object.values(structuredSchoolYears)
+            });
+        } catch (error) {
+            console.error('Error fetching management data:', error);
+            res.status(500).send('Failed to load management data');
         }
     },
 
@@ -525,7 +629,8 @@ const commonController = {
         }
     },
 
-    // Attendance management
+
+
     saveAttendanceForDate: async (req, res, db) => {
         const { attendance, classId } = req.body;
 
@@ -605,6 +710,7 @@ const commonController = {
         }
     },
 
+    
     attendanceCollection: async (req, res, db) => {
         const { classId } = req.query;
         try {
@@ -665,7 +771,6 @@ const commonController = {
         }
     },
 
-    // Employee management
     createEmployeeGet: async (req, res, db) => {
         try {
             const classesResult = await db.query('SELECT * FROM classes WHERE organization_id = $1', [req.session.organizationId]);
@@ -682,9 +787,9 @@ const commonController = {
             req.flash('error', 'Failed to load classes.');
             res.redirect('/common/manageEmployees');
         }
-    },
+      },
 
-    createEmployeePost: async (req, res, db) => {
+      createEmployeePost: async (req, res, db) => {
         const { firstName, lastName, email, password, account_type, classes, subjects } = req.body;
     
         if (!firstName || !lastName || !email || !password || !account_type) {
@@ -722,6 +827,8 @@ const commonController = {
             res.redirect('/common/createEmployee');
         }
     },
+        
+
 
     manageEmployees: async (req, res, db) => {
         try {
@@ -773,7 +880,7 @@ const commonController = {
             res.redirect(`/common/modifyEmployee?userId=${userId}`);
         }
     },
-
+    
     modifyEmployeeGet: async (req, res, db) => {
         const { userId } = req.query;
 
@@ -840,6 +947,7 @@ const commonController = {
         }
     },
 
+    
     modifyEmployeePost: async (req, res, db) => {
         const { userId } = req.params;
         const { firstName, lastName, email, accountType, classIds = [], subjects = [] } = req.body;
@@ -873,6 +981,7 @@ const commonController = {
         }
     },
 
+    
     deleteEmployee: async (req, res, db) => {
         const { userId } = req.params;
 
@@ -894,8 +1003,9 @@ const commonController = {
         }
     },
 
-    // Assessment management
-    assessment: async (req, res, db) => {
+
+
+assessment: async (req, res, db) => {
         const { classId, subjectId } = req.query;
         if (!classId || !subjectId) {
             return res.status(400).send('Class ID and Subject ID are required for the assessment.');
@@ -911,7 +1021,7 @@ const commonController = {
 
             const className = classNameResult.rows[0].class_name;
             const subjectName = subjectNameResult.rows[0].subject_name;
-            const students = await fetchStudentsByClass(db, classId);
+            const students = await (db, classId);
 
             const assessmentsResult = await db.query(`
                 SELECT a.assessment_id, a.title, a.weight
@@ -971,6 +1081,8 @@ const commonController = {
         }
     },
 
+
+
     createTest: async (req, res, db) => {
         const { testName, testWeight, classId, subjectId } = req.body;
         if (!testName || isNaN(parseFloat(testWeight)) || !classId || !subjectId) {
@@ -994,7 +1106,8 @@ const commonController = {
             res.status(500).json({ success: false, message: "Failed to create test" });
         }
     },
-
+    
+    
     getAssessments: async (req, res, db) => {
         const { classId, subjectId } = req.query;
 
@@ -1126,8 +1239,7 @@ const commonController = {
         }
     },
 
-    // class Dashboard management
-    classDashboard: async (req, res, db, csrfToken) => {
+        classDashboard: async (req, res, db, csrfToken) => {
         const classId = req.query.classId;
         if (!classId) {
             res.redirect('/common/orgDashboard');
@@ -1263,11 +1375,7 @@ const commonController = {
             res.status(500).send('Error fetching assessment data.');
         }
     },  
-
-
-
-
-    // School year and term management
+    
     registerSchoolYear: async (req, res, db) => {
         const { schoolYear, terms } = req.body;
         try {
@@ -1314,1032 +1422,6 @@ const commonController = {
             res.status(500).json({ error: 'Failed to load classes.' });
         }
     },
-
-    getSchoolYearsData: async (db, organizationId) => {
-        const schoolYearsResult = await db.query('SELECT * FROM school_years WHERE organization_id = $1 ORDER BY created_at DESC', [organizationId]);
-        const schoolYears = schoolYearsResult.rows;
-
-        for (const year of schoolYears) {
-            const termsResult = await db.query('SELECT * FROM terms WHERE year_id = $1 AND organization_id = $2 ORDER BY start_date', [year.id, organizationId]);
-            const terms = termsResult.rows;
-
-            for (const term of terms) {
-                const termClassesResult = await db.query(
-                    `SELECT tc.class_id, c.class_name 
-                     FROM term_classes tc
-                     JOIN classes c ON tc.class_id = c.class_id
-                     WHERE tc.term_id = $1`,
-                    [term.term_id]
-                );
-                term.class_ids = termClassesResult.rows.map(row => row.class_id);
-                term.classes = termClassesResult.rows;
-            }
-
-            year.terms = terms;
-        }
-
-        return schoolYears;
-    },
-
-    manageRecords: async (req, res, db) => {
-        try {
-            const schoolYearsResult = await db.query('SELECT * FROM school_years WHERE organization_id = $1', [req.session.organizationId]);
-            const termsResult = await db.query(`
-                SELECT t.*, array_agg(tc.class_id) AS classes
-                FROM terms t
-                LEFT JOIN term_classes tc ON t.term_id = tc.term_id
-                WHERE t.organization_id = $1
-                GROUP BY t.term_id
-            `, [req.session.organizationId]);
-            const classesResult = await db.query('SELECT * FROM classes WHERE organization_id = $1', [req.session.organizationId]);
-            const eventsResult = await db.query('SELECT * FROM school_events WHERE organization_id = $1', [req.session.organizationId]);
-            const announcementsResult = await db.query('SELECT * FROM announcements WHERE organization_id = $1', [req.session.organizationId]);
-
-            const schoolYears = schoolYearsResult.rows.map(schoolYear => {
-                const terms = termsResult.rows.filter(term => term.school_year_id === schoolYear.id);
-                return { ...schoolYear, terms };
-            });
-
-            res.render('common/manageRecords', {
-                title: 'Manage Records',
-                schoolYears,
-                classes: classesResult.rows,
-                events: eventsResult.rows,
-                announcements: announcementsResult.rows,
-                messages: {
-                    success: req.flash('success'),
-                    error: req.flash('error')
-                }
-            });
-        } catch (error) {
-            console.error('Error fetching data:', error);
-            res.status(500).send('Error loading manage records page.');
-        }
-    },
-
-    updateSchoolYearAndTerms: async (req, res, db) => {
-        try {
-            const { yearId, year_label, currentYear, termIds, termNames, startDates, endDates, currentTerm, termClasses } = req.body;
-            const { organizationId } = req.session;
-
-            await db.query('UPDATE school_years SET year_label = $1, current = $2 WHERE id = $3 AND organization_id = $4', [year_label, currentYear === 'true', yearId, organizationId]);
-
-            await db.query('UPDATE terms SET current = FALSE WHERE school_year_id IN (SELECT id FROM school_years WHERE organization_id = $1)', [organizationId]);
-
-            for (let i = 0; i < termIds.length; i++) {
-                const termId = termIds[i];
-                const termName = termNames[i];
-                const startDate = startDates[i];
-                const endDate = endDates[i];
-                const isCurrent = currentTerm && currentTerm.includes(termId);
-
-                await db.query(
-                    'UPDATE terms SET term_name = $1, start_date = $2, end_date = $3, current = $4 WHERE term_id = $5 AND organization_id = $6',
-                    [termName, startDate, endDate, isCurrent, termId, organizationId]
-                );
-
-                await db.query('DELETE FROM term_classes WHERE term_id = $1', [termId]);
-                if (termClasses && termClasses[i]) {
-                    for (const classId of termClasses[i]) {
-                        await db.query('INSERT INTO term_classes (term_id, class_id) VALUES ($1, $2)', [termId, classId]);
-                    }
-                }
-            }
-
-            req.flash('success', 'School year and terms updated successfully.');
-            res.redirect('/common/manageRecords');
-        } catch (error) {
-            console.error('Error updating school year and terms:', error);
-            req.flash('error', 'Failed to update school year and terms.');
-            res.redirect('/common/manageRecords');
-        }
-    },
-
-    updateEvent: async (req, res, db) => {
-        try {
-            await db.query('UPDATE school_events SET name = $1, event_date = $2, details = $3, visibility = $4 WHERE id = $5 AND organization_id = $6', [req.body.name, req.body.event_date, req.body.details, req.body.visibility, req.body.id, req.session.organizationId]);
-            res.redirect('/common/manageRecords');
-        } catch (error) {
-            console.error('Error updating event:', error);
-            res.status(500).send('Failed to update event.');
-        }
-    },
-
-    updateAnnouncement: async (req, res, db) => {
-        const { announcementId, message, visibility } = req.body;
-        try {
-            await db.query('UPDATE announcements SET message = $1, visibility = $2 WHERE announcement_id = $3 AND organization_id = $4', [message, visibility, announcementId, req.session.organizationId]);
-            res.redirect('/common/manageRecords');
-        } catch (error) {
-            console.error('Error updating announcement:', error);
-            res.status(500).send('Failed to update announcement.');
-        }
-    },
-
-    // Student management
-    addStudentGet: async (req, res, db) => {
-        try {
-            const query = `
-                SELECT c.class_id, c.class_name
-                FROM classes c
-                WHERE c.organization_id = $1
-                ORDER BY c.class_name ASC;
-            `;
-            const result = await db.query(query, [req.session.organizationId]);
-
-            const graduationYearGroupsResult = await db.query(`
-                SELECT id, name
-                FROM graduation_year_groups
-                WHERE organization_id = $1
-                ORDER BY name ASC;
-            `, [req.session.organizationId]);
-
-            res.render('common/addStudent', {
-                title: 'Add New Student',
-                classes: result.rows,
-                graduationYearGroups: graduationYearGroupsResult.rows,
-                messages: req.flash()
-            });
-        } catch (err) {
-            console.error('Error fetching classes:', err);
-            res.status(500).send('Error fetching classes');
-        }
-    },
-
-    addStudentPost: async (req, res, db) => {
-        const { firstName, lastName, dateOfBirth, height, hometown, classId, graduationYearGroupId, guardians, subjects } = req.body;
-        const studentImageUrl = req.file ? req.file.path : null;
-
-        if (!firstName || !lastName || !classId || !dateOfBirth || !graduationYearGroupId) {
-            req.flash('error', 'First name, last name, class, date of birth, and graduation year group are required.');
-            return res.redirect('/common/addStudent');
-        }
-
-        try {
-            const result = await db.query(
-                'INSERT INTO students (first_name, last_name, date_of_birth, height, hometown, class_id, image_url, graduation_year_group_id, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING student_id',
-                [firstName, lastName, dateOfBirth, height, hometown, classId, studentImageUrl, graduationYearGroupId, req.session.userId]
-            );
-            const studentId = result.rows[0].student_id;
-
-            if (Array.isArray(guardians)) {
-                for (const guardian of guardians) {
-                    await db.query(
-                        'INSERT INTO guardians (first_name, last_name, address, phone, hometown, student_id) VALUES ($1, $2, $3, $4, $5, $6)',
-                        [guardian.firstName, guardian.lastName, guardian.address, guardian.phone, guardian.hometown, studentId]
-                    );
-                }
-            }
-
-            if (Array.isArray(subjects)) {
-                for (const subjectId of subjects) {
-                    await db.query(
-                        'INSERT INTO student_subjects (student_id, subject_id) VALUES ($1, $2)',
-                        [studentId, subjectId]
-                    );
-                }
-            }
-
-            req.flash('success', 'Student added successfully.');
-            res.redirect('/common/addStudent');
-        } catch (err) {
-            console.error('Error adding student:', err);
-            req.flash('error', 'Failed to add student.');
-            res.redirect('/common/addStudent');
-        }
-    },
-
-    getMajorityGraduationYearGroup: async (req, res, db) => {
-        const { classId } = req.query;
-
-        if (!classId) {
-            return res.status(400).json({ error: 'Class ID is required.' });
-        }
-
-        try {
-            const result = await db.query(`
-                SELECT graduation_year_group_id, COUNT(*) as count
-                FROM students
-                WHERE class_id = $1 AND organization_id = $2
-                GROUP BY graduation_year_group_id
-                ORDER BY count DESC
-                LIMIT 1;
-            `, [classId, req.session.organizationId]);
-
-            if (result.rows.length > 0) {
-                res.json({ majorityGraduationYearGroupId: result.rows[0].graduation_year_group_id });
-            } else {
-                res.json({ majorityGraduationYearGroupId: null });
-            }
-        } catch (err) {
-            console.error('Error fetching majority graduation year group:', err);
-            res.status(500).json({ error: 'Failed to fetch majority graduation year group.' });
-        }
-    },
-
-    getSubjectsForClass: async (req, res, db) => {
-        const { classId } = req.query;
-
-        if (!classId) {
-            return res.status(400).json({ error: 'Class ID is required.' });
-        }
-
-        try {
-            const subjectsResult = await db.query(`
-                SELECT subject_id, subject_name
-                FROM subjects
-                WHERE class_id = $1 AND organization_id = $2
-                ORDER BY subject_name ASC;
-            `, [classId, req.session.organizationId]);
-
-            res.json(subjectsResult.rows);
-        } catch (err) {
-            console.error('Error fetching subjects:', err);
-            res.status(500).json({ error: 'Failed to load subjects.' });
-        }
-    },
-
-    studentDetails: async (req, res, db) => {
-        const studentId = req.query.studentId;
-
-        if (!studentId) {
-            return res.status(400).send('Student ID is required.');
-        }
-
-        try {
-            const studentResult = await db.query(`
-                SELECT s.*, c.class_name, g.name AS grad_year_group_name
-                FROM students s
-                LEFT JOIN classes c ON s.class_id = c.class_id
-                LEFT JOIN graduation_year_groups g ON c.graduation_year_group_id = g.id
-                WHERE s.student_id = $1 AND c.organization_id = $2
-            `, [studentId, req.session.organizationId]);
-
-            if (studentResult.rows.length === 0) {
-                return res.status(404).send('Student not found.');
-            }
-
-            const student = studentResult.rows[0];
-
-            const guardiansResult = await db.query(`
-                SELECT * FROM guardians
-                WHERE student_id = $1
-            `, [studentId]);
-
-            const guardians = guardiansResult.rows;
-
-            const subjectsResult = await db.query(`
-                SELECT ss.subject_id, sub.subject_name, ss.grade
-                FROM student_subjects ss
-                LEFT JOIN subjects sub ON ss.subject_id = sub.subject_id
-                WHERE ss.student_id = $1
-            `, [studentId]);
-
-            const subjects = subjectsResult.rows;
-
-            const assessmentsResult = await db.query(`
-                SELECT a.assessment_id, a.title, a.weight, ar.score, a.subject_id
-                FROM assessments a
-                LEFT JOIN assessment_results ar ON a.assessment_id = ar.assessment_id
-                WHERE ar.student_id = $1
-            `, [studentId]);
-
-            const assessments = assessmentsResult.rows;
-
-            const subjectsWithGrades = subjects.map(subject => {
-                let totalPercentage = 0;
-                let totalWeight = 0;
-                assessments.forEach(assessment => {
-                    if (assessment.subject_id === subject.subject_id && assessment.score !== null) {
-                        totalPercentage += assessment.score * (assessment.weight / 100);
-                        totalWeight += assessment.weight;
-                    }
-                });
-                totalPercentage = totalWeight > 0 ? totalPercentage : 0;
-
-                let grade;
-                if (totalPercentage >= 90) grade = 'A';
-                else if (totalPercentage >= 80) grade = 'B';
-                else if (totalPercentage >= 70) grade = 'C';
-                else if (totalPercentage >= 60) grade = 'D';
-                else grade = 'F';
-
-                return {
-                    ...subject,
-                    total_percentage: totalPercentage.toFixed(2),
-                    grade: grade
-                };
-            });
-
-            res.render('common/studentDetails', {
-                title: 'Student Details',
-                student,
-                guardians,
-                subjects: subjectsWithGrades,
-                gradYearGroupName: student.grad_year_group_name || 'No graduation year group assigned'
-            });
-        } catch (err) {
-            console.error('Error fetching student details:', err);
-            res.status(500).send('Failed to fetch student details');
-        }
-    },
-
-    editStudentGet: async (req, res, db) => {
-        const { studentId } = req.query;
-
-        if (!studentId) {
-            res.status(400).send('Student ID is required.');
-            return;
-        }
-
-        try {
-            const studentDetails = await db.query('SELECT * FROM students WHERE student_id = $1 AND organization_id = $2', [studentId, req.session.organizationId]);
-            if (studentDetails.rows.length === 0) {
-                res.status(404).send('Student not found.');
-                return;
-            }
-            const student = studentDetails.rows[0];
-
-            const classes = await db.query('SELECT * FROM classes WHERE organization_id = $1 ORDER BY class_name ASC', [req.session.organizationId]);
-
-            const subjectsResult = await db.query('SELECT * FROM subjects WHERE class_id = $1', [student.class_id]);
-
-            const enrolledSubjectsResult = await db.query('SELECT subject_id FROM student_subjects WHERE student_id = $1', [studentId]);
-            const enrolledSubjectIds = enrolledSubjectsResult.rows.map(subject => subject.subject_id);
-
-            const guardiansResult = await db.query('SELECT * FROM guardians WHERE student_id = $1', [studentId]);
-            const guardians = guardiansResult.rows;
-
-            const gradYearGroupResult = await db.query(`
-                SELECT g.name AS grad_year_group_name
-                FROM classes c
-                LEFT JOIN graduation_year_groups g ON c.graduation_year_group_id = g.id
-                WHERE c.class_id = $1
-            `, [student.class_id]);
-            const gradYearGroupName = gradYearGroupResult.rows[0]?.grad_year_group_name || 'No graduation year group assigned';
-
-            res.render('common/editStudent', {
-                title: 'Edit Student',
-                student,
-                classes: classes.rows,
-                subjects: subjectsResult.rows,
-                enrolledSubjects: enrolledSubjectIds,
-                guardians,
-                gradYearGroupName
-            });
-        } catch (error) {
-            console.error('Error loading edit student page:', error);
-            res.status(500).send('Failed to load student details.');
-        }
-    },
-
-    editStudentPost: async (req, res, db) => {
-        const { studentId } = req.params;
-        const {
-            classId, firstName, lastName, dateOfBirth, height, hometown, subjects = [],
-            guardian1FirstName, guardian1LastName, guardian1Address, guardian1Phone, guardian1Hometown,
-            guardian2FirstName, guardian2LastName, guardian2Address, guardian2Phone, guardian2Hometown,
-            guardian3FirstName, guardian3LastName, guardian3Address, guardian3Phone, guardian3Hometown
-        } = req.body;
-        const file = req.file;
-
-        try {
-            if (file) {
-                await db.query(
-                    `UPDATE students SET class_id = $1, first_name = $2, last_name = $3, date_of_birth = $4, height = $5, hometown = $6, image_url = $7 WHERE student_id = $8 AND organization_id = $9`,
-                    [classId, firstName, lastName, dateOfBirth, height, hometown, file.filename, studentId, req.session.organizationId]
-                );
-            } else {
-                await db.query(
-                    `UPDATE students SET class_id = $1, first_name = $2, last_name = $3, date_of_birth = $4, height = $5, hometown = $6 WHERE student_id = $7 AND organization_id = $8`,
-                    [classId, firstName, lastName, dateOfBirth, height, hometown, studentId, req.session.organizationId]
-                );
-            }
-
-            await db.query('DELETE FROM student_subjects WHERE student_id = $1', [studentId]);
-
-            if (Array.isArray(subjects)) {
-                for (const subjectId of subjects) {
-                    await db.query('INSERT INTO student_subjects (student_id, subject_id) VALUES ($1, $2)', [studentId, subjectId]);
-                }
-            }
-
-            const guardians = [
-                { firstName: guardian1FirstName, lastName: guardian1LastName, address: guardian1Address, phone: guardian1Phone, hometown: guardian1Hometown },
-                { firstName: guardian2FirstName, lastName: guardian2LastName, address: guardian2Address, phone: guardian2Phone, hometown: guardian2Hometown },
-                { firstName: guardian3FirstName, lastName: guardian3LastName, address: guardian3Address, phone: guardian3Phone, hometown: guardian3Hometown }
-            ];
-
-            await db.query('DELETE FROM guardians WHERE student_id = $1', [studentId]);
-
-            for (const guardian of guardians) {
-                if (guardian.firstName && guardian.lastName) {
-                    await db.query('INSERT INTO guardians (first_name, last_name, address, phone, hometown, student_id) VALUES ($1, $2, $3, $4, $5, $6)', [guardian.firstName, guardian.lastName, guardian.address, guardian.phone, guardian.hometown, studentId]);
-                }
-            }
-
-            req.flash('success', 'Student details updated successfully.');
-            res.redirect(`/common/editStudent?studentId=${studentId}`);
-        } catch (error) {
-            console.error('Error updating student details:', error);
-            req.flash('error', 'Failed to update student details.');
-            res.redirect(`/common/editStudent?studentId=${studentId}`);
-        }
-    },
-
-    deleteStudent: async (req, res, db) => {
-        const { studentId } = req.params;
-
-        if (!studentId) {
-            return res.status(400).send('Student ID is required.');
-        }
-
-        try {
-            await db.query('DELETE FROM guardians WHERE student_id = $1', [studentId]);
-            await db.query('DELETE FROM student_subjects WHERE student_id = $1', [studentId]);
-            await db.query('DELETE FROM students WHERE student_id = $1 AND organization_id = $2', [studentId, req.session.organizationId]);
-
-            req.flash('success', 'Student deleted successfully.');
-            res.redirect('/common/addStudent');
-        } catch (error) {
-            console.error('Error deleting student:', error);
-            req.flash('error', 'Failed to delete student.');
-            res.redirect('/common/addStudent');
-        }
-    },
-
-    saveAttendanceForDate: async (req, res, db) => {
-        const { attendance, classId } = req.body;
-
-        try {
-            for (const record of attendance) {
-                const { studentId, date, status } = record;
-                const utcDate = new Date(date).toISOString().split('T')[0];
-                await db.query(`
-                    INSERT INTO attendance_records (student_id, date, status, class_id)
-                    VALUES ($1, $2, $3, $4)
-                    ON CONFLICT (student_id, date)
-                    DO UPDATE SET status = EXCLUDED.status`, [studentId, utcDate, status, classId]);
-            }
-
-            res.json({ success: true });
-        } catch (error) {
-            console.error('Error saving attendance:', error);
-            res.json({ success: false, error: error.message });
-        }
-    },
-
-    getAttendanceForClass: async (req, res, db) => {
-        const { classId } = req.query;
-
-        try {
-            const result = await db.query('SELECT * FROM attendance_records WHERE class_id = $1', [classId]);
-            res.json({ success: true, attendance: result.rows });
-        } catch (error) {
-            console.error('Error fetching attendance:', error);
-            res.json({ success: false, error: error.message });
-        }
-    },
-
-    attendance: async (req, res, db) => {
-        const { classId } = req.query;
-        try {
-            const classResult = await db.query('SELECT class_name FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, req.session.organizationId]);
-            if (classResult.rows.length === 0) {
-                return res.status(404).send('Class not found');
-            }
-            const className = classResult.rows[0].class_name;
-    
-            const today = new Date();
-            const startDate = new Date(today);
-            startDate.setDate(today.getDate() - 10);
-     
-            const dates = [];
-            for (let d = startDate; d <= today; d.setDate(d.getDate() + 1)) {
-                dates.push(new Date(d).toISOString().split('T')[0]);
-            }
-    
-            const students = await fetchStudentsByClass(db, classId, req.session.organizationId);
-            const attendanceResult = await db.query(`
-                SELECT student_id, date, status
-                FROM attendance_records
-                WHERE class_id = $1 AND date >= $2 AND date <= $3`, [classId, startDate.toISOString().split('T')[0], today.toISOString().split('T')[0]]);
-    
-            const attendanceMap = {};
-            attendanceResult.rows.forEach(record => {
-                if (!attendanceMap[record.student_id]) {
-                    attendanceMap[record.student_id] = {};
-                }
-                attendanceMap[record.student_id][record.date.toISOString().split('T')[0]] = record.status;
-            });
-    
-            res.render('common/attendance', {
-                title: 'Attendance',
-                classId,
-                className,
-                dates,
-                students,
-                attendanceMap
-            });
-        } catch (error) {
-            console.error('Error fetching attendance data:', error);
-            res.status(500).send('Error loading attendance records page');
-        }
-    },
-
-    attendanceCollection: async (req, res, db) => {
-        const { classId } = req.query;
-        try {
-            const classResult = await db.query('SELECT class_name FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, req.session.organizationId]);
-            if (classResult.rows.length === 0) {
-                return res.status(404).send('Class not found');
-            }
-            const className = classResult.rows[0].class_name;
-
-            const termDatesResult = await db.query(`
-                SELECT DISTINCT t.start_date, t.end_date
-                FROM terms t
-                JOIN term_classes tc ON t.term_id = tc.term_id
-                WHERE tc.class_id = $1
-                ORDER BY t.start_date`, [classId]);
-
-            const dates = [];
-            termDatesResult.rows.forEach(row => {
-                let currentDate = new Date(row.start_date);
-                const endDate = new Date(row.end_date);
-                const today = new Date().toISOString().split('T')[0];
-
-                while (currentDate <= endDate) {
-                    const dateStr = currentDate.toISOString().split('T')[0];
-                    if (dateStr <= today) {
-                        dates.push(dateStr);
-                    }
-                    currentDate.setDate(currentDate.getDate() + 1);
-                }
-            });
-
-            const displayDates = dates.sort((a, b) => new Date(b) - new Date(a)).slice(0, 10).reverse();
-            const students = await fetchStudentsByClass(db, classId, req.session.organizationId);
-            const attendanceResult = await db.query(`
-                SELECT student_id, date, status
-                FROM attendance_records
-                WHERE class_id = $1`, [classId]);
-
-            const attendanceMap = {};
-            attendanceResult.rows.forEach(record => {
-                if (!attendanceMap[record.student_id]) {
-                    attendanceMap[record.student_id] = {};
-                }
-                attendanceMap[record.student_id][record.date.toISOString().split('T')[0]] = record.status;
-            });
-
-            res.render('common/attendanceCollection', {
-                title: 'Attendance Records',
-                classId,
-                className,
-                displayDates,
-                students,
-                attendanceMap
-            });
-        } catch (error) {
-            console.error('Error fetching attendance data:', error);
-            res.status(500).send('Error loading attendance records page');
-        }
-    },
-
-    // Employee management
-    createEmployeeGet: async (req, res, db) => {
-        try {
-            const classesResult = await db.query('SELECT * FROM classes WHERE organization_id = $1', [req.session.organizationId]);
-            res.render('common/createEmployee', {
-                title: 'Create Employee',
-                classes: classesResult.rows,
-                messages: {
-                    success: req.flash('success'),
-                    error: req.flash('error')
-                }
-            });
-        } catch (error) {
-            console.error('Error fetching classes:', error);
-            req.flash('error', 'Failed to load classes.');
-            res.redirect('/common/manageEmployees');
-        }
-    },
-
-    createEmployeePost: async (req, res, db) => {
-        const { firstName, lastName, email, password, account_type, classes, subjects } = req.body;
-    
-        if (!firstName || !lastName || !email || !password || !account_type) {
-            req.flash('error', 'All fields are required.');
-            return res.redirect('/common/createEmployee');
-        }
-    
-        try {
-            const hashedPassword = await bcrypt.hash(password, 10);
-            const result = await db.query(
-                `INSERT INTO users (first_name, last_name, email, password, account_type, organization_id, created_at, updated_at)
-                 VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING user_id`, 
-                [firstName, lastName, email, hashedPassword, account_type, req.session.organizationId]
-            );
-    
-            const userId = result.rows[0].user_id;
-    
-            if (Array.isArray(classes)) {
-                for (const classId of classes) {
-                    await db.query('INSERT INTO user_classes (user_id, class_id) VALUES ($1, $2)', [userId, classId]);
-                }
-            }
-    
-            if (Array.isArray(subjects)) {
-                for (const subjectId of subjects) {
-                    await db.query('INSERT INTO user_subjects (user_id, subject_id) VALUES ($1, $2)', [userId, subjectId]);
-                }
-            }
-    
-            req.flash('success', 'Employee created successfully.');
-            res.redirect('/common/createEmployee');
-        } catch (error) {
-            console.error('Error creating employee:', error);
-            req.flash('error', 'Failed to create employee.');
-            res.redirect('/common/createEmployee');
-        }
-    },
-
-    manageEmployees: async (req, res, db) => {
-        try {
-            const result = await db.query(`
-                SELECT u.*, array_agg(uc.class_id) as class_ids
-                FROM users u
-                LEFT JOIN user_classes uc ON u.user_id = uc.user_id
-                WHERE u.organization_id = $1
-                GROUP BY u.user_id
-                ORDER BY u.first_name, u.last_name`, [req.session.organizationId]);
-
-            const classesResult = await db.query('SELECT * FROM classes WHERE organization_id = $1', [req.session.organizationId]);
-
-            const employees = result.rows;
-            for (let employee of employees) {
-                const classIds = employee.class_ids || [];
-                employee.classes = await db.query('SELECT class_name FROM classes WHERE class_id = ANY($1)', [classIds]).then(res => res.rows);
-                
-                const subjects = await db.query('SELECT sub.subject_name FROM subjects sub JOIN user_subjects us ON sub.subject_id = us.subject_id WHERE us.user_id = $1', [employee.user_id]);
-                employee.subjects = subjects.rows;
-            }
-
-            res.render('common/manageEmployees', {
-                title: 'Manage Employees',
-                employees: employees,
-                classes: classesResult.rows,
-                messages: {
-                    success: req.flash('success'),
-                    error: req.flash('error')
-                }
-            });
-        } catch (error) {
-            console.error('Error fetching employees:', error);
-            req.flash('error', 'Failed to load employees.');
-            res.redirect('/common/createEmployee');
-        }
-    },
-
-    toggleHoldEmployee: async (req, res, db) => {
-        const { userId } = req.params;
-        try {
-            const result = await db.query('UPDATE users SET on_hold = NOT on_hold WHERE user_id = $1 AND organization_id = $2 RETURNING on_hold', [userId, req.session.organizationId]);
-            const newStatus = result.rows[0].on_hold ? 'on hold' : 'resumed';
-            req.flash('success', `Employee has been ${newStatus}.`);
-            res.redirect(`/common/modifyEmployee?userId=${userId}`);
-        } catch (error) {
-            console.error('Error toggling hold status:', error);
-            req.flash('error', 'Failed to update employee status.');
-            res.redirect(`/common/modifyEmployee?userId=${userId}`);
-        }
-    },
-
-    modifyEmployeeGet: async (req, res, db) => {
-        const { userId } = req.query;
-
-        if (!userId) {
-            res.status(400).send('User ID is required.');
-            return;
-        }
-
-        try {
-            const userResult = await db.query('SELECT * FROM users WHERE user_id = $1 AND organization_id = $2', [userId, req.session.organizationId]);
-            if (userResult.rows.length === 0) {
-                res.status(404).send('User not found.');
-                return;
-            }
-            const user = userResult.rows[0];
-
-            const classesResult = await db.query(`
-                SELECT c.class_id, c.class_name
-                FROM classes c
-                WHERE c.organization_id = $1
-                ORDER BY c.class_name ASC`, [req.session.organizationId]);
-
-            const subjectsResult = await db.query(`
-                SELECT s.subject_id, s.subject_name, s.class_id
-                FROM subjects s
-                WHERE s.organization_id = $1`, [req.session.organizationId]);
-
-            const classMap = classesResult.rows.reduce((map, cls) => {
-                map[cls.class_id] = { ...cls, subjects: [] };
-                return map;
-            }, {});
-
-            subjectsResult.rows.forEach(subject => {
-                if (classMap[subject.class_id]) {
-                    classMap[subject.class_id].subjects.push(subject);
-                }
-            });
-
-            const classes = Object.values(classMap);
-
-            const enrolledSubjectsResult = await db.query(`
-                SELECT us.subject_id
-                FROM user_subjects us
-                WHERE us.user_id = $1`, [userId]);
-            const enrolledSubjects = enrolledSubjectsResult.rows.map(subject => subject.subject_id);
-
-            const employeeClassesResult = await db.query(`
-                SELECT class_id
-                FROM user_classes
-                WHERE user_id = $1`, [userId]);
-            const enrolledClasses = employeeClassesResult.rows.map(cls => cls.class_id);
-
-            res.render('common/modifyEmployee', {
-                title: 'Modify Employee',
-                user,
-                classes,
-                enrolledClasses,
-                enrolledSubjects,
-                messages: req.flash()
-            });
-        } catch (error) {
-            console.error('Error loading modify employee page:', error);
-            res.status(500).send('Failed to load employee details.');
-        }
-    },
-
-    modifyEmployeePost: async (req, res, db) => {
-        const { userId } = req.params;
-        const { firstName, lastName, email, accountType, classIds = [], subjects = [] } = req.body;
-
-        try {
-            await db.query(
-                `UPDATE users
-                 SET first_name = $1, last_name = $2, email = $3, account_type = $4, updated_at = NOW()
-                 WHERE user_id = $5 AND organization_id = $6`, [firstName, lastName, email, accountType, userId, req.session.organizationId]);
-
-            await db.query('DELETE FROM user_classes WHERE user_id = $1', [userId]);
-            if (Array.isArray(classIds)) {
-                for (const classId of classIds) {
-                    await db.query('INSERT INTO user_classes (user_id, class_id) VALUES ($1, $2)', [userId, classId]);
-                }
-            }
-
-            await db.query('DELETE FROM user_subjects WHERE user_id = $1', [userId]);
-            if (Array.isArray(subjects)) {
-                for (const subjectId of subjects) {
-                    await db.query('INSERT INTO user_subjects (user_id, subject_id) VALUES ($1, $2)', [userId, subjectId]);
-                }
-            }
-
-            req.flash('success', 'Employee details updated successfully.');
-            res.redirect('/common/manageEmployees');
-        } catch (error) {
-            console.error('Error updating employee details:', error);
-            req.flash('error', 'Failed to update employee details.');
-            res.redirect(`/common/modifyEmployee?userId=${userId}`);
-        }
-    },
-
-    deleteEmployee: async (req, res, db) => {
-        const { userId } = req.params;
-
-        if (!userId) {
-            return res.status(400).send('User ID is required.');
-        }
-
-        try {
-            await db.query('DELETE FROM user_classes WHERE user_id = $1', [userId]);
-            await db.query('DELETE FROM user_subjects WHERE user_id = $1', [userId]);
-            await db.query('DELETE FROM users WHERE user_id = $1 AND organization_id = $2', [userId, req.session.organizationId]);
-
-            req.flash('success', 'Employee deleted successfully.');
-            res.redirect('/common/manageEmployees');
-        } catch (error) {
-            console.error('Error deleting employee:', error);
-            req.flash('error', 'Failed to delete employee.');
-            res.redirect('/common/manageEmployees');
-        }
-    },
-
-    // Assessment management
-    createTest: async (req, res, db) => {
-        const { testName, testWeight, classId, subjectId } = req.body;
-        if (!testName || isNaN(parseFloat(testWeight)) || !classId || !subjectId) {
-            return res.status(400).json({ success: false, message: "Missing or invalid input" });
-        }
-
-        try {
-            const result = await db.query(
-                `INSERT INTO assessments (title, weight, class_id, subject_id, created_by, organization_id)
-                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`, 
-                 [testName, parseFloat(testWeight), classId, subjectId, req.session.userId, req.session.organizationId]
-            );
-
-            if (result.rows.length > 0) {
-                res.status(201).json({ success: true, test: result.rows[0] });
-            } else {
-                res.status(500).json({ success: false, message: "Failed to insert the test into the database." });
-            }
-        } catch (err) {
-            console.error('Failed to create test:', err);
-            res.status(500).json({ success: false, message: "Failed to create test" });
-        }
-    },
-
-    getAssessments: async (req, res, db) => {
-        const { classId, subjectId } = req.query;
-
-        try {
-            const result = await db.query(
-                'SELECT * FROM assessments WHERE class_id = $1 AND subject_id = $2 AND organization_id = $3 ORDER BY assessment_id ASC', [classId, subjectId, req.session.organizationId]);
-            res.json(result.rows);
-        } catch (error) {
-            console.error('Error fetching assessments:', error);
-            res.status(500).send('Failed to fetch assessments');
-        }
-    },
-
-    getScores: async (req, res, db) => {
-        const { classId, subjectId } = req.query;
-
-        try {
-            const result = await db.query(`
-                SELECT ar.student_id, ar.assessment_id, ar.score, s.first_name, s.last_name
-                FROM assessment_results ar
-                JOIN students s ON ar.student_id = s.student_id
-                JOIN assessments a ON ar.assessment_id = a.assessment_id
-                WHERE a.class_id = $1 AND a.subject_id = $2 AND s.organization_id = $3
-                ORDER BY ar.assessment_id ASC, s.student_id ASC`, [classId, subjectId, req.session.organizationId]);
-
-            res.json(result.rows);
-        } catch (error) {
-            console.error('Error fetching scores:', error);
-            res.status(500).send('Failed to fetch scores');
-        }
-    },
-
-    manageAssessment: async (req, res, db) => {
-        const { classId, subjectId } = req.query;
-        if (!classId || !subjectId) {
-            return res.status(400).send('Class ID and Subject ID are required for managing assessments.');
-        }
-
-        try {
-            const classNameResult = await db.query('SELECT class_name FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, req.session.organizationId]);
-            const subjectNameResult = await db.query('SELECT subject_name FROM subjects WHERE subject_id = $1 AND organization_id = $2', [subjectId, req.session.organizationId]);
-
-            if (classNameResult.rows.length === 0 || subjectNameResult.rows.length === 0) {
-                return res.status(404).send('Class or Subject not found.');
-            }
-
-            const className = classNameResult.rows[0].class_name;
-            const subjectName = subjectNameResult.rows[0].subject_name;
-
-            const assessmentsResult = await db.query(`
-                SELECT assessment_id, title, weight
-                FROM assessments
-                WHERE class_id = $1 AND subject_id = $2 AND organization_id = $3
-                ORDER BY assessment_id`, [classId, subjectId, req.session.organizationId]);
-
-            res.render('common/manageAssessment', {
-                title: 'Manage Assessments',
-                classId,
-                className,
-                subjectId,
-                subjectName,
-                assessments: assessmentsResult.rows,
-                messages: req.flash()
-            });
-        } catch (err) {
-            console.error('Error fetching manage assessment data:', err);
-            res.status(500).send('Error fetching manage assessment data.');
-        }
-    },
-
-    updateAssessment: async (req, res, db) => {
-        const { assessmentId, title, weight } = req.body;
-        try {
-            await db.query('UPDATE assessments SET title = $1, weight = $2 WHERE assessment_id = $3 AND organization_id = $4', [title, weight, assessmentId, req.session.organizationId]);
-            req.flash('success', 'Assessment updated successfully.');
-            res.redirect('back');
-        } catch (err) {
-            console.error('Error updating assessment:', err);
-            req.flash('error', 'Failed to update assessment.');
-            res.redirect('back');
-        }
-    },
-
-    deleteAssessment: async (req, res, db) => {
-        const { assessmentId } = req.body;
-        try {
-            await db.query('DELETE FROM assessments WHERE assessment_id = $1 AND organization_id = $2', [assessmentId, req.session.organizationId]);
-            req.flash('success', 'Assessment deleted successfully.');
-            res.redirect('back');
-        } catch (err) {
-            console.error('Error deleting assessment:', err);
-            req.flash('error', 'Failed to delete assessment.');
-            res.redirect('back');
-        }
-    },
-
-    saveScores: async (req, res, db) => {
-        const { scores, classId, subjectId, assessmentId } = req.body;
-
-        if (!classId || !subjectId || !assessmentId) {
-            return res.status(400).json({ message: 'Class ID, Subject ID, and Assessment ID are required.' });
-        }
-
-        try {
-            await db.query('BEGIN');
-
-            for (const studentId in scores) {
-                let score = scores[studentId];
-                if (score === '') {
-                    score = null;
-                } else {
-                    score = parseFloat(score);
-                }
-
-                await db.query(`
-                    INSERT INTO assessment_results (student_id, assessment_id, score, organization_id, created_by)
-                    VALUES ($1, $2, $3, $4, $5)
-                    ON CONFLICT (student_id, assessment_id)
-                    DO UPDATE SET score = EXCLUDED.score, updated_at = NOW()
-                `, [studentId, assessmentId, score, req.session.organizationId, req.session.userId]);
-            }
-
-            await db.query('COMMIT');
-            res.status(200).json({ message: 'Scores saved successfully.' });
-        } catch (err) {
-            await db.query('ROLLBACK');
-            console.error('Error saving scores:', err);
-            res.status(500).json({ message: 'Error saving scores.' });
-        }
-    },
-
-    // School year management
-    registerSchoolYear: async (req, res, db) => {
-        const { schoolYear, terms } = req.body;
-        try {
-            const yearResult = await db.query('INSERT INTO school_years (year_label, organization_id) VALUES ($1, $2) RETURNING id', [schoolYear, req.session.organizationId]);
-            const schoolYearId = yearResult.rows[0].id;
-
-            for (const term of terms) {
-                const termResult = await db.query('INSERT INTO terms (term_name, start_date, end_date, school_year_id, organization_id) VALUES ($1, $2, $3, $4, $5) RETURNING term_id', [term.termName, term.startDate, term.endDate, schoolYearId, req.session.organizationId]);
-                const termId = termResult.rows[0].term_id;
-
-                for (const classId of term.selectedClasses) {
-                    await db.query('INSERT INTO term_classes (term_id, class_id, organization_id) VALUES ($1, $2, $3)', [termId, classId, req.session.organizationId]);
-                }
-            }
-
-            res.json({ success: true });
-        } catch (error) {
-            console.error('Error registering school year:', error);
-            res.status(500).send('Error registering school year');
-        }
-    },
-
-    registerSchoolYearGet: async (req, res, db) => { 
-        try {
-            const classesResult = await db.query('SELECT class_id, class_name FROM classes WHERE organization_id = $1 ORDER BY class_name ASC', [req.session.organizationId]);
-            res.render('common/registerSchoolYear', {
-                title: 'Register School Year',
-                classes: classesResult.rows,
-                messages: req.flash()
-            });
-        } catch (error) {
-            console.error('Error loading register school year page:', error);
-            req.flash('error', 'Failed to load the form for registering a school year.');
-            res.redirect('/common/manageRecords');
-        }
-    },
-
-    getClasses: async (req, res, db) => {
-        try {
-            const result = await db.query('SELECT class_id, class_name FROM classes WHERE organization_id = $1 ORDER BY class_name ASC', [req.session.organizationId]);
-            res.json(result.rows);
-        } catch (error) {
-            console.error('Error fetching classes:', error);
-            res.status(500).json({ error: 'Failed to load classes.' });
-        }
-    },
-
     registerSchoolYearEvent: async (req, res, db) => {
         try {
             await db.query('INSERT INTO school_events (name, event_date, details, organization_id, visibility) VALUES ($1, $2, $3, $4, $5)', [req.body.eventName, req.body.startDate, req.body.eventDetails, req.session.organizationId, req.body.visibility]);
@@ -2605,6 +1687,7 @@ const commonController = {
             res.redirect('/common/addClassSubject');
         }
     },
+    
 
     manageClassSubjectAndGradYr: async (req, res, db) => {
         try {
@@ -2640,7 +1723,7 @@ const commonController = {
             res.redirect('/common/manageClassSubjectAndGradYr');
         }
     },
-
+    
     deleteGraduationYearGroup: async (req, res, db) => {
         const { id } = req.query;
         try {
@@ -2653,7 +1736,7 @@ const commonController = {
             res.redirect('/common/manageClassSubjectAndGradYr');
         }
     },
-
+    
     deleteClass: async (req, res, db) => {
         const { classId } = req.query;
         try {
@@ -2666,7 +1749,7 @@ const commonController = {
             res.redirect('/common/manageClassSubjectAndGradYr');
         }
     },
-
+    
     editClass: async (req, res, db) => {
         const { classId, newClassName } = req.body;
         try {
@@ -2679,47 +1762,50 @@ const commonController = {
             res.redirect('/common/manageClassSubjectAndGradYr');
         }
     },
-
-    getSubjectsByClass: async (req, res, db) => {
-        const { classId } = req.query;
-        if (!classId) {
-            return res.status(400).json({ error: 'Class ID is required.' });
-        }
     
-        try {
-            const subjectsResult = await db.query('SELECT subject_id, subject_name FROM subjects WHERE class_id = $1 AND organization_id = $2 ORDER BY subject_name', [classId, req.session.organizationId]);
-            res.json(subjectsResult.rows);
-        } catch (error) {
-            console.error('Error fetching subjects for class:', error);
-            res.status(500).json({ error: 'Failed to load subjects.' });
-        }
-    },
+  // commonController.js
+  getSubjectsByClass: async (req, res, db) => {
+    const { classId } = req.query;
+    if (!classId) {
+        return res.status(400).json({ error: 'Class ID is required.' });
+    }
+    
+    try {
+        const subjectsResult = await db.query('SELECT subject_id, subject_name FROM subjects WHERE class_id = $1 AND organization_id = $2 ORDER BY subject_name', [classId, req.session.organizationId]);
+        res.json(subjectsResult.rows);
+    } catch (error) {
+        console.error('Error fetching subjects for class:', error);
+        res.status(500).json({ error: 'Failed to load subjects.' });
+    }
+},
+    
+// In commonController.js
 
-    editSubject: async (req, res, db) => {
-        const { subjectId, newName } = req.body;
-        try {
-            await db.query('UPDATE subjects SET subject_name = $1 WHERE subject_id = $2 AND organization_id = $3', [newName, subjectId, req.session.organizationId]);
-            req.flash('success', 'Subject updated successfully.');
-            res.redirect('/common/manageClassSubjectAndGradYr');
-        } catch (error) {
-            console.error('Error updating subject:', error);
-            req.flash('error', 'Failed to update subject.');
-            res.redirect('/common/manageClassSubjectAndGradYr');
-        }
-    },
+editSubject: async (req, res, db) => {
+    const { subjectId, newName } = req.body;
+    try {
+        await db.query('UPDATE subjects SET subject_name = $1 WHERE subject_id = $2 AND organization_id = $3', [newName, subjectId, req.session.organizationId]);
+        req.flash('success', 'Subject updated successfully.');
+        res.redirect('/common/manageClassSubjectAndGradYr');
+    } catch (error) {
+        console.error('Error updating subject:', error);
+        req.flash('error', 'Failed to update subject.');
+        res.redirect('/common/manageClassSubjectAndGradYr');
+    }
+},
 
-    deleteSubject: async (req, res, db) => {
-        const { subjectId } = req.body;
-        try {
-            await db.query('DELETE FROM subjects WHERE subject_id = $1 AND organization_id = $2', [subjectId, req.session.organizationId]);
-            req.flash('success', 'Subject deleted successfully.');
-            res.redirect('/common/manageClassSubjectAndGradYr');
-        } catch (error) {
-            console.error('Error deleting subject:', error);
-            req.flash('error', 'Failed to delete subject.');
-            res.redirect('/common/manageClassSubjectAndGradYr');
-        }
-    },
+deleteSubject: async (req, res, db) => {
+    const { subjectId } = req.body;
+    try {
+        await db.query('DELETE FROM subjects WHERE subject_id = $1 AND organization_id = $2', [subjectId, req.session.organizationId]);
+        req.flash('success', 'Subject deleted successfully.');
+        res.redirect('/common/manageClassSubjectAndGradYr');
+    } catch (error) {
+        console.error('Error deleting subject:', error);
+        req.flash('error', 'Failed to delete subject.');
+        res.redirect('/common/manageClassSubjectAndGradYr');
+    }
+},
 
     getGradYearGroupByClassId: async (req, res, db) => {
         const { classId } = req.query;
@@ -2782,6 +1868,7 @@ const commonController = {
         }
     },
 
+    
     closeSchoolYear: async (req, res, db) => {
         try {
             const schoolYearsResult = await db.query('SELECT * FROM school_years WHERE organization_id = $1 ORDER BY year_label', [req.session.organizationId]);
@@ -2831,21 +1918,21 @@ const commonController = {
         try {
             const gradYearGroupsResult = await db.query('SELECT * FROM graduation_year_groups WHERE organization_id = $1 ORDER BY name', [req.session.organizationId]);
             const studentsResult = await db.query('SELECT * FROM students WHERE organization_id = $1 ORDER BY last_name, first_name', [req.session.organizationId]);
-    
+
             const gradYearGroups = gradYearGroupsResult.rows.map(group => {
                 return {
                     ...group,
                     students: studentsResult.rows.filter(student => student.graduation_year_group_id === group.id)
                 };
             });
-    
+
             res.render('common/closeGraduationYearGroup', { title: 'Close Graduation Year Group', gradYearGroups });
         } catch (error) {
             console.error('Error fetching graduation year groups and students:', error);
             res.status(500).send('Failed to load close graduation year group page.');
         }
     },
-    
+
     closeGraduationYearGroupPost: async (req, res, db) => {
         const { students, action } = req.body;
         try {
@@ -2906,7 +1993,8 @@ const commonController = {
             res.redirect('/common/manageRecords');
         }
     },
-
+    
+    
     deleteSchoolYearPost: async (req, res, db) => {
         try {
             const { yearId } = req.body;
