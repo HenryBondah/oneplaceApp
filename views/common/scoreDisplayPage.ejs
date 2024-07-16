@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Score Display</title>
+    <style>
+        main {
+            text-align: center;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        .flash-success {
+            color: green;
+            font-weight: bold;
+        }
+        .flash-error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Scores for <%= className %></h1>
+    <h2>Subject: <%= subjectName %></h2>
+    <hr>
+    <% if (messages.success && messages.success.length > 0) { %>
+        <div class="flash-success"><%= messages.success %></div>
+    <% } %>
+    <% if (messages.error && messages.error.length > 0) { %>
+        <div class="flash-error"><%= messages.error %></div>
+    <% } %>
+    <table>
+        <thead>
+            <tr>
+                <th>Student Name</th>
+                <th>Score</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% students.forEach(function(student) { %>
+                <tr>
+                    <td><%= student.first_name %> <%= student.last_name %></td>
+                    <td><%= student.score !== undefined ? student.score : 'N/A' %></td>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

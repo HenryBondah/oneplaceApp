@@ -342,3 +342,6 @@ CREATE TABLE report_settings (
     score_remark JSONB,
     teacher_remarks TEXT[]
 );
+
+
+ALTER TABLE students ADD COLUMN grade VARCHAR(2);

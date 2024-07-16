@@ -1,4 +1,3 @@
-// In your routes file (e.g., routes/commonRoute.js)
 const express = require('express');
 const router = express.Router();
 const { commonController } = require('../controllers/commonController');
@@ -16,10 +15,9 @@ module.exports = (db) => {
     router.get('/editStudent', isAuthenticated, (req, res) => commonController.editStudentGet(req, res, db));
     router.post('/editStudent/:studentId', upload.single('studentImage'), isAuthenticated, (req, res) => commonController.editStudentPost(req, res, db));
     router.post('/deleteStudent/:studentId', isAuthenticated, (req, res) => commonController.deleteStudent(req, res, db));
-    router.post('/common/saveAttendanceForDate', (req, res) => commonController.saveAttendanceForDate(req, res, db));
+    router.post('/common/saveAttendanceForDate', (req, res) => commonController.saveAttendance(req, res, db)); // Fixed function call
     router.get('/getAttendanceForClass', isAuthenticated, (req, res) => commonController.getAttendanceForClass(req, res, db));
     router.get('/attendance', isAuthenticated, (req, res) => commonController.attendance(req, res, db));
-    router.post('/common/saveAttendanceForDate', isAuthenticated, (req, res) => commonController.saveAttendanceForDate(req, res, db));
     router.get('/attendanceCollection', isAuthenticated, (req, res) => commonController.attendanceCollection(req, res, db));
     router.get('/createEmployee', isAuthenticated, (req, res) => commonController.createEmployeeGet(req, res, db));
     router.post('/createEmployee', isAuthenticated, (req, res) => commonController.createEmployeePost(req, res, db));
@@ -76,6 +74,7 @@ module.exports = (db) => {
     router.post('/deleteSchoolYear', isAuthenticated, (req, res) => commonController.deleteSchoolYear(req, res, db));
     router.post('/deleteSchoolYearPost', isAuthenticated, (req, res) => commonController.deleteSchoolYearPost(req, res, db));
     router.post('/setMainEmployee', isAuthenticated, (req, res) => commonController.setMainEmployee(req, res, db));
-
+    router.post('/saveSingleScore', isAuthenticated, (req, res) => commonController.saveSingleScore(req, res, db));
+    router.get('/scoreDisplay', (req, res) => commonController.scoreDisplay(req, res, req.db));
     return router;
 };
