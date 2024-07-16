@@ -1,118 +1,184 @@
-<h1>Attendance Records for <%= className %></h1>
-<div class="attendance-sheet-container">
-    <table class="attendance-sheet">
-        <thead>
-            <tr>
-                <th class="student-name">Student Name</th>
-                <% displayDates.forEach(date => { %>
-                    <th>
-                        <%= new Date(date).toLocaleDateString() %>
-                        <div class="edit-save-link" data-date="<%= date %>" onclick="toggleEditSaveMode('<%= date %>')">Save</div>
-                    </th>
-                <% }); %>
-                <th class="total-attendance">Total (Present/Days)</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% students.forEach(student => { %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Records for <%= className %></title>
+    <style>
+        .date-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .edit-save-link,
+        .cancel-link {
+            cursor: pointer;
+            color: blue;
+            text-decoration: underline;
+            margin-top: 5px;
+        }
+        .cancel-link {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Attendance Records for <%= className %></h1>
+    <div class="attendance-sheet-container">
+        <table class="attendance-sheet">
+            <thead>
                 <tr>
-                    <td class="student-name"><%= student.first_name %> <%= student.last_name %></td>
-                    <% displayDates.forEach(date => { %>
-                        <td>
-                            <input type="checkbox" data-date="<%= date %>" data-student-id="<%= student.student_id %>" 
-                                <%= attendanceMap[student.student_id] && attendanceMap[student.student_id][date] === 'Present' ? 'checked' : '' %> 
-                                <%= attendanceMap[student.student_id] && attendanceMap[student.student_id][date] ? 'disabled' : '' %> >
-                        </td>
-                    <% }); %>
-                    <td class="total-attendance"><%= attendanceMap[student.student_id] ? Object.values(attendanceMap[student.student_id]).filter(status => status === 'Present').length : 0 %> / <%= displayDates.length %></td>
+                    <th class="student-name">Student Name</th>
+                    <th>
+                        <div class="date-header">
+                            <%= new Date().toLocaleDateString() %>
+                            <div class="edit-save-link" data-date="<%= today %>" onclick="toggleEditSaveMode('<%= today %>')">Edit</div>
+                            <div class="cancel-link" data-date="<%= today %>" style="display: none;" onclick="cancelEditMode('<%= today %>')">Cancel</div>
+                        </div>
+                    </th>
+                    <% displayDates.forEach(date => { if (date !== today) { %>
+                        <th>
+                            <div class="date-header">
+                                <%= new Date(date).toLocaleDateString() %>
+                                <div class="edit-save-link" data-date="<%= date %>" onclick="toggleEditSaveMode('<%= date %>')">Edit</div>
+                                <div class="cancel-link" data-date="<%= date %>" style="display: none;" onclick="cancelEditMode('<%= date %>')">Cancel</div>
+                            </div>
+                        </th>
+                    <% }}); %>
                 </tr>
-            <% }); %>
-        </tbody>
-    </table>
-</div>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const classId = '<%= classId %>';
-        fetch(`/common/getAttendanceForClass?classId=${classId}`)
+            </thead>
+            <tbody>
+                <% students.forEach(student => { %>
+                    <tr>
+                        <td class="student-name" data-student-id="<%= student.student_id %>"><%= student.first_name %> <%= student.last_name %></td>
+                        <td>
+                            <input type="checkbox" data-date="<%= today %>" data-student-id="<%= student.student_id %>"
+                                <%= attendanceMap[student.student_id] && attendanceMap[student.student_id][today] === 'Present' ? 'checked' : '' %> 
+                                <%= attendanceMap[student.student_id] && attendanceMap[student.student_id][today] ? 'disabled' : '' %> >
+                        </td>
+                        <% displayDates.forEach(date => { if (date !== today) { %>
+                            <td>
+                                <input type="checkbox" data-date="<%= date %>" data-student-id="<%= student.student_id %>" 
+                                    <%= attendanceMap[student.student_id] && attendanceMap[student.student_id][date] === 'Present' ? 'checked' : '' %> 
+                                    <%= attendanceMap[student.student_id] && attendanceMap[student.student_id][date] ? 'disabled' : '' %> >
+                            </td>
+                        <% }}); %>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+    <script>
+        let originalStates = {};
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const classId = '<%= classId %>';
+            fetch(`/common/getAttendanceForClass?classId=${classId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const attendanceMap = {};
+                        data.attendance.forEach(record => {
+                            if (!attendanceMap[record.student_id]) {
+                                attendanceMap[record.student_id] = {};
+                            }
+                            attendanceMap[record.student_id][record.date] = record.status;
+                        });
+
+                        const students = document.querySelectorAll('.attendance-sheet tbody tr');
+                        students.forEach(student => {
+                            const studentId = student.querySelector('td').dataset.studentId;
+                            const dates = student.querySelectorAll('td input[type="checkbox"]');
+                            dates.forEach(dateCheckbox => {
+                                const date = dateCheckbox.dataset.date;
+                                if (attendanceMap[studentId] && attendanceMap[studentId][date]) {
+                                    dateCheckbox.checked = attendanceMap[studentId][date] === 'Present';
+                                    dateCheckbox.disabled = true;
+                                }
+                            });
+                        });
+                    } else {
+                        console.error('Failed to fetch attendance:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching attendance:', error);
+                });
+        });
+
+        function toggleEditSaveMode(date) {
+            const checkboxes = document.querySelectorAll(`input[data-date='${date}']`);
+            const link = document.querySelector(`.edit-save-link[data-date='${date}']`);
+            const cancelLink = document.querySelector(`.cancel-link[data-date='${date}']`);
+
+            if (link.textContent === 'Save') {
+                saveAttendanceForDate(date, checkboxes, link);
+            } else if (link.textContent === 'Edit') {
+                saveOriginalStates(date, checkboxes);
+                checkboxes.forEach(checkbox => {
+                    checkbox.disabled = false;
+                });
+                link.textContent = 'Save';
+                cancelLink.style.display = 'block';
+            }
+        }
+
+        function saveAttendanceForDate(date, checkboxes, link) {
+            const attendanceData = {};
+
+            checkboxes.forEach(checkbox => {
+                attendanceData[checkbox.dataset.studentId] = checkbox.checked ? 'Present' : 'Absent';
+            });
+
+            fetch('/common/saveSingleAttendance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ attendance: attendanceData, classId: '<%= classId %>', date: date }),
+            })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    const attendanceMap = {};
-                    data.attendance.forEach(record => {
-                        if (!attendanceMap[record.student_id]) {
-                            attendanceMap[record.student_id] = {};
-                        }
-                        attendanceMap[record.student_id][record.date] = record.status;
+                    alert(`Attendance for ${date} saved successfully!`);
+                    link.textContent = 'Edit';
+                    checkboxes.forEach(checkbox => {
+                        checkbox.disabled = true;
                     });
-
-                    const students = document.querySelectorAll('.attendance-sheet tbody tr');
-                    students.forEach(student => {
-                        const studentId = student.querySelector('td').dataset.studentId;
-                        const dates = student.querySelectorAll('td input[type="checkbox"]');
-                        dates.forEach(dateCheckbox => {
-                            const date = dateCheckbox.dataset.date;
-                            if (attendanceMap[studentId] && attendanceMap[studentId][date]) {
-                                dateCheckbox.checked = attendanceMap[studentId][date] === 'Present';
-                                dateCheckbox.disabled = true;
-                            }
-                        });
-                    });
+                    const cancelLink = document.querySelector(`.cancel-link[data-date='${date}']`);
+                    cancelLink.style.display = 'none';
                 } else {
-                    console.error('Failed to fetch attendance:', data.error);
+                    alert('Failed to save attendance. Please try again.');
                 }
             })
             .catch(error => {
-                console.error('Error fetching attendance:', error);
-            });
-    });
-
-    function toggleEditSaveMode(date) {
-        const checkboxes = document.querySelectorAll(`input[data-date='${date}']`);
-        const link = document.querySelector(`.edit-save-link[data-date='${date}']`);
-
-        if (link.textContent === 'Save') {
-            saveAttendanceForDate(date, checkboxes, link);
-        } else {
-            checkboxes.forEach(checkbox => {
-                checkbox.disabled = false;
-            });
-            link.textContent = 'Save';
-        }
-    }
-
-    function saveAttendanceForDate(date, checkboxes, link) {
-        const attendanceData = [];
-
-        checkboxes.forEach(checkbox => {
-            attendanceData.push({
-                studentId: checkbox.dataset.studentId,
-                date: date,
-                status: checkbox.checked ? 'Present' : 'Absent'
-            });
-        });
-
-        fetch('/common/saveAttendanceForDate', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ attendance: attendanceData, classId: '<%= classId %>' }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(`Attendance for ${date} saved successfully!`);
-                link.textContent = 'Edit';
-                checkboxes.forEach(checkbox => {
-                    checkbox.disabled = true;
-                });
-            } else {
+                console.error('Error saving attendance:', error);
                 alert('Failed to save attendance. Please try again.');
-            }
-        })
-        .catch(error => {
-            console.error('Error saving attendance:', error);
-            alert('Failed to save attendance. Please try again.');
-        });
-    }
-</script>
+            });
+        }
+
+        function saveOriginalStates(date, checkboxes) {
+            originalStates[date] = {};
+            checkboxes.forEach(checkbox => {
+                originalStates[date][checkbox.dataset.studentId] = checkbox.checked;
+            });
+        }
+
+        function restoreOriginalStates(date, checkboxes) {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = originalStates[date][checkbox.dataset.studentId];
+                checkbox.disabled = true;
+            });
+        }
+
+        function cancelEditMode(date) {
+            const checkboxes = document.querySelectorAll(`input[data-date='${date}']`);
+            restoreOriginalStates(date, checkboxes);
+            const link = document.querySelector(`.edit-save-link[data-date='${date}']`);
+            link.textContent = 'Edit';
+            const cancelLink = document.querySelector(`.cancel-link[data-date='${date}']`);
+            cancelLink.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

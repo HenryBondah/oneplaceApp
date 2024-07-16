@@ -673,73 +673,7 @@ const commonController = {
                 FROM terms t
                 JOIN term_classes tc ON t.term_id = tc.term_id
                 WHERE tc.class_id = $1
-                ORDER BY t.start_date`, [classId]);
-    
-            const dates = [];
-            termDatesResult.rows.forEach(row => {
-                let currentDate = new Date(row.start_date);
-                const endDate = new Date(row.end_date);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0); // Set to midnight to avoid any time discrepancies
-    
-                while (currentDate <= endDate) {
-                    const dateStr = currentDate.toISOString().split('T')[0];
-                    if (dateStr <= today.toISOString().split('T')[0]) {
-                        dates.push(dateStr);
-                    }
-                    currentDate.setDate(currentDate.getDate() + 1);
-                }
-            });
-    
-            // Sort dates in descending order and take the last 5 dates, then reverse them to have the latest date first
-            const displayDates = dates.sort((a, b) => new Date(b) - new Date(a)).slice(0, 5).reverse();
-            const students = await fetchStudentsByClass(db, classId);
-            const attendanceResult = await db.query(`
-                SELECT student_id, date, status
-                FROM attendance_records
-                WHERE class_id = $1`, [classId]);
-    
-            const attendanceMap = {};
-            attendanceResult.rows.forEach(record => {
-                if (!attendanceMap[record.student_id]) {
-                    attendanceMap[record.student_id] = {};
-                }
-                attendanceMap[record.student_id][record.date.toISOString().split('T')[0]] = record.status;
-            });
-    
-            const today = new Date().toISOString().split('T')[0]; // Get today's date
-    
-            res.render('common/attendance', {
-                title: 'Attendance',
-                classId,
-                className,
-                displayDates,
-                students,
-                attendanceMap,
-                today // Pass today's date to the view
-            });
-        } catch (error) {
-            console.error('Error fetching attendance data:', error);
-            res.status(500).send('Error loading attendance records page');
-        }
-    },
-        
-
-    attendanceCollection: async (req, res, db) => {
-        const { classId } = req.query;
-        try {
-            const classResult = await db.query('SELECT class_name FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, req.session.organizationId]);
-            if (classResult.rows.length === 0) {
-                return res.status(404).send('Class not found');
-            }
-            const className = classResult.rows[0].class_name;
-    
-            const termDatesResult = await db.query(`
-                SELECT DISTINCT t.start_date, t.end_date
-                FROM terms t
-                JOIN term_classes tc ON t.term_id = tc.term_id
-                WHERE tc.class_id = $1
-                ORDER BY t.start_date`, [classId]);
+                ORDER BY t.start_date DESC`, [classId]);
     
             const dates = [];
             termDatesResult.rows.forEach(row => {
@@ -756,7 +690,69 @@ const commonController = {
                 }
             });
     
-            const displayDates = dates.sort((a, b) => new Date(b) - new Date(a)).slice(0, 10).reverse();
+            const displayDates = dates.sort((a, b) => new Date(b) - new Date(a)).slice(0, 5).reverse();
+            const students = await fetchStudentsByClass(db, classId);
+            const attendanceResult = await db.query(`
+                SELECT student_id, date, status
+                FROM attendance_records
+                WHERE class_id = $1`, [classId]);
+    
+            const attendanceMap = {};
+            attendanceResult.rows.forEach(record => {
+                if (!attendanceMap[record.student_id]) {
+                    attendanceMap[record.student_id] = {};
+                }
+                attendanceMap[record.student_id][record.date.toISOString().split('T')[0]] = record.status;
+            });
+    
+            res.render('common/attendance', {
+                title: 'Attendance Records',
+                classId,
+                className,
+                displayDates,
+                students,
+                attendanceMap,
+                today: new Date().toISOString().split('T')[0] // Pass current date
+            });
+        } catch (error) {
+            console.error('Error fetching attendance data:', error);
+            res.status(500).send('Error loading attendance records page');
+        }
+    },
+                
+
+    attendanceCollection: async (req, res, db) => {
+        const { classId } = req.query;
+        try {
+            const classResult = await db.query('SELECT class_name FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, req.session.organizationId]);
+            if (classResult.rows.length === 0) {
+                return res.status(404).send('Class not found');
+            }
+            const className = classResult.rows[0].class_name;
+    
+            const termDatesResult = await db.query(`
+                SELECT DISTINCT t.start_date, t.end_date
+                FROM terms t
+                JOIN term_classes tc ON t.term_id = tc.term_id
+                WHERE tc.class_id = $1
+                ORDER BY t.start_date DESC`, [classId]);
+    
+            const dates = [];
+            termDatesResult.rows.forEach(row => {
+                let currentDate = new Date(row.start_date);
+                const endDate = new Date(row.end_date);
+                const today = new Date().toISOString().split('T')[0];
+    
+                while (currentDate <= endDate) {
+                    const dateStr = currentDate.toISOString().split('T')[0];
+                    if (dateStr <= today) {
+                        dates.push(dateStr);
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+            });
+    
+            const displayDates = dates.sort((a, b) => new Date(b) - new Date(a)).reverse();
             const students = await fetchStudentsByClass(db, classId);
             const attendanceResult = await db.query(`
                 SELECT student_id, date, status
@@ -777,143 +773,48 @@ const commonController = {
                 className,
                 displayDates,
                 students,
-                attendanceMap
+                attendanceMap,
+                today: new Date().toISOString().split('T')[0] // Pass current date
             });
         } catch (error) {
             console.error('Error fetching attendance data:', error);
             res.status(500).send('Error loading attendance records page');
         }
     },
+
+
+
     
-    saveAttendanceForDate: async (req, res, db) => {
-        const { attendance, classId } = req.body;
-        try {
-            for (const record of attendance) {
-                const { studentId, date, status } = record;
-                await db.query(`
-                    INSERT INTO attendance_records (student_id, date, status, class_id)
-                    VALUES ($1, $2, $3, $4)
-                    ON CONFLICT (student_id, date)
-                    DO UPDATE SET status = EXCLUDED.status`, [studentId, date, status, classId]);
-            }
-            res.json({ success: true });
-        } catch (error) {
-            console.error('Error saving attendance:', error);
-            res.status(500).json({ success: false, message: 'Failed to save attendance. Please try again.' });
+    
+    saveSingleAttendance: async (req, res, db) => {
+        const { attendance, classId, date } = req.body;
+    console.log('Received attendance data:', attendance); // Log for debugging
+    console.log('Received classId:', classId); // Log for debugging
+    console.log('Received date:', date); // Log for debugging
+
+    try {
+        await db.query('BEGIN');
+        
+        for (const studentId in attendance) {
+            const status = attendance[studentId];
+            
+            await db.query(`
+                INSERT INTO attendance_records (student_id, date, status, class_id, marked_by, organization_id)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                ON CONFLICT (student_id, date)
+                DO UPDATE SET status = EXCLUDED.status, marked_by = EXCLUDED.marked_by
+            `, [studentId, date, status, classId, req.session.userId, req.session.organizationId]);
         }
+        
+        await db.query('COMMIT');
+        res.json({ success: true });
+    } catch (error) {
+        await db.query('ROLLBACK');
+        console.error('Error saving attendance:', error); // Log for debugging
+        res.status(500).json({ success: false, message: 'Failed to save attendance' });
+    }
     },
     
-
-
-
-    // attendance: async (req, res, db) => {
-    //     attendance: async (req, res, db) => {
-    //         const { classId } = req.query;
-    //         try {
-    //             const classResult = await db.query('SELECT class_name FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, req.session.organizationId]);
-    //             if (classResult.rows.length === 0) {
-    //                 return res.status(404).send('Class not found');
-    //             }
-    //             const className = classResult.rows[0].class_name;
-        
-    //             const today = new Date();
-    //             const startDate = new Date(today);
-    //             startDate.setDate(today.getDate() - 4); // Get last 5 dates including today
-         
-    //             const dates = [];
-    //             for (let d = startDate; d <= today; d.setDate(d.getDate() + 1)) {
-    //                 dates.push(new Date(d).toISOString().split('T')[0]);
-    //             }
-        
-    //             const students = await fetchStudentsByClass(db, classId, req.session.organizationId);
-    //             const attendanceResult = await db.query(`
-    //                 SELECT student_id, date, status
-    //                 FROM attendance_records
-    //                 WHERE class_id = $1 AND date >= $2 AND date <= $3`, [classId, startDate.toISOString().split('T')[0], today.toISOString().split('T')[0]]);
-        
-    //             const attendanceMap = {};
-    //             attendanceResult.rows.forEach(record => {
-    //                 if (!attendanceMap[record.student_id]) {
-    //                     attendanceMap[record.student_id] = {};
-    //                 }
-    //                 attendanceMap[record.student_id][record.date.toISOString().split('T')[0]] = record.status;
-    //             });
-        
-    //             res.render('common/attendance', {
-    //                 title: 'Attendance',
-    //                 classId,
-    //                 className,
-    //                 displayDates: dates,
-    //                 students,
-    //                 attendanceMap
-    //             });
-    //         } catch (error) {
-    //             console.error('Error fetching attendance data:', error);
-    //             res.status(500).send('Error loading attendance records page');
-    //         }
-    //     }
-    // },
-
-    
-    // attendanceCollection: async (req, res, db) => {
-    //     const { classId } = req.query;
-    //     try {
-    //         const classResult = await db.query('SELECT class_name FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, req.session.organizationId]);
-    //         if (classResult.rows.length === 0) {
-    //             return res.status(404).send('Class not found');
-    //         }
-    //         const className = classResult.rows[0].class_name;
-
-    //         const termDatesResult = await db.query(`
-    //             SELECT DISTINCT t.start_date, t.end_date
-    //             FROM terms t
-    //             JOIN term_classes tc ON t.term_id = tc.term_id
-    //             WHERE tc.class_id = $1
-    //             ORDER BY t.start_date`, [classId]);
-
-    //         const dates = [];
-    //         termDatesResult.rows.forEach(row => {
-    //             let currentDate = new Date(row.start_date);
-    //             const endDate = new Date(row.end_date);
-    //             const today = new Date().toISOString().split('T')[0];
-
-    //             while (currentDate <= endDate) {
-    //                 const dateStr = currentDate.toISOString().split('T')[0];
-    //                 if (dateStr <= today) {
-    //                     dates.push(dateStr);
-    //                 }
-    //                 currentDate.setDate(currentDate.getDate() + 1);
-    //             }
-    //         });
-
-    //         const displayDates = dates.sort((a, b) => new Date(b) - new Date(a)).slice(0, 10).reverse();
-    //         const students = await fetchStudentsByClass(db, classId, req.session.organizationId);
-    //         const attendanceResult = await db.query(`
-    //             SELECT student_id, date, status
-    //             FROM attendance_records
-    //             WHERE class_id = $1`, [classId]);
-
-    //         const attendanceMap = {};
-    //         attendanceResult.rows.forEach(record => {
-    //             if (!attendanceMap[record.student_id]) {
-    //                 attendanceMap[record.student_id] = {};
-    //             }
-    //             attendanceMap[record.student_id][record.date.toISOString().split('T')[0]] = record.status;
-    //         });
-
-    //         res.render('common/attendanceCollection', {
-    //             title: 'Attendance Records',
-    //             classId,
-    //             className,
-    //             displayDates,
-    //             students,
-    //             attendanceMap
-    //         });
-    //     } catch (error) {
-    //         console.error('Error fetching attendance data:', error);
-    //         res.status(500).send('Error loading attendance records page');
-    //     }
-    // },
 
     createEmployeeGet: async (req, res, db) => {
         try {
@@ -1349,41 +1250,6 @@ assessment: async (req, res, db) => {
         }
     },
 
-    saveScores: async (req, res, db) => {
-        const { scores, classId, subjectId, assessmentId } = req.body;
-
-        if (!classId || !subjectId || !assessmentId) {
-            return res.status(400).json({ message: 'Class ID, Subject ID, and Assessment ID are required.' });
-        }
-
-        try {
-            await db.query('BEGIN');
-
-            for (const studentId in scores) {
-                let score = scores[studentId];
-                if (score === '') {
-                    score = null;
-                } else {
-                    score = parseFloat(score);
-                }
-
-                await db.query(`
-                    INSERT INTO assessment_results (student_id, assessment_id, score, organization_id, created_by)
-                    VALUES ($1, $2, $3, $4, $5)
-                    ON CONFLICT (student_id, assessment_id)
-                    DO UPDATE SET score = EXCLUDED.score, updated_at = NOW()
-                `, [studentId, assessmentId, score, req.session.organizationId, req.session.userId]);
-            }
-
-            await db.query('COMMIT');
-            res.status(200).json({ message: 'Scores saved successfully.' });
-        } catch (err) {
-            await db.query('ROLLBACK');
-            console.error('Error saving scores:', err);
-            res.status(500).json({ message: 'Error saving scores.' });
-        }
-    },
-
         classDashboard: async (req, res, db, csrfToken) => {
         const classId = req.query.classId;
         if (!classId) {
@@ -1462,23 +1328,22 @@ assessment: async (req, res, db) => {
             const className = classNameResult.rows[0].class_name;
             const subjectName = subjectNameResult.rows[0].subject_name;
     
-            // Fetching students using the utility function
             const students = await fetchStudentsByClass(db, classId, req.session.organizationId);
     
-            const assessmentsResult = await db.query(
-                'SELECT assessment_id, title, weight FROM assessments WHERE class_id = $1 AND subject_id = $2 AND organization_id = $3 ORDER BY assessment_id',
-                [classId, subjectId, req.session.organizationId]
-            );
+            const assessmentsResult = await db.query(`
+                SELECT assessment_id, title, weight
+                FROM assessments
+                WHERE class_id = $1 AND subject_id = $2 AND organization_id = $3
+                ORDER BY assessment_id`, [classId, subjectId, req.session.organizationId]);
             const assessments = assessmentsResult.rows;
     
-            const resultsResult = await db.query(
-                `SELECT ar.assessment_id, ar.student_id, ar.score
-                 FROM assessment_results ar
-                 JOIN students s ON ar.student_id = s.student_id
-                 WHERE s.class_id = $1 AND ar.assessment_id IN (SELECT assessment_id FROM assessments WHERE subject_id = $2 AND class_id = $3)
-                 AND s.organization_id = $4`,
-                [classId, subjectId, classId, req.session.organizationId]
-            );
+            const resultsResult = await db.query(`
+                SELECT ar.assessment_id, ar.student_id, ar.score, a.title
+                FROM assessment_results ar
+                JOIN assessments a ON ar.assessment_id = a.assessment_id
+                JOIN students s ON ar.student_id = s.student_id
+                WHERE s.class_id = $1 AND ar.assessment_id IN (SELECT assessment_id FROM assessments WHERE subject_id = $2 AND class_id = $3)
+                AND s.organization_id = $4`, [classId, subjectId, classId, req.session.organizationId]);
             const results = resultsResult.rows;
     
             const studentScores = {};
@@ -1486,7 +1351,10 @@ assessment: async (req, res, db) => {
                 if (!studentScores[result.student_id]) {
                     studentScores[result.student_id] = {};
                 }
-                studentScores[result.student_id][result.assessment_id] = result.score;
+                studentScores[result.student_id][result.assessment_id] = {
+                    score: result.score,
+                    title: result.title
+                };
             });
     
             students.forEach(student => {
@@ -1495,18 +1363,16 @@ assessment: async (req, res, db) => {
                 student.grade = calculateGrade(student.total_percentage);
             });
     
-            const employeesResult = await db.query(
-                `SELECT u.user_id, u.first_name, u.last_name, uc.main
-                 FROM user_classes uc
-                 JOIN users u ON uc.user_id = u.user_id
-                 WHERE uc.class_id = $1 AND u.organization_id = $2 AND uc.main = TRUE
-                 UNION
-                 SELECT u.user_id, u.first_name, u.last_name, FALSE AS main
-                 FROM user_subjects us
-                 JOIN users u ON us.user_id = u.user_id
-                 WHERE us.subject_id = $3 AND u.organization_id = $2`,
-                [classId, req.session.organizationId, subjectId]
-            );
+            const employeesResult = await db.query(`
+                SELECT u.user_id, u.first_name, u.last_name, uc.main
+                FROM user_classes uc
+                JOIN users u ON uc.user_id = u.user_id
+                WHERE uc.class_id = $1 AND u.organization_id = $2 AND uc.main = TRUE
+                UNION
+                SELECT u.user_id, u.first_name, u.last_name, FALSE AS main
+                FROM user_subjects us
+                JOIN users u ON us.user_id = u.user_id
+                WHERE us.subject_id = $3 AND u.organization_id = $2`, [classId, req.session.organizationId, subjectId]);
             const employees = employeesResult.rows;
     
             res.render('common/assessment', {
@@ -1518,6 +1384,7 @@ assessment: async (req, res, db) => {
                 assessments,
                 students,
                 employees,
+                studentScores,
                 messages: req.flash()
             });
         } catch (err) {
@@ -1525,6 +1392,9 @@ assessment: async (req, res, db) => {
             res.status(500).send('Error fetching assessment data.');
         }
     },
+        
+
+
 
     saveSingleScore: async (req, res, db) => {
         const { scores, classId, subjectId, assessmentId } = req.body;
@@ -2186,10 +2056,9 @@ deleteSubject: async (req, res, db) => {
             req.flash('error', 'Failed to delete school year.');
             res.redirect('/common/manageRecords');
         }
-    },
+    }
 
-    
-};
+    };
 
 module.exports = {
     upload,

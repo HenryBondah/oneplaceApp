@@ -345,3 +345,9 @@ CREATE TABLE report_settings (
 
 
 ALTER TABLE students ADD COLUMN grade VARCHAR(2);
+
+UPDATE assessment_results ar
+SET title = a.title
+FROM assessments a
+WHERE ar.assessment_id = a.assessment_id;
+ALTER TABLE assessment_results ADD COLUMN title VARCHAR(255);

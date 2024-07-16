@@ -75,6 +75,8 @@ module.exports = (db) => {
     router.post('/deleteSchoolYearPost', isAuthenticated, (req, res) => commonController.deleteSchoolYearPost(req, res, db));
     router.post('/setMainEmployee', isAuthenticated, (req, res) => commonController.setMainEmployee(req, res, db));
     router.post('/saveSingleScore', isAuthenticated, (req, res) => commonController.saveSingleScore(req, res, db));
-    router.get('/scoreDisplay', (req, res) => commonController.scoreDisplay(req, res, req.db));
+    router.post('/saveSingleAttendance', (req, res) => commonController.saveSingleAttendance(req, res, db));
+        
+    
     return router;
 };

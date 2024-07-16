@@ -47,7 +47,6 @@
 <body>
 <main>
     <a href="/common/manageAssessment?classId=<%= classId %>&subjectId=<%= subjectId %>">Manage Assessment</a>
-    <a href="/common/scoreDisplay?classId=<%= classId %>&subjectId=<%= subjectId %>">View Scores</a>
     <hr>
     <% if (messages.success && messages.success.length > 0) { %>
         <div class="flash-success"><%= messages.success %></div>
@@ -106,7 +105,7 @@
                     <td><%= student.first_name %> <%= student.last_name %></td>
                     <% assessments.forEach(function(assessment) { %>
                         <td>
-                            <input type="number" name="scores[<%= student.student_id %>][<%= assessment.assessment_id %>]" min="0" max="100" step="0.1" value="<%= student.scores[assessment.assessment_id] || '' %>" oninput="calculateTotalAndGrade(<%= student.student_id %>)">
+                            <input type="number" name="scores[<%= student.student_id %>][<%= assessment.assessment_id %>]" min="0" max="100" step="0.1" value="<%= student.scores[assessment.assessment_id] ? student.scores[assessment.assessment_id].score : '' %>" oninput="calculateTotalAndGrade()">
                         </td>
                     <% }); %>
                     <td>
@@ -136,110 +135,124 @@
                     <tr>
                         <td><%= student.first_name %> <%= student.last_name %></td>
                         <% assessments.forEach(function(assessment) { %>
-                            <td><%= student.scores[assessment.assessment_id] !== undefined ? student.scores[assessment.assessment_id] : 'N/A' %></td>
+                            <td><%= student.scores[assessment.assessment_id] ? student.scores[assessment.assessment_id].score : 'N/A' %></td>
                         <% }); %>
                     </tr>
                 <% }); %>
             </tbody>
         </table>
     </div>
-</main>
-<script>
-    document.getElementById('addTestForm').addEventListener('submit', async function(event) {
-        event.preventDefault();
-        const testName = document.getElementById('testName').value;
-        const testWeight = document.getElementById('testWeight').value;
-        const classId = document.getElementById('classId').value;
-        const subjectId = document.getElementById('subjectId').value;
 
-        try {
-            const response = await fetch('/common/createTest', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ testName, testWeight, classId, subjectId })
-            });
+    <div id="studentScores">
+        <h3>Student Scores</h3>
+        <% students.forEach(function(student) { %>
+            <div>
+                <strong><%= student.first_name %> <%= student.last_name %>:</strong>
+                <% var scores = student.scores; %>
+                <% Object.keys(scores).forEach(function(assessmentId) { %>
+                    <span><%= scores[assessmentId].title %>: <%= scores[assessmentId].score %></span>
+                <% }); %>
+            </div>
+        <% }); %>
+    </div>
 
-            if (response.ok) {
-                alert('Test added successfully.');
-                window.location.reload();
-            } else {
+    <script>
+        document.getElementById('addTestForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const testName = document.getElementById('testName').value;
+            const testWeight = document.getElementById('testWeight').value;
+            const classId = document.getElementById('classId').value;
+            const subjectId = document.getElementById('subjectId').value;
+
+            try {
+                const response = await fetch('/common/createTest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ testName, testWeight, classId, subjectId })
+                });
+
+                if (response.ok) {
+                    alert('Test added successfully.');
+                    window.location.reload();
+                } else {
+                    alert('Error adding test.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
                 alert('Error adding test.');
             }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error adding test.');
-        }
-    });
-
-    async function saveColumnScores(assessmentId) {
-        const scores = {};
-        const inputs = document.querySelectorAll(`input[name^="scores"][name$="[${assessmentId}]"]`);
-        inputs.forEach(input => {
-            const studentId = input.name.match(/\[([0-9]+)\]/)[1];
-            scores[studentId] = input.value;
         });
 
-        const classId = document.getElementById('classId').value;
-        const subjectId = document.getElementById('subjectId').value;
-
-        try {
-            const response = await fetch('/common/saveSingleScore', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ scores, classId, subjectId, assessmentId })
+        async function saveColumnScores(assessmentId) {
+            const scores = {};
+            const inputs = document.querySelectorAll(`input[name^="scores"][name$="[${assessmentId}]"]`);
+            inputs.forEach(input => {
+                const studentId = input.name.match(/\[([0-9]+)\]/)[1];
+                scores[studentId] = input.value;
             });
 
-            if (response.ok) {
-                alert('Scores saved successfully.');
-                window.location.reload();
-            } else {
+            const classId = document.getElementById('classId').value;
+            const subjectId = document.getElementById('subjectId').value;
+
+            try {
+                const response = await fetch('/common/saveSingleScore', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ scores, classId, subjectId, assessmentId })
+                });
+
+                if (response.ok) {
+                    alert('Scores saved successfully.');
+                    window.location.reload();
+                } else {
+                    alert('Error saving scores.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
                 alert('Error saving scores.');
             }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error saving scores.');
         }
-    }
 
-    function calculateTotalAndGrade() {
-        document.querySelectorAll('tbody tr').forEach(row => {
-            const studentId = row.querySelector('input[name^="scores"]').name.match(/\[([0-9]+)\]/)[1];
-            let totalPercentage = 0;
-            let totalWeight = 0;
+        function calculateTotalAndGrade() {
+            document.querySelectorAll('tbody tr').forEach(row => {
+                const studentId = row.querySelector('input[name^="scores"]').name.match(/\[([0-9]+)\]/)[1];
+                let totalPercentage = 0;
+                let totalWeight = 0;
 
-            row.querySelectorAll('input[name^="scores"]').forEach(input => {
-                const score = parseFloat(input.value);
-                const weight = parseFloat(input.closest('th').innerText.match(/\((\d+)%\)/)[1]);
-                if (!isNaN(score) && !isNaN(weight)) {
-                    totalPercentage += (score * weight) / 100;
-                    totalWeight += weight;
-                }
+                row.querySelectorAll('input[name^="scores"]').forEach(input => {
+                    const score = parseFloat(input.value);
+                    const weight = parseFloat(input.closest('td').previousElementSibling.innerText.match(/\((\d+)%\)/)[1]);
+                    if (!isNaN(score) && !isNaN(weight)) {
+                        totalPercentage += (score * weight) / 100;
+                        totalWeight += weight;
+                    }
+                });
+
+                const totalPercentageSpan = document.getElementById(`total-percentage-${studentId}`);
+                const gradeSpan = document.getElementById(`grade-${studentId}`);
+
+                totalPercentage = totalWeight ? totalPercentage : 0;
+                totalPercentageSpan.textContent = totalPercentage.toFixed(2);
+
+                let grade;
+                if (totalPercentage >= 90) grade = 'A';
+                else if (totalPercentage >= 80) grade = 'B';
+                else if (totalPercentage >= 70) grade = 'C';
+                else if (totalPercentage >= 60) grade = 'D';
+                else grade = 'F';
+
+                gradeSpan.textContent = grade;
             });
+        }
 
-            const totalPercentageSpan = document.getElementById(`total-percentage-${studentId}`);
-            const gradeSpan = document.getElementById(`grade-${studentId}`);
-
-            totalPercentage = totalWeight ? totalPercentage : 0;
-            totalPercentageSpan.textContent = totalPercentage.toFixed(2);
-
-            let grade;
-            if (totalPercentage >= 90) grade = 'A';
-            else if (totalPercentage >= 80) grade = 'B';
-            else if (totalPercentage >= 70) grade = 'C';
-            else if (totalPercentage >= 60) grade = 'D';
-            else grade = 'F';
-
-            gradeSpan.textContent = grade;
+        document.addEventListener('DOMContentLoaded', () => {
+            calculateTotalAndGrade();
         });
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        calculateTotalAndGrade();
-    });
-</script>
+    </script>
+</main>
 </body>
 </html>

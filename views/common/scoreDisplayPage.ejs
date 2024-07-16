@@ -1,7 +1,10 @@
+<!-- views/common/scoreDisplay.ejs -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Score Display</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
     <style>
         main {
             text-align: center;
@@ -22,27 +25,29 @@
 </head>
 <body>
 <main>
-    <h1>Scores for <%= className %></h1>
-    <h2>Subject: <%= subjectName %></h2>
-    <hr>
     <% if (messages.success && messages.success.length > 0) { %>
         <div class="flash-success"><%= messages.success %></div>
     <% } %>
     <% if (messages.error && messages.error.length > 0) { %>
         <div class="flash-error"><%= messages.error %></div>
     <% } %>
+
+    <h1>Scores for <%= className %> - <%= subjectName %></h1>
+
     <table>
         <thead>
             <tr>
                 <th>Student Name</th>
+                <th>Assessment</th>
                 <th>Score</th>
             </tr>
         </thead>
         <tbody>
-            <% students.forEach(function(student) { %>
+            <% scores.forEach(function(score) { %>
                 <tr>
-                    <td><%= student.first_name %> <%= student.last_name %></td>
-                    <td><%= student.score !== undefined ? student.score : 'N/A' %></td>
+                    <td><%= score.first_name %> <%= score.last_name %></td>
+                    <td><%= score.title %></td>
+                    <td><%= score.score %></td>
                 </tr>
             <% }); %>
         </tbody>
