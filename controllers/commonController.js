@@ -735,7 +735,7 @@ const commonController = {
                 FROM terms t
                 JOIN term_classes tc ON t.term_id = tc.term_id
                 WHERE tc.class_id = $1
-                ORDER BY t.start_date DESC`, [classId]);
+                ORDER BY t.start_date`, [classId]);
     
             const dates = [];
             termDatesResult.rows.forEach(row => {
@@ -752,7 +752,7 @@ const commonController = {
                 }
             });
     
-            const displayDates = dates.sort((a, b) => new Date(b) - new Date(a)).reverse();
+            const displayDates = dates.sort((a, b) => new Date(b) - new Date(a)); // Corrected sorting
             const students = await fetchStudentsByClass(db, classId);
             const attendanceResult = await db.query(`
                 SELECT student_id, date, status
@@ -781,7 +781,7 @@ const commonController = {
             res.status(500).send('Error loading attendance records page');
         }
     },
-
+    
 
 
     
