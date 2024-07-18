@@ -22,6 +22,9 @@ header#top-header {
   align-items: center;
   padding: 10px 20px;
   background-color: #f8f8f8;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 header#top-header .siteName {
@@ -54,7 +57,7 @@ header#top-header #tools a {
 }
 
 .logo {
-  width: 90px;
+  width: 85px;
   height: auto;
   margin-right: 10px;
 }
@@ -495,6 +498,12 @@ img:hover {
 
   header#top-header .siteName {
     margin-bottom: 0;
+    font-size: 1.0em; /* Reduced font size for smaller screens */
+  }
+
+  header#top-header .siteName .logo {
+    width: 40px; /* Reduced logo size for smaller screens */
+    height: auto;
   }
 
   header#top-header #tools a.header-welcome {
