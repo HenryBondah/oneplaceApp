@@ -351,3 +351,5 @@ SET title = a.title
 FROM assessments a
 WHERE ar.assessment_id = a.assessment_id;
 ALTER TABLE assessment_results ADD COLUMN title VARCHAR(255);
+ALTER TABLE organizations ADD COLUMN logo_path VARCHAR(255);
+ALTER TABLE organizations ADD COLUMN font_style VARCHAR(50);

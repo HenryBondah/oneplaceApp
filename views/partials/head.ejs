@@ -1,4 +1,3 @@
-
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -28,7 +27,17 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon_io/favicon-16x16.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=PT+Serif:ital@1&family=Playfair+Display:wght@800&display=swap" rel="stylesheet">
+    
+    <!-- Dynamic font style -->
+    <% if (session.fontStyle) { %>
+        <link href="https://fonts.googleapis.com/css2?family=<%= session.fontStyle %>&display=swap" rel="stylesheet">
+        <style>
+            :root {
+                --font-family: '<%= session.fontStyle %>', sans-serif;
+            }
+        </style>
+    <% } %>
+
     <script src="/js/script.js" defer></script>
     <script src="/js/index.js" defer></script>
     <script src="/js/orgDashboard.js" defer></script>
@@ -45,8 +54,7 @@
     <script src="/js/studentDetails.js" defer></script>
     <script src="/js/createEmployee.js" defer></script>
     <script src="/js/manageStudents.js" defer></script>
-    <script src="/js/management.js"></script>
+    <script src="/js/management.js" defer></script>
     <script src="/js/applicationList.js" defer></script>
     <script src="/js/addClassSubject.js" defer></script>
 </head>
-

@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const db = require('../config/db'); // Ensure this points to the correct db.js file
+const path = require('path');
 
 const accountController = {
     registerGet: (req, res) => {
@@ -52,22 +53,22 @@ const accountController = {
                 const user = userResult.rows[0];
                 const match = await bcrypt.compare(password, user.password);
                 if (match) {
-                    const orgResult = await db.query('SELECT organization_name, on_hold, deleted FROM organizations WHERE organization_id = $1', [user.organization_id]);
+                    const orgResult = await db.query('SELECT organization_name, on_hold, deleted, logo, font_style FROM organizations WHERE organization_id = $1', [user.organization_id]);
                     if (orgResult.rows.length > 0) {
                         const organization = orgResult.rows[0];
-
+    
                         if (organization.on_hold) {
                             req.flash('error', 'Your organization account is currently on hold.');
                             res.redirect('/account/login');
                             return;
                         }
-
+    
                         if (organization.deleted) {
                             req.flash('error', 'Your organization account has been deleted.');
                             res.redirect('/account/login');
                             return;
                         }
-
+    
                         req.session.regenerate(err => {
                             if (err) {
                                 console.error('Error regenerating session:', err);
@@ -75,13 +76,15 @@ const accountController = {
                                 res.redirect('/account/login');
                                 return;
                             }
-
+    
                             req.session.userId = user.user_id;
                             req.session.organizationId = user.organization_id;
                             req.session.firstName = user.first_name;
                             req.session.lastName = user.last_name;
                             req.session.organizationName = organization.organization_name;
-
+                            req.session.logo = organization.logo; // Store logo in session
+                            req.session.fontStyle = organization.font_style; // Store font style in session
+    
                             req.session.save(err => {
                                 if (err) {
                                     console.error('Error saving session:', err);
@@ -96,7 +99,7 @@ const accountController = {
                     }
                 } 
             }
-
+    
             const orgResult = await db.query('SELECT * FROM organizations WHERE email = $1', [email]);
             if (orgResult.rows.length > 0) {
                 const organization = orgResult.rows[0];
@@ -107,13 +110,13 @@ const accountController = {
                         res.redirect('/account/login');
                         return;
                     }
-
+    
                     if (organization.deleted) {
                         req.flash('error', 'Your organization account has been deleted.');
                         res.redirect('/account/login');
                         return;
                     }
-
+    
                     req.session.regenerate(err => {
                         if (err) {
                             console.error('Error regenerating session:', err);
@@ -121,12 +124,14 @@ const accountController = {
                             res.redirect('/account/login');
                             return;
                         }
-
+    
                         req.session.organizationId = organization.organization_id;
                         req.session.organizationName = organization.organization_name;
                         req.session.firstName = organization.first_name;
                         req.session.lastName = organization.last_name;
-
+                        req.session.logo = organization.logo; // Store logo in session
+                        req.session.fontStyle = organization.font_style; // Store font style in session
+    
                         req.session.save(err => {
                             if (err) {
                                 console.error('Error saving session:', err);
@@ -140,7 +145,7 @@ const accountController = {
                     return;
                 }
             }
-
+    
             req.flash('error', 'Invalid email or password.');
             res.redirect('/account/login');
         } catch (error) {
@@ -149,7 +154,7 @@ const accountController = {
             res.redirect('/account/login');
         }
     },
-
+    
     logoutGet: (req, res) => {
         req.session.destroy(err => {
             if (err) {
@@ -229,25 +234,57 @@ const accountController = {
             res.redirect('/');
         }
     },
-
     personalizationPost: async (req, res) => {
-        const { primaryColor, fontStyle } = req.body;
-        const logoUrl = req.file ? req.file.path : null;
-        const orgId = req.session.organizationId;
-
         try {
-            await db.query(
-                'UPDATE organizations SET primary_color = $1, font_style = $2, logo_url = $3 WHERE organization_id = $4',
-                [primaryColor, fontStyle, logoUrl, orgId]
-            );
-            req.flash('success', 'Account personalization updated successfully.');
-            res.redirect('/account');
-        } catch (error) {
-            console.error('Error updating account personalization:', error);
-            req.flash('error', 'Failed to update account personalization. Please try again.');
-            res.redirect('/account/accountPersonalization');
+            const { orgName, font } = req.body;
+            let logoPath = null;
+    
+            if (req.file) {
+                // Save the logo file
+                logoPath = path.join('uploads', req.file.filename); // Use path.join to create the correct file path
+            }
+    
+            const updateQuery = `
+                UPDATE organizations
+                SET organization_name = $1, logo = $2, font_style = $3
+                WHERE organization_id = $4
+            `;
+    
+            await db.query(updateQuery, [orgName, logoPath, font, req.session.organizationId]);
+    
+            req.session.organizationName = orgName;
+            req.session.fontStyle = font;
+            if (logoPath) {
+                req.session.logo = logoPath;
+            }
+    
+            req.flash('success', 'Personalization updated successfully.');
+            res.redirect('/account/personalization');
+        } catch (err) {
+            console.error('Error updating personalization:', err);
+            req.flash('error', 'An error occurred while updating personalization. Please try again.');
+            res.redirect('/account/personalization');
         }
-    },
+},
+
+    // personalizationPost: async (req, res) => {
+    //     const { primaryColor, fontStyle } = req.body;
+    //     const logoUrl = req.file ? req.file.path : null;
+    //     const orgId = req.session.organizationId;
+
+    //     try {
+    //         await db.query(
+    //             'UPDATE organizations SET primary_color = $1, font_style = $2, logo_url = $3 WHERE organization_id = $4',
+    //             [primaryColor, fontStyle, logoUrl, orgId]
+    //         );
+    //         req.flash('success', 'Account personalization updated successfully.');
+    //         res.redirect('/account');
+    //     } catch (error) {
+    //         console.error('Error updating account personalization:', error);
+    //         req.flash('error', 'Failed to update account personalization. Please try again.');
+    //         res.redirect('/account/accountPersonalization');
+    //     }
+    // },
 
     getSubjectsByClass: async (req, res) => {
         const { classId } = req.query;

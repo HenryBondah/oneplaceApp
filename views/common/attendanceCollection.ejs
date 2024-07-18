@@ -23,9 +23,18 @@
         .overall-attendance {
             font-weight: bold;
         }
+        .center-link {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
+    <div class="center-link">
+        <a href="/common/classDashboard?classId=<%= classId %>" class="back-link">Back to Class Dashboard</a>
+    </div>
+    <hr>
     <h1>Attendance Records for <%= className %></h1>
     <div class="attendance-sheet-container">
         <table class="attendance-sheet">

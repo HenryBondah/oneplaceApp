@@ -1,17 +1,21 @@
-style.css
 /* Change Box Model */
 *,
 *:before,
 *:after {
   box-sizing: border-box;
 }
- 
+
+/* Define the font-family variable */
+:root {
+  --font-family: 'Roboto', sans-serif;
+}
+
 body {
-  font-family: "Roboto", sans-serif;
   margin: 0;
   padding: 0;
+  font-family: var(--font-family);
 }
- 
+
 header#top-header {
   display: flex;
   justify-content: space-between;
@@ -19,48 +23,48 @@ header#top-header {
   padding: 10px 20px;
   background-color: #f8f8f8;
 }
- 
+
 header#top-header .siteName {
   display: flex;
   align-items: center;
   font-size: 1.5em;
   font-weight: bold;
 }
- 
+
 header#top-header .siteName a {
   text-decoration: none;
   color: #333;
 }
- 
+
 header#top-header #tools {
   display: flex;
   align-items: center;
   right: 15px;
   position: relative;
 }
- 
+
 header#top-header #tools a {
   text-decoration: none;
   color: #000000;
   padding-left: 15px;
 }
- 
+
 .header-welcome {
   display: block;
 }
- 
+
 .logo {
   width: 90px;
   height: auto;
   margin-right: 10px;
 }
- 
+
 nav {
   background-color: black;
   text-align: center;
   padding: 10px 0;
 }
- 
+
 nav ul {
   display: flex;
   justify-content: space-evenly;
@@ -69,49 +73,49 @@ nav ul {
   margin: 0;
   color: #f8f8f8;
 }
- 
+
 nav ul li {
   display: inline;
   margin: 0 15px;
 }
- 
+
 nav ul li:hover {
   opacity: 7;
   color: #0066cc;
 }
- 
+
 nav ul li a {
   text-decoration: none;
   color: white;
   font-size: 1em;
 }
- 
+
 .account-link {
   display: flex;
   margin-top: 10px;
 }
- 
+
 main {
   margin: 20px auto;
   padding: 0 15px;
 }
- 
+
 #loginbutton {
   border: 1px solid black;
   border-radius: 10px;
   padding: 5px;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
- 
+
 #loginbutton:hover {
   background-color: black;
   color: white !important;
 }
- 
+
 h2 {
   color: #333;
 }
- 
+
 /* Styling form elements */
 form {
   background-color: #fff;
@@ -121,13 +125,13 @@ form {
   max-width: 600px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
- 
+
 label {
   display: block;
   margin-top: 10px;
   font-weight: bold;
 }
- 
+
 input[type="text"],
 input[type="email"],
 input[type="password"] {
@@ -137,7 +141,7 @@ input[type="password"] {
   border: 1px solid #ccc;
   border-radius: 4px;
 }
- 
+
 button {
   color: white;
   padding: 10px 15px;
@@ -147,27 +151,27 @@ button {
   margin-top: 20px;
   width: 100%;
 }
- 
+
 /* Link styling */
 a {
   color: #007bff;
   text-decoration: none;
 }
- 
+
 a:hover {
   text-decoration: underline;
 }
- 
+
 /* Checkbox for showing passwords */
 .form-group input[type="checkbox"] {
   margin-top: 5px;
 }
- 
+
 /* Notices and alerts */
 .notice {
   color: #ff0000;
 }
- 
+
 /* General Styles */
 h1 {
   color: #333;
@@ -175,7 +179,7 @@ h1 {
   text-align: center;
   margin-top: 20px;
 }
- 
+
 .notice,
 .error {
   color: #d8000c;
@@ -187,18 +191,18 @@ h1 {
   border-radius: 5px;
   text-align: center;
 }
- 
+
 .notice li,
 .error li {
   list-style-type: none;
 }
- 
+
 form label {
   font-weight: bold;
   margin-bottom: 8px;
   display: block;
 }
- 
+
 form {
   max-width: 600px;
   margin: 20px auto;
@@ -207,11 +211,11 @@ form {
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
- 
+
 .form-group {
   margin-bottom: 20px;
 }
- 
+
 footer {
   border-top: 2px solid black;
   text-align: center;
@@ -219,7 +223,7 @@ footer {
   font-size: 0.8em;
   background-color: #f8f8f8;
 }
- 
+
 form input[type="text"],
 form select,
 form textarea {
@@ -227,11 +231,11 @@ form textarea {
   box-sizing: border-box;
   margin-bottom: 20px;
 }
- 
+
 form textarea {
   height: 100px;
 }
- 
+
 button {
   background-color: #007bff;
   color: white;
@@ -240,17 +244,17 @@ button {
   border-radius: 5px;
   cursor: pointer;
 }
- 
+
 button:hover {
   background-color: #0056b3;
 }
- 
+
 /* Hamburger menu styles */
 .hamburger {
   display: block;
   cursor: pointer;
 }
- 
+
 .hamburger .bar {
   display: block;
   width: 25px;
@@ -259,28 +263,28 @@ button:hover {
   background-color: #333;
   transition: all 0.3s ease-in-out;
 }
- 
+
 .nav-menu {
   display: none;
   list-style: none;
   padding: 0;
   margin: 0;
 }
- 
+
 .nav-item {
   padding: 10px 0;
 }
- 
+
 .nav-item a {
   text-decoration: none;
   color: #333;
   display: block;
 }
- 
+
 .nav-item a:hover {
   background-color: #f0f0f0;
 }
- 
+
 .nav-menu.show {
   display: block;
   position: absolute;
@@ -290,28 +294,28 @@ button:hover {
   top: 40px;
   width: 250px;
 }
- 
+
 .hamburger.active .bar:nth-child(2) {
   opacity: 0;
 }
- 
+
 .hamburger.active .bar:nth-child(1) {
   transform: translateY(8px) rotate(45deg);
 }
- 
+
 .hamburger.active .bar:nth-child(3) {
   transform: translateY(-8px) rotate(-45deg);
 }
- 
+
 /* Management tools dropdown */
 .submenu {
   display: none;
 }
- 
+
 .submenu.show {
   display: block;
 }
- 
+
 .management-links {
   list-style: none;
   padding: 0;
@@ -319,56 +323,56 @@ button:hover {
   background-color: #f9f9f9;
   border: 1px solid #ddd;
 }
- 
+
 .management-links a {
   display: block;
   padding: 10px;
   color: #333;
   text-decoration: none;
 }
- 
+
 .management-links a:hover {
   background-color: #f0f0f0;
 }
- 
+
 .submenu-toggle {
   cursor: pointer;
 }
- 
+
 .submenu-toggle .arrow {
   margin-left: 10px;
 }
- 
+
 .arrow {
   transition: transform 0.3s ease;
 }
- 
+
 .arrow.open {
   transform: rotate(180deg);
 }
- 
+
 /* Image hover effect */
 /*img:hover {
   filter: brightness(70%);
   transition: filter 0.3s ease;
 }
- 
+
 /* index page specific styles */
 .index-container {
   text-align: center;
   padding: 20px;
 }
- 
+
 .image-section img {
   max-width: 50%;
   display: block;
   margin: auto;
 }
- 
+
 .buttons {
   margin-top: 20px;
 }
- 
+
 .buttons .button-link button {
   padding: 10px 20px;
   background-color: #007bff;
@@ -377,25 +381,25 @@ button:hover {
   border-radius: 5px;
   cursor: pointer;
 }
- 
+
 .buttons .button-link button:hover {
   background-color: #0056b3;
 }
- 
+
 /*hero styles*/
 #hero {
   position: relative;
   max-width: 100%;
   margin: auto;
 }
- 
+
 #hero img {
   width: 100%;
   height: 400px;
   display: block;
   border-radius: 5px;
 }
- 
+
 #herostuff {
   position: absolute;
   top: 50%;
@@ -408,19 +412,19 @@ button:hover {
   padding: 20px;
   border-radius: 10px;
 }
- 
+
 #herostuff h2 {
   font-size: 24px;
   margin: 0;
   color: white;
 }
- 
+
 /*main styles*/
 main {
-  font-family: "Roboto", sans-serif;
+  font-family: var(--font-family);
   width: 1200px;
 }
- 
+
 .info {
   border-radius: 10px;
   border: black solid;
@@ -428,40 +432,40 @@ main {
   padding: 10px;
   margin: 10px;
 }
- 
+
 /*features styles*/
- 
+
 .services {
   text-align: center;
 }
- 
+
 #img-feature {
   width: 300px;
   height: 300px;
   border-radius: 10px;
 }
- 
+
 #features {
   display: flex;
   text-align: center;
 }
- 
+
 .feature {
   border-radius: 10px;
   padding: 10px;
   margin: 10px;
   width: auto;
 }
- 
+
 .feature p,
 h3 {
   text-align: center;
 }
- 
+
 img:hover {
   box-shadow: 0 0 5px #333;
 }
- 
+
 /* Flash Messages */
 .flash-message {
   padding: 10px;
@@ -469,56 +473,56 @@ img:hover {
   border-radius: 5px;
   text-align: center;
 }
- 
+
 .flash-message.success {
   background-color: #d4edda;
   color: #155724;
   border: 1px solid #c3e6cb;
 }
- 
+
 .flash-message.error {
   background-color: #f8d7da;
   color: #721c24;
   border: 1px solid #f5c6cb;
 }
- 
+
 /* Media queries */
 @media (max-width: 768px) {
   header#top-header {
     flex-direction: row;
     align-items: center;
   }
- 
+
   header#top-header .siteName {
     margin-bottom: 0;
   }
- 
+
   header#top-header #tools a.header-welcome {
     display: none;
   }
- 
+
   header#top-header #tools {
     margin-left: auto;
   }
- 
+
   nav ul {
     flex-direction: column;
     align-items: flex-start;
   }
- 
+
   main {
     width: 90%;
   }
- 
+
   .info {
     width: 100%;
     margin: 10px 0;
   }
- 
+
   .hamburger {
     display: block;
   }
- 
+
   .hamburger .bar {
     width: 25px;
     height: 3px;
@@ -526,28 +530,28 @@ img:hover {
     background-color: #333;
     transition: all 0.3s ease-in-out;
   }
- 
+
   .nav-menu {
     display: none;
     list-style: none;
     padding: 0;
     margin: 0;
   }
- 
+
   .nav-item {
     padding: 10px 0;
   }
- 
+
   .nav-item a {
     text-decoration: none;
     color: #333;
     display: block;
   }
- 
+
   .nav-item a:hover {
     background-color: #f0f0f0;
   }
- 
+
   .nav-menu.show {
     display: block;
     position: absolute;
@@ -557,61 +561,59 @@ img:hover {
     top: 40px;
     width: 250px;
   }
- 
+
   .hamburger.active .bar:nth-child(2) {
     opacity: 0;
   }
- 
+
   .hamburger.active .bar:nth-child(1) {
     transform: translateY(8px) rotate(45deg);
   }
- 
+
   .hamburger.active .bar:nth-child(3) {
     transform: translateY(-8px) rotate(-45deg);
   }
 }
- 
+
 @media (max-width: 768px) {
- 
+
   .prev,
   .next {
     font-size: 16px;
     padding: 12px;
   }
- 
+
   .info p,
   .feature p {
     font-size: 14px;
   }
- 
+
   .services h2 {
     font-size: 20px;
   }
- 
+
   #img-feature {
     width: 200px;
     height: 200px;
     border-radius: 10px;
   }
- 
+
   .feature h3 {
     font-size: 18px;
   }
- 
+
   #features {
     display: block;
   }
- 
+
   #herostuff h2 {
     font-size: 13px;
     padding: 5px;
   }
- 
+
   #hero img {
     width: 100%;
     height: auto;
     display: block;
   }
- 
- 
 }
