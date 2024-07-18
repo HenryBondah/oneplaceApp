@@ -23,8 +23,14 @@
                         <p>Organization Name: <%= application.organization_name %></p>
                         <p>Organization Address: <%= application.organization_address %></p>
                         <p>Organization Phone: <%= application.organization_phone %></p>
-                        <p>Proof of Existence 1: <%= application.proof_of_existence_1 %></p>
-                        <p>Proof of Existence 2: <%= application.proof_of_existence_2 %></p>
+                        <div>
+                            <p>Proof of Existence 1:</p>
+                            <img src="/<%= application.proof_of_existence_1 %>" alt="Proof of Existence 1" class="thumbnail" onclick="openModal('/<%= application.proof_of_existence_1 %>')">
+                        </div>
+                        <div>
+                            <p>Proof of Existence 2:</p>
+                            <img src="/<%= application.proof_of_existence_2 %>" alt="Proof of Existence 2" class="thumbnail" onclick="openModal('/<%= application.proof_of_existence_2 %>')">
+                        </div>
                         <!-- Add more fields as required -->
                         <form action="/admin/approve" method="post" style="display:inline;">
                             <input type="hidden" name="orgId" value="<%= application.organization_id %>">
@@ -51,13 +57,91 @@
     </div>
 </main>
 
+<!-- Modal for displaying images -->
+<div id="imageModal" class="modal">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <img class="modal-content" id="modalImage">
+    <button class="close-btn" onclick="closeModal()">Close</button>
+</div>
+
 <script>
     function toggleDetails(id) {
         const details = document.getElementById(`details-${id}`);
-        if (details.style.display === 'none') {
-            details.style.display = 'block';
-        } else {
-            details.style.display = 'none';
-        }
+        details.style.display = details.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function openModal(imageUrl) {
+        document.getElementById('modalImage').src = imageUrl;
+        document.getElementById('imageModal').style.display = "block";
+    }
+
+    function closeModal() {
+        document.getElementById('imageModal').style.display = "none";
     }
 </script>
+
+<style>
+    .thumbnail {
+        width: 100px;
+        height: 100px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .thumbnail:hover {
+        transform: scale(1.1);
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgb(0, 0, 0);
+        background-color: rgba(0, 0, 0, 0.9);
+    }
+
+    .modal-content {
+        margin: 15% auto;
+        display: block;
+        width: 80%;
+        max-width: 700px;
+    }
+
+    .close {
+        position: absolute;
+        top: 15px;
+        right: 35px;
+        color: #f1f1f1;
+        font-size: 40px;
+        font-weight: bold;
+        transition: 0.3s;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: #bbb;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .close-btn {
+        display: block;
+        margin: 20px auto;
+        padding: 10px 20px;
+        background-color: #f44336;
+        color: white;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        border-radius: 5px;
+    }
+
+    .close-btn:hover {
+        background-color: #d32f2f;
+    }
+</style>
