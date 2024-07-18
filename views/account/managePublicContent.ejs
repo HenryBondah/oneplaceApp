@@ -21,7 +21,7 @@
             text-align: center;
         }
         .content-item img {
-            max-width: 100%;
+            max-width: 40%;
             height: auto;
             display: block;
             margin: 0 auto 10px;
@@ -68,10 +68,10 @@
 </head>
 <body>
     <div class="manage-public-content-link" style="text-align: center; margin-top: 20px;">
-        <a href="/account/managePublicContent" class="btn btn-primary">Manage Public Content</a>
         <a href="/account/personalization" class="btn btn-primary">Back</a>
     </div>
     <hr>
+
     <% if (success_msg) { %>
         <div class="alert alert-success"><%= success_msg %></div>
     <% } %>
@@ -92,6 +92,11 @@
                             <input type="hidden" name="imageId" value="<%= image.image_id %>">
                             <label for="caption">Caption:</label>
                             <input type="text" name="caption" value="<%= image.caption %>">
+                            <label for="allocation">Allocation:</label>
+                            <select name="allocation">
+                                <option value="hero" <%= image.allocation === 'hero' ? 'selected' : '' %>>Hero Image</option>
+                                <option value="slideshow" <%= image.allocation === 'slideshow' ? 'selected' : '' %>>Slideshow Image</option>
+                            </select>
                             <button type="submit">Update</button>
                         </form>
                         <a href="/account/deleteImage/<%= image.image_id %>" class="delete-link">Delete</a>

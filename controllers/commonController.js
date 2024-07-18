@@ -222,7 +222,7 @@ const commonController = {
             if (isNaN(organizationId)) {
                 throw new Error('Invalid organization_id');
             }
-
+    
             const schoolYearResult = await db.query(`
                 SELECT sy.id as school_year_id, sy.year_label, t.term_id, t.term_name, t.start_date, t.end_date, t.current
                 FROM school_years sy
@@ -230,7 +230,7 @@ const commonController = {
                 WHERE sy.organization_id = $1 AND sy.current = TRUE
                 ORDER BY t.start_date
             `, [organizationId]);
-
+    
             let schoolYear = null;
             let currentTerm = null;
             if (schoolYearResult.rows.length > 0) {
@@ -245,22 +245,25 @@ const commonController = {
                         current: row.current
                     }))
                 };
-
+    
                 currentTerm = schoolYearResult.rows.find(row => row.current);
             }
-
+    
             const eventsResult = await db.query('SELECT * FROM school_events WHERE organization_id = $1 AND (visibility = $2 OR visibility = $3) ORDER BY event_date', [organizationId, 'public', 'both']);
             const events = eventsResult.rows;
-
+    
             const announcementsResult = await db.query('SELECT * FROM announcements WHERE organization_id = $1 AND (visibility = $2 OR visibility = $3) ORDER BY announcement_id DESC', [organizationId, 'public', 'both']);
             const announcements = announcementsResult.rows;
-
-            const imagesResult = await db.query('SELECT * FROM organization_images WHERE organization_id = $1 ORDER BY image_id', [organizationId]);
-            const images = imagesResult.rows;
-
+    
+            const heroImageResult = await db.query('SELECT * FROM organization_images WHERE organization_id = $1 AND allocation = $2', [organizationId, 'hero']);
+            const heroImage = heroImageResult.rows[0];
+    
+            const slideshowImagesResult = await db.query('SELECT * FROM organization_images WHERE organization_id = $1 AND allocation = $2 ORDER BY image_id', [organizationId, 'slideshow']);
+            const slideshowImages = slideshowImagesResult.rows;
+    
             const textsResult = await db.query('SELECT * FROM organization_texts WHERE organization_id = $1 ORDER BY text_id', [organizationId]);
             const texts = textsResult.rows;
-
+    
             res.render('common/publicDashboard', {
                 title: 'Public Dashboard',
                 schoolYear,
@@ -268,7 +271,8 @@ const commonController = {
                 events,
                 announcements,
                 organizationId,
-                images,
+                heroImage,
+                slideshowImages,
                 texts,
                 layout: !req.session.organizationId // If not logged in, set layout to true
             });
@@ -277,7 +281,7 @@ const commonController = {
             res.status(500).send('Failed to load public dashboard data.');
         }
     },
-
+    
     addStudentGet: async (req, res, db) => {
         try {
             const query = `

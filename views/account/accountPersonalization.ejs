@@ -1,3 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personalize Your Interface</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
 <% if (success_msg) { %>
     <div class="alert alert-success"><%= success_msg %></div>
 <% } %>
@@ -58,8 +67,9 @@
 </div>
 <hr>
 
+<!-- Form for uploading the slideshow images with allocation dropdown -->
 <form action="/account/uploadSlideshowImages" method="POST" enctype="multipart/form-data">
-    <h2>Upload Slideshow Images</h2>
+    <h2>Upload Images</h2>
     <div>
         <label for="slideshowImages">Select Images:</label>
         <input type="file" id="slideshowImages" name="slideshowImages" accept="image/*" multiple required>
@@ -67,6 +77,13 @@
     <div>
         <label for="imageText">Text for Images:</label>
         <input type="text" id="imageText" name="imageText" placeholder="Enter text for the image">
+    </div>
+    <div>
+        <label for="imageAllocation">Allocate as:</label>
+        <select id="imageAllocation" name="imageAllocation" required>
+            <option value="hero">Hero</option>
+            <option value="slideshow">Slideshow</option>
+        </select>
     </div>
     <button type="submit">Upload Images</button>
 </form>

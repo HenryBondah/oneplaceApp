@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const accountController = require('../controllers/accountController');
-const { isAuthenticated, fetchOrganizationInfo, checkOrganizationStatus } = require('../middleware/authMiddleware');
+const { isAuthenticated } = require('../middleware/authMiddleware');
 
 // Setup multer for file uploads
 const storage = multer.diskStorage({

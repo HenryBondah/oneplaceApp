@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt');
-const db = require('../config/db');
+const db = require('../config/db'); // Ensure this points to the correct db.js file
 const path = require('path');
 
 const accountController = {
@@ -53,24 +53,24 @@ const accountController = {
                 const user = userResult.rows[0];
                 const match = await bcrypt.compare(password, user.password);
                 if (match) {
-                    const orgResult = await db.query('SELECT organization_name, on_hold, deleted, approved, logo, font_style FROM organizations WHERE organization_id = $1', [user.organization_id]);
+                    const orgResult = await db.query('SELECT organization_name, on_hold, deleted, logo, font_style, approved FROM organizations WHERE organization_id = $1', [user.organization_id]);
                     if (orgResult.rows.length > 0) {
                         const organization = orgResult.rows[0];
 
-                        if (organization.deleted) {
-                            req.flash('error', 'Your organization account has been deleted.');
-                            res.redirect('/account/login');
-                            return;
-                        }
-
                         if (!organization.approved) {
-                            req.flash('error', 'Your organization account has not been approved yet.');
+                            req.flash('error', 'Your organization account is not approved yet.');
                             res.redirect('/account/login');
                             return;
                         }
 
                         if (organization.on_hold) {
                             req.flash('error', 'Your organization account is currently on hold.');
+                            res.redirect('/account/login');
+                            return;
+                        }
+
+                        if (organization.deleted) {
+                            req.flash('error', 'Your organization account has been deleted.');
                             res.redirect('/account/login');
                             return;
                         }
@@ -88,8 +88,8 @@ const accountController = {
                             req.session.firstName = user.first_name;
                             req.session.lastName = user.last_name;
                             req.session.organizationName = organization.organization_name;
-                            req.session.logo = organization.logo;
-                            req.session.fontStyle = organization.font_style;
+                            req.session.logo = organization.logo; // Store logo in session
+                            req.session.fontStyle = organization.font_style; // Store font style in session
 
                             req.session.save(err => {
                                 if (err) {
@@ -111,20 +111,20 @@ const accountController = {
                 const organization = orgResult.rows[0];
                 const match = await bcrypt.compare(password, organization.password);
                 if (match) {
-                    if (organization.deleted) {
-                        req.flash('error', 'Your organization account has been deleted.');
-                        res.redirect('/account/login');
-                        return;
-                    }
-
                     if (!organization.approved) {
-                        req.flash('error', 'Your organization account has not been approved yet.');
+                        req.flash('error', 'Your organization account is not approved yet.');
                         res.redirect('/account/login');
                         return;
                     }
 
                     if (organization.on_hold) {
                         req.flash('error', 'Your organization account is currently on hold.');
+                        res.redirect('/account/login');
+                        return;
+                    }
+
+                    if (organization.deleted) {
+                        req.flash('error', 'Your organization account has been deleted.');
                         res.redirect('/account/login');
                         return;
                     }
@@ -141,8 +141,8 @@ const accountController = {
                         req.session.organizationName = organization.organization_name;
                         req.session.firstName = organization.first_name;
                         req.session.lastName = organization.last_name;
-                        req.session.logo = organization.logo;
-                        req.session.fontStyle = organization.font_style;
+                        req.session.logo = organization.logo; // Store logo in session
+                        req.session.fontStyle = organization.font_style; // Store font style in session
 
                         req.session.save(err => {
                             if (err) {
@@ -213,6 +213,7 @@ const accountController = {
 
             await db.query(query, params);
 
+            // Update session values
             req.session.firstName = firstName;
             req.session.lastName = lastName;
 
@@ -232,10 +233,18 @@ const accountController = {
             const result = await db.query('SELECT * FROM organizations WHERE organization_id = $1', [organizationId]);
             const orgDetails = result.rows[0];
 
+            const heroImageResult = await db.query('SELECT * FROM organization_images WHERE organization_id = $1 AND allocation = $2', [organizationId, 'hero']);
+            const heroImage = heroImageResult.rows[0];
+
+            const slideshowImagesResult = await db.query('SELECT * FROM organization_images WHERE organization_id = $1 AND allocation = $2', [organizationId, 'slideshow']);
+            const slideshowImages = slideshowImagesResult.rows;
+
             res.render('account/accountPersonalization', {
                 title: 'Account Personalization',
                 organizationId,
                 orgDetails,
+                heroImage,
+                slideshowImages,
                 success_msg: req.flash('success'),
                 error_msg: req.flash('error')
             });
@@ -275,7 +284,8 @@ const accountController = {
             let logoPath = null;
 
             if (req.file) {
-                logoPath = path.join('uploads', req.file.filename);
+                // Save the logo file
+                logoPath = path.join('uploads', req.file.filename); // Use path.join to create the correct file path
 
                 const updateQuery = `
                     UPDATE organizations
@@ -316,21 +326,22 @@ const accountController = {
     uploadSlideshowImages: async (req, res) => {
         const images = req.files;
         const imageText = req.body.imageText;
+        const imageAllocation = req.body.imageAllocation;
         const orgId = req.session.organizationId;
 
         try {
             for (const image of images) {
                 await db.query(
-                    'INSERT INTO organization_images (organization_id, image_url, caption) VALUES ($1, $2, $3)',
-                    [orgId, image.path, imageText]
+                    'INSERT INTO organization_images (organization_id, image_url, caption, allocation) VALUES ($1, $2, $3, $4)',
+                    [orgId, image.path, imageText, imageAllocation]
                 );
             }
             req.flash('success', 'Images uploaded successfully.');
-            res.redirect('/account/managePublicContent');
+            res.redirect('/account/personalization');
         } catch (error) {
             console.error('Error uploading images:', error);
             req.flash('error', 'Failed to upload images. Please try again.');
-            res.redirect('/account/managePublicContent');
+            res.redirect('/account/personalization');
         }
     },
 
@@ -344,11 +355,11 @@ const accountController = {
                 [orgId, heading, paragraph]
             );
             req.flash('success', 'Text section added successfully.');
-            res.redirect('/account/managePublicContent');
+            res.redirect('/account/personalization');
         } catch (error) {
             console.error('Error adding text section:', error);
             req.flash('error', 'Failed to add text section. Please try again.');
-            res.redirect('/account/managePublicContent');
+            res.redirect('/account/personalization');
         }
     },
 
@@ -374,11 +385,11 @@ const accountController = {
     },
 
     updateImagePost: async (req, res) => {
-        const { imageId, caption } = req.body;
+        const { imageId, caption, allocation } = req.body;
         const { organizationId } = req.session;
 
         try {
-            await db.query('UPDATE organization_images SET caption = $1 WHERE image_id = $2 AND organization_id = $3', [caption, imageId, organizationId]);
+            await db.query('UPDATE organization_images SET caption = $1, allocation = $2 WHERE image_id = $3 AND organization_id = $4', [caption, allocation, imageId, organizationId]);
             req.flash('success', 'Image updated successfully.');
             res.redirect('/account/managePublicContent');
         } catch (error) {
