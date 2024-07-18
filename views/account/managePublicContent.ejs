@@ -1,8 +1,75 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Public Content</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        .manage-public-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .content-container {
+            margin-bottom: 40px;
+        }
+        .content-item {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .content-item img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px;
+        }
+        .content-item form {
+            display: inline-block;
+            width: 100%;
+        }
+        .content-item label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .content-item input[type="text"], 
+        .content-item textarea {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .content-item button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .content-item button:hover {
+            background-color: #0056b3;
+        }
+        .delete-link {
+            display: block;
+            margin-top: 10px;
+            color: red;
+            text-decoration: none;
+        }
+        .delete-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
 <body>
     <div class="manage-public-content-link" style="text-align: center; margin-top: 20px;">
         <a href="/account/managePublicContent" class="btn btn-primary">Manage Public Content</a>
-        <a href="/account/accountPersonalization" class="btn btn-primary">Back</a>
+        <a href="/account/personalization" class="btn btn-primary">Back</a>
     </div>
     <hr>
     <% if (success_msg) { %>
@@ -54,4 +121,4 @@
         </div>
     </div>
 </body>
-
+</html>

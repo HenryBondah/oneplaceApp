@@ -11,13 +11,14 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const expressLayouts = require('express-ejs-layouts');
 
+// Middleware to serve static files from the uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use(session({
     secret: 'YourSecret',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false, maxAge: 6000000 } 
+    cookie: { secure: false, maxAge: 6000000 }
 }));
 
 app.use(passport.initialize());

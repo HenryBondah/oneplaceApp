@@ -43,6 +43,11 @@
 <form action="/account/personalization/logo" method="POST" enctype="multipart/form-data">
     <div>
         <label for="logo">Upload Logo:</label>
+        <% if (orgDetails.logo) { %>
+            <div>
+                <img src="/<%= orgDetails.logo %>" alt="Current Logo" style="max-width: 100px; display: block; margin-bottom: 10px;">
+            </div>
+        <% } %>
         <input type="file" id="logo" name="logo" accept="image/*">
     </div>
     <button type="submit">Upload Logo</button>

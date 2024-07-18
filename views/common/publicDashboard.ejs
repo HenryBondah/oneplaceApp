@@ -18,17 +18,30 @@
 
         .slideshow-container {
             width: 100%;
-            max-width: 1000px;
+            max-width: 800px;
+            height: 450px;
             position: relative;
             margin: auto;
             display: flex;
             flex-direction: column;
             align-items: center;
+            overflow: hidden;
         }
 
         .mySlides {
             display: none;
             width: 100%;
+            height: 100%;
+        }
+
+        .active-slide {
+            display: block;
+        }
+
+        .slideshow-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .text {
@@ -40,11 +53,6 @@
             width: 100%;
             text-align: center;
             background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        .image-gallery img {
-            vertical-align: middle;
-            width: 100%;
         }
 
         .text-item {
@@ -80,6 +88,65 @@
             border-radius: 8px;
             margin: 20px 0;
         }
+
+        .prev, .next {
+            cursor: pointer;
+            position: absolute;
+            top: 50%;
+            width: auto;
+            padding: 16px;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            transition: 0.6s ease;
+            user-select: none;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+        }
+
+        .prev {
+            left: 10px;
+        }
+
+        .next {
+            right: 10px;
+        }
+
+        .prev:hover, .next:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        .draggable-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            margin-right: 10px;
+            color: #ccc;
+        }
+
+        @media (max-width: 768px) {
+            .slideshow-container {
+                height: auto;
+            }
+
+            .text {
+                font-size: 12px;
+                padding: 6px 8px;
+            }
+
+            .prev, .next {
+                padding: 10px;
+                font-size: 16px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -90,76 +157,120 @@
                 <p>No images available now.</p>
             <% } else { %>
                 <% images.forEach((image, index) => { %>
-                    <div class="mySlides">
+                    <div class="mySlides <%= index === 0 ? 'active-slide' : '' %>">
                         <img src="/<%= image.image_url %>" alt="Slideshow Image">
                         <div class="text"><%= image.caption %></div>
                     </div>
                 <% }) %>
+                <a class="prev" onclick="changeSlide(-1)">&#10094;</a>
+                <a class="next" onclick="changeSlide(1)">&#10095;</a>
             <% } %>
         </div>
 
-        <% if (texts.length === 0) { %>
-            <p>No texts available now.</p>
-        <% } else { %>
-            <% texts.forEach(text => { %>
-                <div class="text-item">
-                    <h2><%= text.heading %></h2>
-                    <p><%= text.paragraph %></p>
+        <div id="draggable-container">
+            <% if (texts.length === 0) { %>
+                <p>No texts available now.</p>
+            <% } else { %>
+                <% texts.forEach(text => { %>
+                    <div class="text-item draggable-item">
+                        <span class="drag-handle">&#x2630;</span>
+                        <div>
+                            <h2><%= text.heading %></h2>
+                            <p><%= text.paragraph %></p>
+                        </div>
+                    </div>
+                <% }) %>
+            <% } %>
+
+            <div class="events-container draggable-item">
+                <span class="drag-handle">&#x2630;</span>
+                <div>
+                    <h2>Events</h2>
+                    <ul>
+                        <% if (events.length === 0) { %>
+                            <li>No events found</li>
+                        <% } else { %>
+                            <% events.forEach(event => { %>
+                                <li><strong><%= event.name %></strong> - <%= new Date(event.event_date).toISOString().split('T')[0] %><br><%= event.details %></li>
+                            <% }) %>
+                        <% } %>
+                    </ul>
                 </div>
-            <% }) %>
-        <% } %>
+            </div>
 
-        <div class="events-container">
-            <h2>Events</h2>
-            <ul>
-                <% if (events.length === 0) { %>
-                    <li>No events found</li>
-                <% } else { %>
-                    <% events.forEach(event => { %>
-                        <li><strong><%= event.name %></strong> - <%= new Date(event.event_date).toISOString().split('T')[0] %><br><%= event.details %></li>
-                    <% }) %>
-                <% } %>
-            </ul>
-        </div>
-
-        <div class="announcements-container">
-            <h2>Announcements</h2>
-            <ul>
-                <% if (announcements.length === 0) { %>
-                    <li>No announcements found</li>
-                <% } else { %>
-                    <% announcements.forEach(announcement => { %>
-                        <li><%= announcement.message %></li>
-                    <% }) %>
-                <% } %>
-            </ul>
+            <div class="announcements-container draggable-item">
+                <span class="drag-handle">&#x2630;</span>
+                <div>
+                    <h2>Announcements</h2>
+                    <ul>
+                        <% if (announcements.length === 0) { %>
+                            <li>No announcements found</li>
+                        <% } else { %>
+                            <% announcements.forEach(announcement => { %>
+                                <li><%= announcement.message %></li>
+                            <% }) %>
+                        <% } %>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script>
+        let slideIndex = 0;
+        let slideInterval;
+
         function updateDateTime() {
             const now = new Date();
             document.getElementById('publicCurrentDate').innerText = now.toLocaleDateString();
             document.getElementById('publicCurrentTime').innerText = now.toLocaleTimeString();
         }
-        setInterval(updateDateTime, 1000);
-        updateDateTime();
-
-        let slideIndex = 0;
-        showSlides();
 
         function showSlides() {
             let slides = document.getElementsByClassName("mySlides");
             for (let i = 0; i < slides.length; i++) {
-                slides[i].style.display = "none";
+                slides[i].classList.remove('active-slide');
             }
             slideIndex++;
             if (slideIndex > slides.length) {
                 slideIndex = 1;
             }
-            slides[slideIndex - 1].style.display = "block";
-            setTimeout(showSlides, 2000); // Change image every 2 seconds
+            slides[slideIndex - 1].classList.add('active-slide');
         }
+
+        function changeSlide(n) {
+            let slides = document.getElementsByClassName("mySlides");
+            for (let i = 0; i < slides.length; i++) {
+                slides[i].classList.remove('active-slide');
+            }
+            slideIndex += n;
+            if (slideIndex > slides.length) {
+                slideIndex = 1;
+            }
+            if (slideIndex < 1) {
+                slideIndex = slides.length;
+            }
+            slides[slideIndex - 1].classList.add('active-slide');
+            resetSlideInterval();
+        }
+
+        function resetSlideInterval() {
+            clearInterval(slideInterval);
+            slideInterval = setInterval(showSlides, 5000);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            showSlides();
+            slideInterval = setInterval(showSlides, 5000);
+
+            new Sortable(document.getElementById('draggable-container'), {
+                animation: 150,
+                handle: '.drag-handle'
+            });
+        });
     </script>
 </body>
 </html>
