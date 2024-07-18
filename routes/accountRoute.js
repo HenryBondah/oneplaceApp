@@ -24,7 +24,8 @@ router.get('/account', isAuthenticated, accountController.accountGet);
 router.get('/update', isAuthenticated, accountController.updateGet);
 router.post('/update', isAuthenticated, accountController.updatePost);
 router.get('/personalization', isAuthenticated, accountController.personalizationGet);
-router.post('/personalization', isAuthenticated, upload.single('logo'), accountController.personalizationPost);
+router.post('/personalization', isAuthenticated, accountController.personalizationPost);
+router.post('/personalization/logo', upload.single('logo'), accountController.personalizationLogoPost);
 router.get('/managePublicContent', isAuthenticated, (req, res) => accountController.managePublicContentGet);
 router.get('/managePublicContent', isAuthenticated, (req, res) => accountController.managePublicContentGet);
 

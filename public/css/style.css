@@ -498,11 +498,11 @@ img:hover {
 
   header#top-header .siteName {
     margin-bottom: 0;
-    font-size: 1.0em; /* Reduced font size for smaller screens */
+    font-size: 1.1em; /* Reduced font size for smaller screens */
   }
 
   header#top-header .siteName .logo {
-    width: 40px; /* Reduced logo size for smaller screens */
+    width: 45px; /* Reduced logo size for smaller screens */
     height: auto;
   }
 

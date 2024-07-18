@@ -5,16 +5,13 @@
     <div class="alert alert-danger"><%= error_msg %></div>
 <% } %>
 
-
 <h1>Personalize Your Interface</h1>
-<form action="/account/personalization" method="POST" enctype="multipart/form-data">
+
+<!-- Form for updating the organization name and font -->
+<form action="/account/personalization" method="POST">
     <div>
         <label for="orgName">Organization Name:</label>
         <input type="text" id="orgName" name="orgName" value="<%= orgDetails.organization_name %>" required>
-    </div>
-    <div>
-        <label for="logo">Upload Logo:</label>
-        <input type="file" id="logo" name="logo" accept="image/*">
     </div>
     <div>
         <label for="font">Select Font Type:</label>
@@ -39,7 +36,16 @@
     <div id="font-sample-container">
         <p id="font-sample" style="font-size: 16px;">Sample Text</p>
     </div>
-    <button type="submit">Apply Personalization</button>
+    <button type="submit">Save Organization Name & Font</button>
+</form>
+
+<!-- Form for uploading the logo -->
+<form action="/account/personalization/logo" method="POST" enctype="multipart/form-data">
+    <div>
+        <label for="logo">Upload Logo:</label>
+        <input type="file" id="logo" name="logo" accept="image/*">
+    </div>
+    <button type="submit">Upload Logo</button>
 </form>
 
 <div class="manage-public-content-link" style="text-align: center; margin-top: 20px;">
@@ -81,8 +87,6 @@
         </a>
     </div>
 </form>
-
-
 
 <script>
     function updateFontSample() {

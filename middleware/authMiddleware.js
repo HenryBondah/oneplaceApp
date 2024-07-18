@@ -1,5 +1,3 @@
-// middleware/authMiddleware.js
-
 const db = require('../config/db');
 
 const isAuthenticated = (req, res, next) => {
