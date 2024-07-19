@@ -1,63 +1,77 @@
-<main>
-    <h1>Student Information</h1>
-    <div class="student-image-container">
-        <% if (student.image_url) { %>
-            <img src="/<%= student.image_url %>" alt="Student Image" class="student-image">
-        <% } else { %>
-            <p>No image available</p>
-        <% } %>
-        <h2><%= student.first_name %> <%= student.last_name %></h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Information</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <main>
+        <h1>Student Information</h1>
+        <div class="student-image-container">
+            <% if (student.image_url) { %>
+                <img src="/<%= student.image_url %>" alt="Student Image" class="student-image">
+            <% } else { %>
+                <p>No image available</p>
+            <% } %>
+            <h2><%= student.first_name %> <%= student.last_name %></h2>
+        </div>
+        <div class="student-info">
+            <p>Class: <%= student.class_name %></p>
+            <p>Graduation Year Group: <%= gradYearGroupName %></p>
+            <p>Date of Birth: <%= new Date(student.date_of_birth).toLocaleDateString() %></p>
+            <p>Height: <%= student.height %> cm</p>
+            <p>Hometown: <%= student.hometown %></p>
+        </div>
 
-    </div>
-    <div class="student-info">
-        <p>Class: <%= student.class_name %></p>
-        <p>Graduation Year Group: <%= gradYearGroupName %></p>
-        <p>Date of Birth: <%= new Date(student.date_of_birth).toLocaleDateString() %></p>
-        <p>Height: <%= student.height %> cm</p>
-        <p>Hometown: <%= student.hometown %></p>
-    </div>
+        <h3>Subjects and Grades</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Grade</th>
+                        <th>Total Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% subjects.forEach(subject => { %>
+                        <tr>
+                            <td><%= subject.subject_name %></td>
+                            <td><%= subject.grade %></td>
+                            <td><%= subject.total_percentage %> %</td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
 
-    <h3>Subjects and Grades</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Subject</th>
-                <th>Grade</th>
-                <th>Total Percentage</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% subjects.forEach(subject => { %>
-                <tr>
-                    <td><%= subject.subject_name %></td>
-                    <td><%= subject.grade %></td>
-                    <td><%= subject.total_percentage %> %</td>
-                </tr>
-            <% }) %>
-        </tbody>
-    </table>
-
-    <h3>Guardians</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>First Name</th>
-                <th>Last Name</th>
-                <th>Address</th>
-                <th>Phone</th>
-                <th>Hometown</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% guardians.forEach(guardian => { %>
-                <tr>
-                    <td><%= guardian.first_name %></td>
-                    <td><%= guardian.last_name %></td>
-                    <td><%= guardian.address %></td>
-                    <td><%= guardian.phone %></td>
-                    <td><%= guardian.hometown %></td>
-                </tr>
-            <% }) %>
-        </tbody>
-    </table>
-</main>
+        <h3>Guardians</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>First Name</th>
+                        <th>Last Name</th>
+                        <th>Address</th>
+                        <th>Phone</th>
+                        <th>Hometown</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% guardians.forEach(guardian => { %>
+                        <tr>
+                            <td><%= guardian.first_name %></td>
+                            <td><%= guardian.last_name %></td>
+                            <td><%= guardian.address %></td>
+                            <td><%= guardian.phone %></td>
+                            <td><%= guardian.hometown %></td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>

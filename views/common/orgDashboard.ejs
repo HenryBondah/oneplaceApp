@@ -2,28 +2,7 @@
 <html>
 <head>
     <title><%= title %></title>
-    <style>
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        ul {
-            list-style: none;
-            padding: 0;
-        }
-        li {
-            margin-bottom: 10px;
-        }
-        .on-hold {
-            color: red;
-            font-size: 1.2em;
-        }
-        .main {
-            color: green;
-            font-size: 1.2em;
-        }
-    </style>
+    <link rel="stylesheet" type="text/css" href="/styles/orgDashboard.css">
 </head>
 <body>
     <div class="dashboard-buttons">
@@ -59,36 +38,28 @@
             </div>
 
             <div class="dashboard-container">
-                <div class="info-grid">
-                    <div class="calendar-container">
-                        <h2>Today's Date and Time</h2>
-                        <div class="date" id="currentDate"></div>
-                        <div class="time" id="currentTime"></div>
-                    </div>
-
-                    <div class="school-year-info">
-                        <% if (schoolYear) { %>
-                            <h2>Current School Year: <%= schoolYear.year_label %></h2>
-                            <% if (currentTerm) { %>
-                                <div>
-                                    <strong><%= currentTerm.term_name %>:</strong>
-                                    Start: <%= new Date(currentTerm.start_date).toISOString().split('T')[0] %>,
-                                    End: <%= new Date(currentTerm.end_date).toISOString().split('T')[0] %>
-                                    <div class="countdown" data-start-date="<%= currentTerm.start_date.toISOString() %>" data-end-date="<%= currentTerm.end_date.toISOString() %>" data-term-name="<%= currentTerm.term_name %>"></div>
-                                </div>
-                                <div>
-                                    <strong>Days until end of term: </strong>
-                                    <span id="daysUntilEnd"><%= Math.ceil((new Date(currentTerm.end_date) - new Date()) / (1000 * 60 * 60 * 24)) %></span>
-                                </div>
-                            <% } else { %>
-                                <p>No current term information available.</p>
-                            <% } %>
-                        <% } else { %>
-                            <div class="school-year-info">
-                                <h2>No current school year information available.</h2>
+                <div class="school-year-info">
+                    <% if (schoolYear) { %>
+                        <h2>Current School Year: <%= schoolYear.year_label %></h2>
+                        <% if (currentTerm) { %>
+                            <div>
+                                <strong><%= currentTerm.term_name %>:</strong>
+                                Start: <%= new Date(currentTerm.start_date).toISOString().split('T')[0] %>,
+                                End: <%= new Date(currentTerm.end_date).toISOString().split('T')[0] %>
+                                <div class="countdown" data-start-date="<%= currentTerm.start_date.toISOString() %>" data-end-date="<%= currentTerm.end_date.toISOString() %>" data-term-name="<%= currentTerm.term_name %>"></div>
                             </div>
+                            <div>
+                                <strong>Days until end of term: </strong>
+                                <span id="daysUntilEnd"><%= Math.ceil((new Date(currentTerm.end_date) - new Date()) / (1000 * 60 * 60 * 24)) %></span>
+                            </div>
+                        <% } else { %>
+                            <p>No current term information available.</p>
                         <% } %>
-                    </div>
+                    <% } else { %>
+                        <div class="school-year-info">
+                            <h2>No current school year information available.</h2>
+                        </div>
+                    <% } %>
                 </div>
 
                 <div class="events-container">
@@ -151,16 +122,6 @@
                 document.getElementById('publicDashboardSection').innerHTML = html;
             })
             .catch(error => console.error('Error fetching public dashboard content:', error));
-
-        function updateDateTime() {
-            const now = new Date();
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('currentDate').textContent = now.toLocaleDateString(undefined, options);
-            document.getElementById('currentTime').textContent = now.toLocaleTimeString();
-        }
-        
-        setInterval(updateDateTime, 1000);
-        updateDateTime();
     </script>
 </body>
 </html>

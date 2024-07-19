@@ -21,6 +21,8 @@
             max-width: 1000px;
             margin: 20px 0;
             position: relative;
+            background: #f9f9f9;
+            border-radius: 8px;
         }
 
         .hero-container img {
@@ -85,34 +87,7 @@
             margin: 20px 0;
         }
 
-        .calendar-container {
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 20px;
-        }
-
-        .date {
-            font-size: 24px;
-            font-weight: bold;
-        }
-
-        .time {
-            font-size: 16px;
-            color: #555;
-        }
-
-        .events-container, .announcements-container {
-            width: 100%;
-            max-width: 1000px;
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
+      
 
         .prev, .next {
             cursor: pointer;
@@ -149,12 +124,32 @@
             border-radius: 4px;
             display: flex;
             align-items: center;
+            justify-content: center;
+            width: 100%;
         }
 
-        .drag-handle {
-            cursor: grab;
-            margin-right: 10px;
-            color: #ccc;
+        #save-order-btn {
+            margin: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #save-order-btn:hover {
+            background-color: #0056b3;
+        }
+
+        #confirmation-message {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            display: none;
         }
 
         @media (max-width: 768px) {
@@ -177,35 +172,34 @@
 <body>
     <div class="public-dashboard-container">
         <h1>Public Dashboard</h1>
-        <% if (heroImage) { %>
-            <div class="hero-container draggable-item">
-                <span class="drag-handle">&#x2630;</span>
-                <img src="/<%= heroImage.image_url %>" alt="Hero Image">
-                <div class="hero-text"><%= heroImage.caption %></div>
-            </div>
-        <% } %>
-        <div class="slideshow-container">
-            <% if (slideshowImages.length === 0) { %>
-                <p>No images available now.</p>
-            <% } else { %>
-                <% slideshowImages.forEach((image, index) => { %>
-                    <div class="mySlides <%= index === 0 ? 'active-slide' : '' %>">
-                        <img src="/<%= image.image_url %>" alt="Slideshow Image">
-                        <div class="text"><%= image.caption %></div>
-                    </div>
-                <% }) %>
-                <a class="prev" onclick="changeSlide(-1)">&#10094;</a>
-                <a class="next" onclick="changeSlide(1)">&#10095;</a>
-            <% } %>
-        </div>
 
         <div id="draggable-container">
+
+            <% if (heroImage) { %>
+                <div class="hero-container draggable-item" data-id="heroImage">
+                    <img src="/<%= heroImage.image_url %>" alt="Hero Image">
+                    <div class="hero-text"><%= heroImage.caption %></div>
+                </div>
+            <% } %>
+            
+            <div class="slideshow-container draggable-item" data-id="slideshow">
+                <% if (slideshowImages.length === 0) { %>
+                <% } else { %>
+                    <% slideshowImages.forEach((image, index) => { %>
+                        <div class="mySlides <%= index === 0 ? 'active-slide' : '' %>">
+                            <img src="/<%= image.image_url %>" alt="Slideshow Image">
+                            <div class="text"><%= image.caption %></div>
+                        </div>
+                    <% }) %>
+                    <a class="prev" onclick="changeSlide(-1)">&#10094;</a>
+                    <a class="next" onclick="changeSlide(1)">&#10095;</a>
+                <% } %>
+            </div>
+
             <% if (texts.length === 0) { %>
-                <p>No texts available now.</p>
             <% } else { %>
                 <% texts.forEach(text => { %>
-                    <div class="text-item draggable-item">
-                        <span class="drag-handle">&#x2630;</span>
+                    <div class="text-item draggable-item" data-id="text-<%= text.id %>">
                         <div>
                             <h2><%= text.heading %></h2>
                             <p><%= text.paragraph %></p>
@@ -214,8 +208,7 @@
                 <% }) %>
             <% } %>
 
-            <div class="events-container draggable-item">
-                <span class="drag-handle">&#x2630;</span>
+            <div class="events-container draggable-item" data-id="events">
                 <div>
                     <h2>Events</h2>
                     <ul>
@@ -230,8 +223,7 @@
                 </div>
             </div>
 
-            <div class="announcements-container draggable-item">
-                <span class="drag-handle">&#x2630;</span>
+            <div class="announcements-container draggable-item" data-id="announcements">
                 <div>
                     <h2>Announcements</h2>
                     <ul>
@@ -246,18 +238,15 @@
                 </div>
             </div>
         </div>
+
+        <button id="save-order-btn">Save Order</button>
+        <div id="confirmation-message">Order saved successfully!</div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script>
         let slideIndex = 0;
         let slideInterval;
-
-        function updateDateTime() {
-            const now = new Date();
-            document.getElementById('publicCurrentDate').innerText = now.toLocaleDateString();
-            document.getElementById('publicCurrentTime').innerText = now.toLocaleTimeString();
-        }
 
         function showSlides() {
             let slides = document.getElementsByClassName("mySlides");
@@ -293,14 +282,41 @@
         }
 
         document.addEventListener("DOMContentLoaded", () => {
-            updateDateTime();
-            setInterval(updateDateTime, 1000);
             showSlides();
             slideInterval = setInterval(showSlides, 5000);
 
-            new Sortable(document.getElementById('draggable-container'), {
+            const sortable = new Sortable(document.getElementById('draggable-container'), {
                 animation: 150,
-                handle: '.drag-handle'
+                handle: '.draggable-item',
+                onEnd: function (evt) {
+                    evt.oldIndex;  // element's old index within parent
+                    evt.newIndex;  // element's new index within parent
+                }
+            });
+
+            document.getElementById('save-order-btn').addEventListener('click', () => {
+                const items = document.querySelectorAll('.draggable-item');
+                const order = Array.from(items).map(item => item.dataset.id);
+                
+                fetch('/save-order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ order })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('confirmation-message').style.display = 'block';
+                        setTimeout(() => {
+                            document.getElementById('confirmation-message').style.display = 'none';
+                        }, 3000);
+                    } else {
+                        alert('Failed to save order.');
+                    }
+                })
+                .catch(error => console.error('Error saving order:', error));
             });
         });
     </script>

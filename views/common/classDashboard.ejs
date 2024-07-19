@@ -3,26 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title><%= title %></title>
-    <style>
-        .employee-list {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .employee-item {
-            display: flex;
-            align-items: center;
-        }
-        .employee-item input[type="radio"] {
-            margin-right: 10px;
-        }
-        .employee-item .main {
-            color: green;
-            font-size: 1.2em;
-            margin-left: 10px;
-        }
-    </style>
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
     <main class="class-dashboard-container">
@@ -39,10 +20,8 @@
         </div>
 
         <div class="dashboard-buttons">
-            <ul class="account-links">
-                <li><a href="/common/attendance?classId=<%= classId %>">Mark Attendance</a></li>
-                <li><a href="<%= attendanceLink %>">Attendance Records</a></li>
-            </ul>
+            <button onclick="window.location.href='/common/attendance?classId=<%= classId %>'">Mark Attendance</button>
+            <button onclick="window.location.href='<%= attendanceLink %>'">Attendance Records</button>
         </div>
 
         <div class="subjects-list">
@@ -50,7 +29,7 @@
             <% if (subjects.length > 0) { %>
                 <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 10px;">
                     <% subjects.forEach(function(subject) { %>
-                        <a href="/common/assessment?classId=<%= classId %>&subjectId=<%= subject.subject_id %>" style="background-color: #f0f0f0; padding: 5px 10px; border-radius: 5px; text-decoration: none;">
+                        <a href="/common/assessment?classId=<%= classId %>&subjectId=<%= subject.subject_id %>" class="subject-link">
                             <%= subject.subject_name %>
                         </a>
                     <% }); %>

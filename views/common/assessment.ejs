@@ -320,10 +320,12 @@
 </head>
 <body>
 <main>
-    <div class="center-link">
+
+    <div class="link-to-next-back">
         <a href="/common/classDashboard?classId=<%= classId %>" class="back-link">Back to Class Dashboard</a>
-            <a href="/common/manageAssessment?classId=<%= classId %>&subjectId=<%= subjectId %>">Manage Assessment</a>
-    </div>
+        <a href="/common/manageAssessment?classId=<%= classId %>&subjectId=<%= subjectId %>">Manage Assessment</a>
+</div>
+
     <hr>
     <% if (messages.success && messages.success.length > 0) { %>
         <div class="flash-success"><%= messages.success %></div>

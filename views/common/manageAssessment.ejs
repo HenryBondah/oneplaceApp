@@ -6,6 +6,7 @@
         th, td {
             padding: 10px;
             border: 1px solid #ddd;
+            vertical-align: top;
         }
         .form-group {
             margin-bottom: 15px;
@@ -18,10 +19,17 @@
             color: red;
             font-weight: bold;
         }
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+        }
     </style>
 </head>
 <body>
-    <a href="/common/assessment?classId=<%= classId %>&subjectId=<%= subjectId %>">Back to Assessment</a>
+
+    <div class="link-to-next-back">
+        <a href="/common/assessment?classId=<%= classId %>&subjectId=<%= subjectId %>">Back to Assessment</a>
+    </div>
     <hr>
     <h1>Manage Assessments for <%= className %></h1>
     <h1>Subject: <%= subjectName %></h1>
@@ -33,7 +41,6 @@
         <div class="flash-error"><%= messages.error %></div>
     <% } %>
 
-   
     <table>
         <thead>
             <tr>
@@ -53,16 +60,16 @@
                         <td>
                             <input type="number" name="weight" value="<%= assessment.weight %>" step="0.1" required>
                         </td>
-                        <td>
+                        <td class="action-buttons">
                             <button type="submit">Update</button>
                         </td>
                     </form>
-                    <td>
-                        <form action="/common/deleteAssessment" method="post">
+                    <form action="/common/deleteAssessment" method="post">
+                        <td class="action-buttons">
                             <input type="hidden" name="assessmentId" value="<%= assessment.assessment_id %>">
                             <button type="submit">Delete</button>
-                        </form>
-                    </td>
+                        </td>
+                    </form>
                 </tr>
             <% }); %>
         </tbody>
