@@ -1,272 +1,3 @@
-<!-- <!DOCTYPE html>
-<html>
-<head>
-    <title>Assessment</title>
-    <style>
-        main {
-            text-align: center;
-        }
-        th, td {
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-        .form-group {
-            margin-bottom: 15px;
-            text-align: left;
-        }
-        button {
-            margin-top: 10px;
-        }
-        .main {
-            color: green;
-            font-size: 1.2em;
-        }
-        .edit-button, .save-button {
-            cursor: pointer;
-            color: blue;
-            text-decoration: underline;
-            background: none;
-            border: none;
-            padding: 0;
-            font: inherit;
-            outline: inherit;
-        }
-        .edit-button:hover, .save-button:hover {
-            text-decoration: none;
-        }
-        .flash-success {
-            color: green;
-            font-weight: bold;
-        }
-        .flash-error {
-            color: red;
-            font-weight: bold;
-        }
-         .center-link {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
-<body>
-<main>
-     <div class="center-link">
-        <a href="/common/classDashboard?classId=<%= classId %>" class="back-link">Back to Class Dashboard</a>
-            <a href="/common/manageAssessment?classId=<%= classId %>&subjectId=<%= subjectId %>">Manage Assessment</a>
-    </div>
-    <hr>
-    <% if (messages.success && messages.success.length > 0) { %>
-        <div class="flash-success"><%= messages.success %></div>
-    <% } %>
-    <% if (messages.error && messages.error.length > 0) { %>
-        <div class="flash-error"><%= messages.error %></div>
-    <% } %>
-    <h1>Assessments for <%= className %></h1>
-    <h2>Subject: <%= subjectName %></h2>
-
-    <div class="assigned-employees">
-        <% employees.forEach(function(employee) { %>
-            <div>
-                <% if (employee.main) { %>
-                    <span class="main">•</span>
-                <% } %>
-                <%= employee.first_name %> <%= employee.last_name %>
-            </div>
-        <% }); %>
-    </div>
-
-    <form id="addTestForm">
-        <h3>Add New Test</h3>
-        <div class="form-group">
-            <label for="testName">Test Name:</label>
-            <input type="text" id="testName" name="testName" required>
-        </div>
-        <div class="form-group">
-            <label for="testWeight">Test Weight:</label>
-            <input type="number" id="testWeight" name="testWeight" step="0.1" required>
-        </div>
-        <input type="hidden" id="classId" value="<%= classId %>">
-        <input type="hidden" id="subjectId" value="<%= subjectId %>">
-        <button type="submit">Add Test</button>
-    </form>
-
-    <hr>
-
-    <table id="scoreTable">
-        <thead>
-            <tr>
-                <th>Student Name</th>
-                <% assessments.forEach(function(assessment) { %>
-                    <th>
-                        <%= assessment.title %> (<%= assessment.weight %>%) 
-                        <button class="save-button" onclick="saveColumnScores(<%= assessment.assessment_id %>)">Save</button>
-                    </th>
-                <% }); %>
-                <th>Total Percentage</th>
-                <th>Grade</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% students.forEach(function(student) { %>
-                <tr>
-                    <td><%= student.first_name %> <%= student.last_name %></td>
-                    <% assessments.forEach(function(assessment) { %>
-                        <td>
-                            <input type="number" name="scores[<%= student.student_id %>][<%= assessment.assessment_id %>]" min="0" max="100" step="0.1" value="<%= student.scores[assessment.assessment_id] ? student.scores[assessment.assessment_id].score : '' %>" oninput="calculateTotalAndGrade()">
-                        </td>
-                    <% }); %>
-                    <td>
-                        <span class="total-percentage" id="total-percentage-<%= student.student_id %>"><%= student.total_percentage || 0 %></span>%
-                    </td>
-                    <td>
-                        <span class="grade" id="grade-<%= student.student_id %>"><%= student.grade || '' %></span>
-                    </td>
-                </tr>
-            <% }); %>
-        </tbody>
-    </table>
-
-    <div id="savedScores">
-        <h3>Saved Scores</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Student Name</th>
-                    <% assessments.forEach(function(assessment) { %>
-                        <th><%= assessment.title %></th>
-                    <% }); %>
-                </tr>
-            </thead>
-            <tbody>
-                <% students.forEach(function(student) { %>
-                    <tr>
-                        <td><%= student.first_name %> <%= student.last_name %></td>
-                        <% assessments.forEach(function(assessment) { %>
-                            <td><%= student.scores[assessment.assessment_id] ? student.scores[assessment.assessment_id].score : 'N/A' %></td>
-                        <% }); %>
-                    </tr>
-                <% }); %>
-            </tbody>
-        </table>
-    </div>
-
-    <div id="studentScores">
-        <h3>Student Scores</h3>
-        <% students.forEach(function(student) { %>
-            <div>
-                <strong><%= student.first_name %> <%= student.last_name %>:</strong>
-                <% var scores = student.scores; %>
-                <% Object.keys(scores).forEach(function(assessmentId) { %>
-                    <span><%= scores[assessmentId].title %>: <%= scores[assessmentId].score %></span>
-                <% }); %>
-            </div>
-        <% }); %>
-    </div>
-
-    <script>
-        document.getElementById('addTestForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
-            const testName = document.getElementById('testName').value;
-            const testWeight = document.getElementById('testWeight').value;
-            const classId = document.getElementById('classId').value;
-            const subjectId = document.getElementById('subjectId').value;
-
-            try {
-                const response = await fetch('/common/createTest', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ testName, testWeight, classId, subjectId })
-                });
-
-                if (response.ok) {
-                    alert('Test added successfully.');
-                    window.location.reload();
-                } else {
-                    alert('Error adding test.');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error adding test.');
-            }
-        });
-
-        async function saveColumnScores(assessmentId) {
-            const scores = {};
-            const inputs = document.querySelectorAll(`input[name^="scores"][name$="[${assessmentId}]"]`);
-            inputs.forEach(input => {
-                const studentId = input.name.match(/\[([0-9]+)\]/)[1];
-                scores[studentId] = input.value;
-            });
-
-            const classId = document.getElementById('classId').value;
-            const subjectId = document.getElementById('subjectId').value;
-
-            try {
-                const response = await fetch('/common/saveSingleScore', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ scores, classId, subjectId, assessmentId })
-                });
-
-                if (response.ok) {
-                    alert('Scores saved successfully.');
-                    window.location.reload();
-                } else {
-                    alert('Error saving scores.');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error saving scores.');
-            }
-        }
-
-        function calculateTotalAndGrade() {
-            document.querySelectorAll('tbody tr').forEach(row => {
-                const studentId = row.querySelector('input[name^="scores"]').name.match(/\[([0-9]+)\]/)[1];
-                let totalPercentage = 0;
-                let totalWeight = 0;
-
-                row.querySelectorAll('input[name^="scores"]').forEach(input => {
-                    const score = parseFloat(input.value);
-                    const weight = parseFloat(input.closest('td').previousElementSibling.innerText.match(/\((\d+)%\)/)[1]);
-                    if (!isNaN(score) && !isNaN(weight)) {
-                        totalPercentage += (score * weight) / 100;
-                        totalWeight += weight;
-                    }
-                });
-
-                const totalPercentageSpan = document.getElementById(`total-percentage-${studentId}`);
-                const gradeSpan = document.getElementById(`grade-${studentId}`);
-
-                totalPercentage = totalWeight ? totalPercentage : 0;
-                totalPercentageSpan.textContent = totalPercentage.toFixed(2);
-
-                let grade;
-                if (totalPercentage >= 90) grade = 'A';
-                else if (totalPercentage >= 80) grade = 'B';
-                else if (totalPercentage >= 70) grade = 'C';
-                else if (totalPercentage >= 60) grade = 'D';
-                else grade = 'F';
-
-                gradeSpan.textContent = grade;
-            });
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            calculateTotalAndGrade();
-        });
-    </script>
-</main>
-</body>
-</html> -->
-
-
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -274,10 +5,13 @@
     <style>
         main {
             text-align: center;
+            margin: 0 auto;
+            width: 90%;
         }
         th, td {
             padding: 10px;
             border: 1px solid #ddd;
+            text-align: left;
         }
         .form-group {
             margin-bottom: 15px;
@@ -316,15 +50,40 @@
             justify-content: center;
             margin-bottom: 20px;
         }
+        .center-link button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .center-link button:hover {
+            background-color: #0056b3;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        @media (max-width: 768px) {
+            /* .center-link {
+                /* flex-direction: row;
+                flex-wrap: wrap; */
+            } */
+            /* .center-link button {
+                margin: 5px 0;
+            } */
+        }
     </style>
 </head>
 <body>
 <main>
 
-    <div class="link-to-next-back">
-        <a href="/common/classDashboard?classId=<%= classId %>" class="back-link">Back to Class Dashboard</a>
-        <a href="/common/manageAssessment?classId=<%= classId %>&subjectId=<%= subjectId %>">Manage Assessment</a>
-</div>
+    <div class="center-link">
+        <button onclick="location.href='/common/classDashboard?classId=<%= classId %>'">Back</button>
+        <button onclick="location.href='/common/manageAssessment?classId=<%= classId %>&subjectId=<%= subjectId %>'">Manage Assessment</button>
+    </div>
 
     <hr>
     <% if (messages.success && messages.success.length > 0) { %>
@@ -364,55 +123,57 @@
 
     <hr>
 
-    <table id="scoreTable">
-        <thead>
-            <tr>
-                <th>Student Name</th>
-                <% assessments.forEach(function(assessment) { %>
-                    <th>
-                        <%= assessment.title %> (<%= assessment.weight %>%)
-                    </th>
-                <% }); %>
-                <th>Total Percentage</th>
-                <th>Grade</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% students.forEach(function(student) { %>
+    <div class="table-container">
+        <table id="scoreTable">
+            <thead>
                 <tr>
-                    <td><%= student.first_name %> <%= student.last_name %></td>
-                    <% let totalPercentage = 0; %>
-                    <% let totalWeight = 0; %>
+                    <th>Student Name</th>
                     <% assessments.forEach(function(assessment) { %>
-                        <td>
-                            <% let score = 75.0; %> <!-- Hardcoded score -->
-                            <% totalPercentage += (score * assessment.weight) / 100; %>
-                            <% totalWeight += assessment.weight; %>
-                            <input type="number" name="scores[<%= student.student_id %>][<%= assessment.assessment_id %>]" min="0" max="100" step="0.1" value="<%= score %>" disabled>
-                        </td>
+                        <th>
+                            <%= assessment.title %> (<%= assessment.weight %>%)
+                        </th>
                     <% }); %>
-                    <td>
-                        <span class="total-percentage" id="total-percentage-<%= student.student_id %>"><%= totalWeight ? totalPercentage.toFixed(2) : 0 %></span>%
-                    </td>
-                    <td>
-                        <% let grade = ''; %>
-                        <% if (totalPercentage >= 90) { %> 
-                            <% grade = 'A'; %>
-                        <% } else if (totalPercentage >= 80) { %> 
-                            <% grade = 'B'; %>
-                        <% } else if (totalPercentage >= 70) { %> 
-                            <% grade = 'C'; %>
-                        <% } else if (totalPercentage >= 60) { %> 
-                            <% grade = 'D'; %>
-                        <% } else { %>
-                            <% grade = 'F'; %>
-                        <% } %>
-                        <span class="grade" id="grade-<%= student.student_id %>"><%= grade %></span>
-                    </td>
+                    <th>Total Percentage</th>
+                    <th>Grade</th>
                 </tr>
-            <% }); %>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <% students.forEach(function(student) { %>
+                    <tr>
+                        <td><%= student.first_name %> <%= student.last_name %></td>
+                        <% let totalPercentage = 0; %>
+                        <% let totalWeight = 0; %>
+                        <% assessments.forEach(function(assessment) { %>
+                            <td>
+                                <% let score = 75.0; %> <!-- Hardcoded score -->
+                                <% totalPercentage += (score * assessment.weight) / 100; %>
+                                <% totalWeight += assessment.weight; %>
+                                <input type="number" name="scores[<%= student.student_id %>][<%= assessment.assessment_id %>]" min="0" max="100" step="0.1" value="<%= score %>" disabled>
+                            </td>
+                        <% }); %>
+                        <td>
+                            <span class="total-percentage" id="total-percentage-<%= student.student_id %>"><%= totalWeight ? totalPercentage.toFixed(2) : 0 %></span>%
+                        </td>
+                        <td>
+                            <% let grade = ''; %>
+                            <% if (totalPercentage >= 90) { %> 
+                                <% grade = 'A'; %>
+                            <% } else if (totalPercentage >= 80) { %> 
+                                <% grade = 'B'; %>
+                            <% } else if (totalPercentage >= 70) { %> 
+                                <% grade = 'C'; %>
+                            <% } else if (totalPercentage >= 60) { %> 
+                                <% grade = 'D'; %>
+                            <% } else { %>
+                                <% grade = 'F'; %>
+                            <% } %>
+                            <span class="grade" id="grade-<%= student.student_id %>"><%= grade %></span>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
 
     <script>
         document.getElementById('addTestForm').addEventListener('submit', async function(event) {

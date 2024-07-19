@@ -23,6 +23,17 @@
             display: flex;
             flex-direction: column;
         }
+        .weight-input {
+            width: 100%;
+        }
+        @media (max-width: 768px) {
+            .test-name-input {
+                width: 70%;
+            }
+            .weight-input {
+                width: 30%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -54,11 +65,11 @@
                 <tr>
                     <form action="/common/updateAssessment" method="post">
                         <td>
-                            <input type="text" name="title" value="<%= assessment.title %>" required>
+                            <input type="text" name="title" value="<%= assessment.title %>" class="test-name-input" required>
                             <input type="hidden" name="assessmentId" value="<%= assessment.assessment_id %>">
                         </td>
                         <td>
-                            <input type="number" name="weight" value="<%= assessment.weight %>" step="0.1" required>
+                            <input type="number" name="weight" value="<%= assessment.weight %>" step="0.1" class="weight-input" required>
                         </td>
                         <td class="action-buttons">
                             <button type="submit">Update</button>

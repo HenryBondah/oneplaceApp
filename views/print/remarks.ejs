@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Remarks</title>
     <style>
         .remarks {
@@ -19,6 +21,13 @@
     </style>
 </head>
 <body>
+    <% if (success_msg) { %>
+        <div class="alert alert-success"><%= success_msg %></div>
+    <% } %>
+    <% if (error_msg) { %>
+        <div class="alert alert-danger"><%= error_msg %></div>
+    <% } %>
+
     <div class="container">
         <form action="/print/saveRemarks" method="POST">
             <h1>Manage Remarks</h1>
@@ -47,13 +56,27 @@
                 <textarea name="scoreRemarks" id="scoreRemarks"><%= settings.score_remark %></textarea>
             </div>
             <button type="submit">Save Remarks</button>
-            <div class="remarks-list">
-                <h2>Teacher's Remarks</h2>
-                <div>
-                    <p><%= settings.teacher_remarks %></p>
-                </div>
-            </div>
         </form>
+
+        <form action="/print/uploadSignatureImage" method="POST" enctype="multipart/form-data">
+            <div>
+                <label for="signatureImage">Upload Signature Image:</label>
+                <% if (signatureImageUrl) { %>
+                    <div>
+                        <img src="/<%= signatureImageUrl %>" alt="Current Signature" style="max-width: 100px; display: block; margin-bottom: 10px;">
+                    </div>
+                <% } %>
+                <input type="file" id="signatureImage" name="signatureImage" accept="image/*">
+            </div>
+            <button type="submit">Upload Signature Image</button>
+        </form>
+
+        <div class="remarks-list">
+            <h2>Teacher's Remarks</h2>
+            <div>
+                <p><%= settings.teacher_remarks %></p>
+            </div>
+        </div>
     </div>
 </body>
 </html>

@@ -1,8 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Student Report</title>
     <style>
+        @media print {
+            @page {
+                size: A4; /* Set the page size to A4 */
+                margin: 0; /* Remove the default margin */
+            }
+            body {
+                margin: 0;
+                padding: 20px;
+            }
+            .actions, .no-print {
+                display: none; /* Hide elements that should not be printed */
+            }
+        }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -62,9 +76,10 @@
             width: 48%;
             height: 100px;
         }
-        .signature textarea {
+        .signature img {
             width: 48%;
-            height: 50px;
+            height: auto;
+            object-fit: contain;
         }
         .btn {
             display: inline-block;
@@ -95,7 +110,9 @@
         <% students.forEach((student, index) => { %>
             <div class="student-report" id="report-<%= index %>">
                 <div class="header">
-                    <img src="/path/to/logo.png" alt="Logo">
+                    <% if (logoUrl) { %>
+                        <img src="/<%= logoUrl %>" alt="Organization Logo" class="logo" />
+                    <% } %>
                     <div>
                         <h1><%= orgName %></h1>
                         <h2><%= orgAddress %></h2>
@@ -155,10 +172,11 @@
                     </table>
                 </div>
                 <div class="attendance-info">
+                    <h3>Attendance</h3>
                     <table>
                         <tr>
-                            <td>Attendance:</td>
-                            <td><%= student.attendance %></td>
+                            <td>Total Attendance:</td>
+                            <td><%= student.attendance %> / <%= term.total_days %> days</td>
                             <td>Position in Class:</td>
                             <td><%= student.position %></td>
                             <td>Promotion Status:</td>
@@ -167,16 +185,20 @@
                     </table>
                 </div>
                 <div class="remarks">
-                    <h3>Teacher's Remarks</h3>
-                    <select id="teacherRemarks-<%= index %>" name="teacherRemarks-<%= index %>">
-                        <% teacherRemarks.forEach(function(remark) { %>
-                            <option value="<%= remark.remarks %>" <%= remark.remarks === student.teacherRemarks ? 'selected' : '' %>><%= remark.remarks %></option>
-                        <% }); %>
-                    </select>
-                </div>
-                <div class="signature-info">
-                    <h3>Signature</h3>
-                    <textarea></textarea>
+                    <div>
+                        <h3>Teacher's Remarks</h3>
+                        <select id="teacherRemarks-<%= index %>" name="teacherRemarks-<%= index %>">
+                            <% teacherRemarks.forEach(function(remark) { %>
+                                <option value="<%= remark.remarks %>" <%= remark.remarks === student.teacherRemarks ? 'selected' : '' %>><%= remark.remarks %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <div class="signature-info">
+                        <h3>Signature</h3>
+                        <% if (signatureImageUrl) { %>
+                            <img src="/<%= signatureImageUrl %>" alt="Signature Image">
+                        <% } %>
+                    </div>
                 </div>
                 <div class="print">
                     <a href="javascript:void(0);" class="btn btn-primary" onclick="printReport(<%= index %>)">Print Report</a>
@@ -193,6 +215,16 @@
             window.print();
             document.body.innerHTML = originalContents;
         }
+    
+        function printAllReports() {
+            const printContents = Array.from(document.querySelectorAll('.student-report')).map(report => report.innerHTML).join('');
+            const originalContents = document.body.innerHTML;
+            document.body.innerHTML = printContents;
+            window.print();
+            document.body.innerHTML = originalContents;
+        }
+    
+        document.querySelector('.btn.btn-primary').addEventListener('click', printAllReports);
     </script>
 </body>
 </html>
