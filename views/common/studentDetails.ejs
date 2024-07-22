@@ -7,9 +7,12 @@
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-   
+
+    <div class="link-to-next-back">
+        <a href="/common/classDashboard?classId=<%= student.class_id %>" class="btn btn-secondary">Back to Class Dashboard</a>
+    </div>
+    <hr>
     <main>
-     
         <h1>Student Information</h1>
         <div class="student-image-container">
             <% if (student.image_url) { %>
@@ -73,6 +76,10 @@
                     <% }) %>
                 </tbody>
             </table>
+        </div>
+        <hr>
+        <div class="link-to-next-back">
+            <a href="/common/editStudent?studentId=<%= student.student_id %>" class="btn btn-primary">Modify Student Information</a>
         </div>
     </main>
 </body>

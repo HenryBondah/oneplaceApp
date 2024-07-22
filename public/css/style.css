@@ -16,7 +16,6 @@ body {
   font-family: var(--font-family);
 }
 
-
 .link-to-next-back {
   text-align: center;
   margin-bottom: 20px;
@@ -373,9 +372,8 @@ button:hover {
 }
 
 /* Image hover effect */
-/*img:hover {
-  filter: brightness(70%);
-  transition: filter 0.3s ease;
+img:hover {
+  box-shadow: 0 0 5px #333;
 }
 
 /* index page specific styles */
@@ -601,6 +599,7 @@ img:hover {
     transform: translateY(-8px) rotate(-45deg);
   }
 }
+
 /* Media queries */
 @media (max-width: 1200px) and (min-width: 769px) {
   main {

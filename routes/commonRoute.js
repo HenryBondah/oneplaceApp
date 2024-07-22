@@ -59,6 +59,16 @@ module.exports = (db) => {
     router.post('/editClass', isAuthenticated, (req, res) => commonController.editClass(req, res, db));
     router.get('/getSubjectsByClass', isAuthenticated, (req, res) => commonController.getSubjectsByClass(req, res, db));
     router.post('/editSubject', isAuthenticated, (req, res) => commonController.editSubject(req, res, db));
+    router.get('/deleteSubject', (req, res) => {
+        const subjectId = req.query.subjectId;
+        if (!subjectId) {
+            req.flash('error', 'Subject ID is required.');
+            return res.redirect('/common/manageClassSubjectAndGradYr');
+        }
+    
+        commonController.deleteSubject(req, res, db);
+    });
+    
     router.post('/deleteSubject', isAuthenticated, (req, res) => commonController.deleteSubject(req, res, db));
     router.get('/getGradYearGroupByClassId', isAuthenticated, (req, res) => commonController.getGradYearGroupByClassId(req, res, db));
     router.get('/getMajorityGraduationYearGroup', isAuthenticated, (req, res) => commonController.getMajorityGraduationYearGroup(req, res, db));

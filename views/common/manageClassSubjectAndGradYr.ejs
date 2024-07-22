@@ -1,21 +1,9 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Classes, Subjects & Graduation Year Groups</title>
     <style>
-        .link-to-add-class-subject {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .link-to-add-class-subject a {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background-color 0.3s ease;
-        }
-        .link-to-add-class-subject a:hover {
-            background-color: #0056b3;
-        }
         .separator {
             border-bottom: 1px solid #ccc;
             margin: 20px 0;
@@ -33,6 +21,33 @@
         .flash-error {
             background-color: #f8d7da;
             color: #721c24;
+        }
+    
+        .form-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .form-container input[type="text"] {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+ 
+        .form-container a {
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .delete-link {
+            color: red;
+            margin-left: 10px;
+        }
+   
+        .subject-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
     </style>
 </head>
@@ -60,13 +75,14 @@
         <fieldset>
             <legend>Graduation Year Groups</legend>
             <% graduationYearGroups.forEach(group => { %>
-                <div>
-                    <form action="/common/editGraduationYearGroup" method="post">
+                <div class="form-container">
+                    <form action="/common/editGraduationYearGroup" method="post" style="display: inline;">
                         <input type="hidden" name="id" value="<%= group.id %>">
                         <input type="text" name="newName" value="<%= group.name %>">
                         <button type="submit">Update</button>
+                        <a href="/common/deleteGraduationYearGroup?id=<%= group.id %>" class="delete-link">Delete</a>
+
                     </form>
-                    <a href="/common/deleteGraduationYearGroup?id=<%= group.id %>" class="delete-link">Delete</a>
                 </div>
             <% }); %>
         </fieldset>
@@ -74,13 +90,13 @@
         <fieldset>
             <legend>Classes</legend>
             <% classes.forEach(cls => { %>
-                <div>
-                    <form action="/common/editClass" method="post">
+                <div class="form-container">
+                    <form action="/common/editClass" method="post" style="display: inline;">
                         <input type="hidden" name="classId" value="<%= cls.class_id %>">
                         <input type="text" name="newClassName" value="<%= cls.class_name %>">
                         <button type="submit">Update</button>
+                        <a href="/common/deleteClass?classId=<%= cls.class_id %>" class="delete-link">Delete</a>
                     </form>
-                    <a href="/common/deleteClass?classId=<%= cls.class_id %>" class="delete-link">Delete</a>
                 </div>
             <% }); %>
         </fieldset>
@@ -88,7 +104,7 @@
         <fieldset>
             <legend>Subjects</legend>
             <form>
-                <select id="classSelect" name="classId" onchange="loadSubjects(this.value)">
+                <select id="classSelect" name="classId" onchange="fetchSubjects()">
                     <option value="">Select a Class</option>
                     <% classes.forEach(function(cls) { %>
                         <option value="<%= cls.class_id %>"><%= cls.class_name %></option>
@@ -99,58 +115,40 @@
             <div id="subjectsContainer"></div>
         </fieldset>
     </div>
-<script>function fetchSubjects() {
-    const classId = document.getElementById('classSelect').value;
-    if (!classId) {
-        document.getElementById('subjectsContainer').innerHTML = '';
-        return;
-    }
 
-    fetch(`/api/getSubjectsByClass?classId=${classId}`)
-        .then(response => response.json())
-        .then(subjects => {
-            let html = subjects.map(subject =>
-                `<div>
-                    <span>${subject.subject_name}</span>
-                    <button onclick="editSubject('${subject.subject_id}', '${subject.subject_name}')">Edit</button>
-                    <button onclick="deleteSubject('${subject.subject_id}')">Delete</button>
-                </div>`
-            ).join('');
-            document.getElementById('subjectsContainer').innerHTML = html;
-        })
-        .catch(error => console.error('Error fetching subjects:', error));
-}
+    <script>
+        function fetchSubjects() {
+            const classId = document.getElementById('classSelect').value;
+            if (!classId) {
+                document.getElementById('subjectsContainer').innerHTML = '';
+                return;
+            }
 
-document.getElementById('classSelect').addEventListener('change', async function() {
-    const classId = this.value;
-    if (!classId) return;
+            fetch(`/common/getSubjectsByClass?classId=${classId}`)
+                .then(response => response.json())
+                .then(subjects => {
+                    const subjectsContainer = document.getElementById('subjectsContainer');
+                    subjectsContainer.innerHTML = '';
 
-    try {
-        const response = await fetch(`/common/getSubjectsByClass?classId=${classId}`);
-        const subjects = await response.json();
-        
-        if (subjects.error) {
-            throw new Error(subjects.error);
+                    subjects.forEach(subject => {
+                        const subjectElement = document.createElement('div');
+                        subjectElement.classList.add('subject-item');
+                        subjectElement.innerHTML = `
+                            <form action="/common/editSubject" method="post" style="display:inline;">
+                                <input type="hidden" name="subjectId" value="${subject.subject_id}">
+                                <input type="text" name="newName" value="${subject.subject_name}">
+                                <button type="submit">Update</button>
+                            </form>
+                            <a href="/common/deleteSubject?subjectId=${subject.subject_id}" class="delete-link">Delete</a>
+                        `;
+                        subjectsContainer.appendChild(subjectElement);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching subjects:', error);
+                    alert('Failed to load subjects.');
+                });
         }
-
-        const subjectsContainer = document.getElementById('subjectsContainer');
-        subjectsContainer.innerHTML = '';
-
-        subjects.forEach(subject => {
-            const subjectElement = document.createElement('div');
-            subjectElement.innerHTML = `
-                <form action="/common/editSubject" method="post" style="display:inline;">
-                    <input type="hidden" name="subjectId" value="${subject.subject_id}">
-                    <input type="text" name="newName" value="${subject.subject_name}">
-                    <button type="submit">Update</button>
-                </form>
-                <a href="/common/deleteSubject?subjectId=${subject.subject_id}" class="delete-link">Delete</a>
-            `;
-            subjectsContainer.appendChild(subjectElement);
-        });
-    } catch (error) {
-        console.error('Failed to load subjects:', error);
-        alert('Failed to load subjects.');
-    }
-});
-</script>
+    </script>
+</body>
+</html>
