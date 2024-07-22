@@ -19,7 +19,6 @@
     <main class="edit-student-container">
         <h1>Edit Student</h1>
         <form action="/common/editStudent/<%= student.student_id %>" method="POST" enctype="multipart/form-data">
-            <fieldset>
                 <legend>Select Class & Subject (Required)</legend>
                 <div class="form-group">
                     <label for="firstName">Student First Name:</label>
@@ -117,7 +116,6 @@
                 <button type="button" onclick="addGuardian()">Add Another Guardian</button>
             </fieldset>
 
-        </fieldset>
 
 
             <button type="submit">Update Student</button>
