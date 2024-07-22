@@ -109,7 +109,6 @@ function generateLastFiveDates() {
     return dates.reverse();
 }
 
-
 function generateAllDatesFromStart(termStartDate) {
     const dates = [];
     const currentDate = new Date(termStartDate);
@@ -122,7 +121,6 @@ function generateAllDatesFromStart(termStartDate) {
     }
     return dates;
 }
-
 
 const calculateTotalPercentage = (scores, assessments) => {
     let totalPercentage = 0;
@@ -281,7 +279,6 @@ const commonController = {
             res.status(500).send('Failed to load public dashboard data.');
         }
     },
-
     
     addStudentGet: async (req, res, db) => {
         try {
@@ -355,7 +352,6 @@ const commonController = {
             res.redirect('/common/addStudent');
         }
     },
-
 
     getMajorityGraduationYearGroup: async (req, res, db) => {
         const { classId } = req.query;
@@ -663,7 +659,6 @@ editStudentGet: async (req, res, db) => {
         }
     },
 
-
     getAttendanceForClass: async (req, res, db) => {
         const { classId } = req.query;
 
@@ -736,7 +731,6 @@ editStudentGet: async (req, res, db) => {
             res.status(500).send('Error loading attendance records page');
         }
     },
-                
 
     attendanceCollection: async (req, res, db) => {
         const { classId } = req.query;
@@ -799,10 +793,6 @@ editStudentGet: async (req, res, db) => {
         }
     },
     
-
-
-    
-    
     saveSingleAttendance: async (req, res, db) => {
         const { attendance, classId, date } = req.body;
     console.log('Received attendance data:', attendance); // Log for debugging
@@ -831,7 +821,6 @@ editStudentGet: async (req, res, db) => {
         res.status(500).json({ success: false, message: 'Failed to save attendance' });
     }
     },
-    
 
     createEmployeeGet: async (req, res, db) => {
         try {
@@ -889,8 +878,6 @@ editStudentGet: async (req, res, db) => {
             res.redirect('/common/createEmployee');
         }
     },
-        
-
 
     manageEmployees: async (req, res, db) => {
         try {
@@ -1065,8 +1052,6 @@ editStudentGet: async (req, res, db) => {
         }
     },
 
-
-
 assessment: async (req, res, db) => {
     const { classId, subjectId } = req.query;
     if (!classId || !subjectId) {
@@ -1144,8 +1129,6 @@ assessment: async (req, res, db) => {
     }
     },
 
-
-
     createTest: async (req, res, db) => {
         const { testName, testWeight, classId, subjectId } = req.body;
         if (!testName || isNaN(parseFloat(testWeight)) || !classId || !subjectId) {
@@ -1169,7 +1152,6 @@ assessment: async (req, res, db) => {
             res.status(500).json({ success: false, message: "Failed to create test" });
         }
     },
-    
     
     getAssessments: async (req, res, db) => {
         const { classId, subjectId } = req.query;
@@ -1309,7 +1291,6 @@ assessment: async (req, res, db) => {
             res.status(500).send('Error loading class dashboard');
         }
     },
-
      
     setMainEmployee: async (req, res, db) => {
         const { class_id, main_employee } = req.body;
@@ -1325,8 +1306,6 @@ assessment: async (req, res, db) => {
             res.status(500).json({ success: false, message: 'Failed to set main employee.' });
         }
     },  
-
-
 
     assessment: async (req, res, db) => {
         const { classId, subjectId } = req.query;
@@ -1409,9 +1388,6 @@ assessment: async (req, res, db) => {
             res.status(500).send('Error fetching assessment data.');
         }
     },
-        
-
-
 
     saveSingleScore: async (req, res, db) => {
         const { scores, classId, subjectId, assessmentId } = req.body;
@@ -1434,7 +1410,6 @@ assessment: async (req, res, db) => {
             res.status(500).json({ success: false, message: 'Failed to save scores' });
         }
     },
-
         
     registerSchoolYear: async (req, res, db) => {
         const { schoolYear, terms } = req.body;
@@ -1521,10 +1496,8 @@ assessment: async (req, res, db) => {
                 term.class_ids = termClassesResult.rows.map(row => row.class_id);
                 term.classes = termClassesResult.rows;
             }
-
             year.terms = terms;
         }
-
         return schoolYears;
     },
 
@@ -1747,7 +1720,6 @@ assessment: async (req, res, db) => {
             res.redirect('/common/addClassSubject');
         }
     },
-    
 
     manageClassSubjectAndGradYr: async (req, res, db) => {
         try {
@@ -1823,7 +1795,6 @@ assessment: async (req, res, db) => {
         }
     },
     
-  // commonController.js
   getSubjectsByClass: async (req, res, db) => {
     const { classId } = req.query;
     if (!classId) {
@@ -1839,8 +1810,6 @@ assessment: async (req, res, db) => {
     }
 },
     
-// In commonController.js
-
 editSubject: async (req, res, db) => {
     const { subjectId, newName } = req.body;
     try {
@@ -1872,7 +1841,6 @@ deleteSubject: async (req, res, db) => {
 
     res.redirect('/common/manageClassSubjectAndGradYr');
 },
-
 
     getGradYearGroupByClassId: async (req, res, db) => {
         const { classId } = req.query;
@@ -1919,7 +1887,6 @@ deleteSubject: async (req, res, db) => {
             res.status(500).json({ error: 'Error fetching students.' });
         }
     },
-
     
     closeSchoolYear: async (req, res, db) => {
         try {
@@ -2046,8 +2013,6 @@ deleteSubject: async (req, res, db) => {
         }
     },
     
-
-    
     deleteSchoolYearPost: async (req, res, db) => {
         try {
             const { yearId } = req.body;
@@ -2066,7 +2031,6 @@ deleteSubject: async (req, res, db) => {
             res.redirect('/common/manageRecords');
         }
     }
-
     };
 
 module.exports = {
