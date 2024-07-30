@@ -1,7 +1,64 @@
 const bcrypt = require('bcrypt');
-const db = require('../config/db'); // Ensure this points to the correct db.js file
+const db = require('../config/db');
 const path = require('path');
 const nodemailer = require('nodemailer'); 
+
+async function sendRegistrationSuccessEmail(email, firstName, lastName, password) {
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.NOTIFY_EMAIL_USER,
+            pass: process.env.NOTIFY_EMAIL_PASSWORD
+        }
+    });
+
+    const mailOptions = {
+        from: process.env.NOTIFY_EMAIL_USER,
+        to: email,
+        subject: 'Account Registration Confirmation',
+        text: `Hello ${firstName} ${lastName},\n\nYour account has been created successfully. You can now log in using the following credentials:\n\nEmail: ${email}\nPassword: ${password}\n\nYou can change your password at any time in the account settings.\n\nBest regards,\nONEPLACE Team`
+    };
+
+    await transporter.sendMail(mailOptions);
+}
+
+async function sendRegistrationFailureEmail(email, reason) {
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.NOTIFY_EMAIL_USER,
+            pass: process.env.NOTIFY_EMAIL_PASSWORD
+        }
+    });
+
+    const mailOptions = {
+        from: process.env.NOTIFY_EMAIL_USER,
+        to: email,
+        subject: 'Account Registration Failed',
+        text: `Hello,\n\nYour account registration attempt failed due to the following reason: ${reason}\n\nPlease try again or contact support for assistance.\n\nBest regards,\nONEPLACE Team`
+    };
+
+    await transporter.sendMail(mailOptions);
+}
+
+async function notifyAdminOfRegistration(firstName, lastName, orgName, email, orgPhone) {
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.NOTIFY_EMAIL_USER,
+            pass: process.env.NOTIFY_EMAIL_PASSWORD
+        }
+    });
+
+    const mailOptions = {
+        from: process.env.NOTIFY_EMAIL_USER,
+        to: process.env.ADMIN_EMAIL,
+        subject: 'New Account Registration',
+        text: `A new account has been registered:\n\nName: ${firstName} ${lastName}\nOrganization: ${orgName}\nEmail: ${email}\nPhone: ${orgPhone}\n\nPlease review the registration details.`
+    };
+
+    await transporter.sendMail(mailOptions);
+}
 
 const accountController = {
     registerGet: (req, res) => {
@@ -12,12 +69,39 @@ const accountController = {
         const { firstName, lastName, email, password, orgName, orgAddress, orgPhone } = req.body;
         const proof1 = req.files['proof1'] ? req.files['proof1'][0].path : '';
         const proof2 = req.files['proof2'] ? req.files['proof2'][0].path : '';
-        const hashedPassword = await bcrypt.hash(password, 10);
 
         const client = await db.connect();
         try {
             await client.query('BEGIN');
 
+            // Check for existing email, organization name, phone, and address
+            const existingOrg = await client.query(
+                'SELECT * FROM organizations WHERE email = $1 OR organization_name = $2 OR organization_phone = $3 OR organization_address = $4',
+                [email, orgName, orgPhone, orgAddress]
+            );
+
+            if (existingOrg.rows.length > 0) {
+                const existingOrgData = existingOrg.rows[0];
+                let message = '';
+
+                if (existingOrgData.on_hold) {
+                    message = 'An account with these details is currently on hold. Please contact support to resume your account.';
+                } else if (existingOrgData.deleted) {
+                    message = 'An account with these details has been deleted. Please contact support to restore your account.';
+                } else {
+                    message = 'An account with these details already exists.';
+                }
+
+                req.flash('error', message);
+                await sendRegistrationFailureEmail(email, message);
+                res.redirect('/account/register');
+                return;
+            }
+
+            // Hash the password
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            // Insert new organization record
             const result = await client.query(
                 'INSERT INTO organizations (organization_name, organization_address, organization_phone, proof_of_existence_1, proof_of_existence_2, email, password, first_name, last_name, approved, on_hold, deleted) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, false, false) RETURNING organization_id',
                 [orgName, orgAddress, orgPhone, proof1, proof2, email, hashedPassword, firstName, lastName]
@@ -27,55 +111,17 @@ const accountController = {
 
             await client.query('COMMIT');
 
-            // Send confirmation email to the user
-            const transporter = nodemailer.createTransport({
-                service: 'gmail',
-                auth: {
-                    user: process.env.NOTIFY_EMAIL_USER,
-                    pass: process.env.NOTIFY_EMAIL_PASSWORD
-                }
-            });
+            // Send notification emails
+            await sendRegistrationSuccessEmail(email, firstName, lastName, password);
+            await notifyAdminOfRegistration(firstName, lastName, orgName, email, orgPhone);
 
-            const userMailOptions = {
-                from: process.env.NOTIFY_EMAIL_USER,
-                to: email,
-                subject: 'Account Registration Confirmation',
-                text: `Hello ${firstName},\n\nYour account has been created and is pending approval.\n\nBest regards,\nONEPLACE Team`
-            };
-
-            const adminMailOptions = {
-                from: process.env.NOTIFY_EMAIL_USER,
-                to: process.env.ADMIN_EMAIL,
-                subject: 'New Account Registration',
-                text: `A new account has been registered with the following details:\n\nName: ${firstName} ${lastName}\nOrganization: ${orgName}\nEmail: ${email}\nPhone: ${orgPhone}\n\nPlease review and approve or reject the account.`
-            };
-
-            transporter.sendMail(userMailOptions, (error, info) => {
-                if (error) {
-                    // console.error('Error sending email to user:', error);
-                } else {
-                    // console.log('Email sent to user:', info.response);
-                }
-            });
-
-            transporter.sendMail(adminMailOptions, (error, info) => {
-                if (error) {
-                    console.error('Error sending email to admin:', error);
-                } else {
-                    // console.log('Email sent to admin:', info.response);
-                }
-            });
-
-            req.flash('success', 'Registration successful. Please wait for approval.');
+            req.flash('success', 'Registration successful. You can now log in.');
             res.redirect('/account/login');
         } catch (error) {
             await client.query('ROLLBACK');
-            console.error('Error during registration:', error);
-            if (error.code === '23505') {
-                req.flash('error', 'Email already exists.');
-            } else {
-                req.flash('error', 'Registration failed.');
-            }
+            console.error('Error during registration:', error.message);
+            req.flash('error', 'Registration failed. Please try again.');
+            await sendRegistrationFailureEmail(email, error.message);
             res.redirect('/account/register');
         } finally {
             client.release();
@@ -83,6 +129,7 @@ const accountController = {
     },
     
     
+
     loginGet: (req, res) => {
         res.render('account/login', { title: 'Login', messages: req.flash() });
     },
@@ -95,24 +142,18 @@ const accountController = {
                 const user = userResult.rows[0];
                 const match = await bcrypt.compare(password, user.password);
                 if (match) {
-                    const orgResult = await db.query('SELECT organization_name, on_hold, deleted, logo, font_style, approved FROM organizations WHERE organization_id = $1', [user.organization_id]);
+                    const orgResult = await db.query('SELECT * FROM organizations WHERE organization_id = $1', [user.organization_id]);
                     if (orgResult.rows.length > 0) {
                         const organization = orgResult.rows[0];
 
-                        if (!organization.approved) {
-                            req.flash('error', 'Your organization account is not approved yet.');
+                        if (organization.deleted) {
+                            req.flash('error', 'Your organization account has been deleted. Please contact support for assistance.');
                             res.redirect('/account/login');
                             return;
                         }
 
                         if (organization.on_hold) {
-                            req.flash('error', 'Your organization account is currently on hold.');
-                            res.redirect('/account/login');
-                            return;
-                        }
-
-                        if (organization.deleted) {
-                            req.flash('error', 'Your organization account has been deleted.');
+                            req.flash('error', 'Your organization account is currently on hold. Please contact support for further information.');
                             res.redirect('/account/login');
                             return;
                         }
@@ -153,20 +194,14 @@ const accountController = {
                 const organization = orgResult.rows[0];
                 const match = await bcrypt.compare(password, organization.password);
                 if (match) {
-                    if (!organization.approved) {
-                        req.flash('error', 'Your organization account is not approved yet.');
+                    if (organization.deleted) {
+                        req.flash('error', 'Your organization account has been deleted. Please contact support for assistance.');
                         res.redirect('/account/login');
                         return;
                     }
 
                     if (organization.on_hold) {
-                        req.flash('error', 'Your organization account is currently on hold.');
-                        res.redirect('/account/login');
-                        return;
-                    }
-
-                    if (organization.deleted) {
-                        req.flash('error', 'Your organization account has been deleted.');
+                        req.flash('error', 'Your organization account is currently on hold. Please contact support for further information.');
                         res.redirect('/account/login');
                         return;
                     }

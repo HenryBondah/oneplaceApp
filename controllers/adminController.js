@@ -4,71 +4,15 @@ const nodemailer = require('nodemailer');
 const adminController = {
     adminDashboard: async (req, res) => {
         try {
-            const result = await db.query('SELECT * FROM organizations WHERE approved = false AND deleted = false');
+            const result = await db.query('SELECT * FROM organizations WHERE deleted = false');
             const applications = result.rows;
-            res.render('admin/dashboard', { title: 'Admin Dashboard', applications: applications, messages: req.flash() });
+            res.render('admin/dashboard', { title: 'Admin Dashboard', applications, messages: req.flash() });
         } catch (error) {
             console.error('Error fetching applications:', error);
             req.flash('error', 'Error fetching applications.');
             res.render('admin/dashboard', { title: 'Admin Dashboard', applications: [], messages: req.flash() });
         }
     },
-
-    adminActionPage: async (req, res) => {
-        try {
-            const result = await db.query('SELECT * FROM organizations WHERE deleted = false');
-            const applications = result.rows;
-            res.render('admin/action-page', { title: 'Admin Action Page', applications: applications, messages: req.flash() });
-        } catch (error) {
-            console.error('Error fetching applications:', error);
-            req.flash('error', 'Error fetching applications.');
-            res.render('admin/action-page', { title: 'Admin Action Page', applications: [], messages: req.flash() });
-        }
-    },
-
-    approveOrganization: async (req, res) => {
-        const { orgId } = req.body;
-        try {
-            const result = await db.query('UPDATE organizations SET approved = true, review_timestamp = CURRENT_TIMESTAMP WHERE organization_id = $1 RETURNING email, first_name, last_name', [orgId]);
-            const organization = result.rows[0];
-            
-            req.flash('success', 'Organization approved successfully.');
-
-            // Send notification email to the organization
-            await sendEmailNotification(organization.email, 'Your organization has been approved', `Dear ${organization.first_name} ${organization.last_name},\n\nYour organization has been approved. You can now log in and access your dashboard.\n\nBest regards,\nAdmin Team`);
-
-            res.redirect('/admin/');
-        } catch (error) {
-            console.error('Error approving organization:', error);
-            req.flash('error', 'Failed to approve organization.');
-            res.redirect('/admin/');
-        }
-    },
-
-    declineOrganization: async (req, res) => {
-        const { orgId } = req.body;
-        try {
-            // Update organization to set declined status
-            const result = await db.query(
-                'UPDATE organizations SET approved = false, declined = true, review_timestamp = CURRENT_TIMESTAMP WHERE organization_id = $1 RETURNING email, first_name, last_name',
-                [orgId]
-            );
-            const organization = result.rows[0];
-
-            req.flash('success', 'Organization declined and moved to the action page.');
-
-            // Send notification email to the organization
-            await sendEmailNotification(organization.email, 'Your organization registration was declined', `Dear ${organization.first_name} ${organization.last_name},\n\nWe regret to inform you that your organization's registration has been declined. Please contact us for further information.\n\nBest regards,\nAdmin Team`);
-
-            // Redirect to the action page where declined organizations are listed
-            res.redirect('/admin/');
-        } catch (error) {
-            console.error('Error declining organization:', error);
-            req.flash('error', 'Failed to decline organization.');
-            res.redirect('/admin/');
-        }
-    },
-
 
     holdOrganization: async (req, res) => {
         const { orgId } = req.body;
@@ -81,11 +25,11 @@ const adminController = {
             // Send notification email to the organization
             await sendEmailNotification(organization.email, 'Your organization has been put on hold', `Dear ${organization.first_name} ${organization.last_name},\n\nYour organization's activities have been temporarily put on hold. Please contact us for further information.\n\nBest regards,\nAdmin Team`);
 
-            res.redirect('/admin/action-page');
+            res.redirect('/admin');
         } catch (error) {
             console.error('Error putting organization on hold:', error);
             req.flash('error', 'Failed to put organization on hold.');
-            res.redirect('/admin/action-page');
+            res.redirect('/admin');
         }
     },
 
@@ -100,11 +44,11 @@ const adminController = {
             // Send notification email to the organization
             await sendEmailNotification(organization.email, 'Your organization has been resumed', `Dear ${organization.first_name} ${organization.last_name},\n\nYour organization's activities have been resumed. You can continue using the platform.\n\nBest regards,\nAdmin Team`);
 
-            res.redirect('/admin/action-page');
+            res.redirect('/admin');
         } catch (error) {
             console.error('Error resuming organization:', error);
             req.flash('error', 'Failed to resume organization.');
-            res.redirect('/admin/action-page');
+            res.redirect('/admin');
         }
     },
 
@@ -119,11 +63,11 @@ const adminController = {
             // Send notification email to the organization
             await sendEmailNotification(organization.email, 'Your organization has been deleted', `Dear ${organization.first_name} ${organization.last_name},\n\nYour organization has been deleted from our records. If you believe this is a mistake, please contact us.\n\nBest regards,\nAdmin Team`);
 
-            res.redirect('/admin/');
+            res.redirect('/admin');
         } catch (error) {
             console.error('Error deleting organization:', error);
             req.flash('error', 'Failed to delete organization.');
-            res.redirect('/admin/');
+            res.redirect('/admin');
         }
     },
 
@@ -131,7 +75,7 @@ const adminController = {
         try {
             const result = await db.query('SELECT * FROM organizations WHERE deleted = true');
             const deletedAccounts = result.rows;
-            res.render('admin/superDashboard', { title: 'Super Admin Dashboard', deletedAccounts: deletedAccounts, messages: req.flash() });
+            res.render('admin/superDashboard', { title: 'Super Admin Dashboard', deletedAccounts, messages: req.flash() });
         } catch (error) {
             console.error('Error fetching deleted accounts:', error);
             req.flash('error', 'Error fetching deleted accounts.');

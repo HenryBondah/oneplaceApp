@@ -1,7 +1,7 @@
 <% if (messages.success) { %>
   <div class="flash-message success"><%= messages.success %></div>
 <% } %>
-<% if (messages.error) { %>
+<% if (messages.error && messages.error.length > 0) { %>
   <div class="flash-message error"><%= messages.error %></div>
 <% } %>
 <form action="/account/register" method="post" enctype="multipart/form-data">
@@ -11,7 +11,6 @@
 
   <label for="lastName">Last Name:</label>
   <input type="text" name="lastName" required>
-
 
   <h2>Organization Information</h2>
   <label for="orgName">Organization Name:</label>
@@ -23,7 +22,6 @@
   <label for="orgPhone">Organization Phone:</label>
   <input type="text" name="orgPhone" required>
 
-
   <label for="proof1">Proof of Existence (Image 1):</label>
   <input type="file" name="proof1" accept="image/*" required>
 
@@ -31,7 +29,7 @@
   <input type="file" name="proof2" accept="image/*">
 
   <h2>Sign in Credentials</h2>
-  <p>Will be used to log in when Approved</p>
+  <p>Will be used to log in</p>
 
   <label for="email">Email:</label>
   <input type="email" name="email" required>

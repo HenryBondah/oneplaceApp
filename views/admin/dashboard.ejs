@@ -1,6 +1,7 @@
 <main>
     <h1>Admin Dashboard</h1>
     <a href="/admin/superDashboard">Super Admin Dashboard</a>
+    <a href="/admin/superSettings">Super Settings</a>
     <% if (messages.success) { %>
         <div class="flash-message success"><%= messages.success %></div>
     <% } %>
@@ -31,15 +32,17 @@
                             <p>Proof of Existence 2:</p>
                             <img src="/<%= application.proof_of_existence_2 %>" alt="Proof of Existence 2" class="thumbnail" onclick="openModal('/<%= application.proof_of_existence_2 %>')">
                         </div>
-                        <!-- Add more fields as required -->
-                        <form action="/admin/approve" method="post" style="display:inline;">
-                            <input type="hidden" name="orgId" value="<%= application.organization_id %>">
-                            <button type="submit">Approve</button>
-                        </form>
-                        <form action="/admin/decline" method="post" style="display:inline;">
-                            <input type="hidden" name="orgId" value="<%= application.organization_id %>">
-                            <button type="submit">Decline</button>
-                        </form>
+                        <% if (application.on_hold) { %>
+                            <form action="/admin/resume" method="post" style="display:inline;">
+                                <input type="hidden" name="orgId" value="<%= application.organization_id %>">
+                                <button type="submit">Resume</button>
+                            </form>
+                        <% } else { %>
+                            <form action="/admin/hold" method="post" style="display:inline;">
+                                <input type="hidden" name="orgId" value="<%= application.organization_id %>">
+                                <button type="submit">Put on Hold</button>
+                            </form>
+                        <% } %>
                         <form action="/admin/delete" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this organization?');">
                             <input type="hidden" name="orgId" value="<%= application.organization_id %>">
                             <button type="submit">Delete</button>
@@ -51,18 +54,8 @@
             <p>No applications available.</p>
         <% } %>
     </div>
-
-    <div class="action-button-container">
-        <button onclick="window.location.href='/admin/action-page';">Go to Action Page</button>
-    </div>
 </main>
 
-<!-- Modal for displaying images -->
-<div id="imageModal" class="modal">
-    <span class="close" onclick="closeModal()">&times;</span>
-    <img class="modal-content" id="modalImage">
-    <button class="close-btn" onclick="closeModal()">Close</button>
-</div>
 
 <script>
     function toggleDetails(id) {
