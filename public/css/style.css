@@ -236,6 +236,9 @@ form {
   margin-bottom: 20px;
 }
 
+
+
+/* Footer Styles */
 footer {
   border-top: 2px solid black;
   text-align: center;
@@ -243,6 +246,67 @@ footer {
   font-size: 0.8em;
   background-color: #f8f8f8;
 }
+/* Footer Styles */
+footer {
+  text-align: center;
+  padding: 10px;
+  background-color: #f1f1f1;
+  color: #333;
+  border-top: 1px solid #ddd;
+}
+
+footer .copyright,
+footer .social-media,
+footer a {
+  margin: 5px 0;
+}
+
+footer a {
+  color: #333;
+  text-decoration: none;
+}
+
+footer .social-media {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+footer .social-media a {
+  display: inline-block;
+  width: 40px; /* Set width for icons */
+  height: 40px; /* Set height for icons */
+  overflow: hidden;
+}
+
+footer .social-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Cover the area */
+}
+
+/* Responsive Styles */
+@media (max-width: 600px) {
+  footer {
+      padding: 20px 10px;
+  }
+
+  footer .social-media {
+      flex-wrap: wrap; /* Allow icons to wrap in small screens */
+  }
+
+  footer .social-media a {
+      margin: 5px; /* Add spacing around icons for better touch targets */
+  }
+
+  footer .copyright,
+  footer .social-media,
+  footer a {
+      font-size: 12px; /* Slightly smaller font size for mobile */
+  }
+}
+
 
 form input[type="text"],
 form select,
@@ -441,7 +505,7 @@ img:hover {
 /*main styles*/
 main {
   font-family: var(--font-family);
-  width: 1200px;
+  width: 1000px;
 }
 
 .info {

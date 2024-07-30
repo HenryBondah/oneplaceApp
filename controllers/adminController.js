@@ -1,4 +1,5 @@
-const db = require('../config/db'); // Ensure this points to the correct db.js file
+const db = require('../config/db');
+const nodemailer = require('nodemailer');
 
 const adminController = {
     adminDashboard: async (req, res) => {
@@ -28,8 +29,14 @@ const adminController = {
     approveOrganization: async (req, res) => {
         const { orgId } = req.body;
         try {
-            await db.query('UPDATE organizations SET approved = true, review_timestamp = CURRENT_TIMESTAMP WHERE organization_id = $1', [orgId]);
+            const result = await db.query('UPDATE organizations SET approved = true, review_timestamp = CURRENT_TIMESTAMP WHERE organization_id = $1 RETURNING email, first_name, last_name', [orgId]);
+            const organization = result.rows[0];
+            
             req.flash('success', 'Organization approved successfully.');
+
+            // Send notification email to the organization
+            await sendEmailNotification(organization.email, 'Your organization has been approved', `Dear ${organization.first_name} ${organization.last_name},\n\nYour organization has been approved. You can now log in and access your dashboard.\n\nBest regards,\nAdmin Team`);
+
             res.redirect('/admin/');
         } catch (error) {
             console.error('Error approving organization:', error);
@@ -41,8 +48,19 @@ const adminController = {
     declineOrganization: async (req, res) => {
         const { orgId } = req.body;
         try {
-            await db.query('UPDATE organizations SET approved = false, review_timestamp = CURRENT_TIMESTAMP WHERE organization_id = $1', [orgId]);
-            req.flash('success', 'Organization declined successfully.');
+            // Update organization to set declined status
+            const result = await db.query(
+                'UPDATE organizations SET approved = false, declined = true, review_timestamp = CURRENT_TIMESTAMP WHERE organization_id = $1 RETURNING email, first_name, last_name',
+                [orgId]
+            );
+            const organization = result.rows[0];
+
+            req.flash('success', 'Organization declined and moved to the action page.');
+
+            // Send notification email to the organization
+            await sendEmailNotification(organization.email, 'Your organization registration was declined', `Dear ${organization.first_name} ${organization.last_name},\n\nWe regret to inform you that your organization's registration has been declined. Please contact us for further information.\n\nBest regards,\nAdmin Team`);
+
+            // Redirect to the action page where declined organizations are listed
             res.redirect('/admin/');
         } catch (error) {
             console.error('Error declining organization:', error);
@@ -51,11 +69,18 @@ const adminController = {
         }
     },
 
+
     holdOrganization: async (req, res) => {
         const { orgId } = req.body;
         try {
-            await db.query('UPDATE organizations SET on_hold = true WHERE organization_id = $1', [orgId]);
+            const result = await db.query('UPDATE organizations SET on_hold = true WHERE organization_id = $1 RETURNING email, first_name, last_name', [orgId]);
+            const organization = result.rows[0];
+
             req.flash('success', 'Organization put on hold successfully.');
+
+            // Send notification email to the organization
+            await sendEmailNotification(organization.email, 'Your organization has been put on hold', `Dear ${organization.first_name} ${organization.last_name},\n\nYour organization's activities have been temporarily put on hold. Please contact us for further information.\n\nBest regards,\nAdmin Team`);
+
             res.redirect('/admin/action-page');
         } catch (error) {
             console.error('Error putting organization on hold:', error);
@@ -67,8 +92,14 @@ const adminController = {
     resumeOrganization: async (req, res) => {
         const { orgId } = req.body;
         try {
-            await db.query('UPDATE organizations SET on_hold = false WHERE organization_id = $1', [orgId]);
+            const result = await db.query('UPDATE organizations SET on_hold = false WHERE organization_id = $1 RETURNING email, first_name, last_name', [orgId]);
+            const organization = result.rows[0];
+
             req.flash('success', 'Organization resumed successfully.');
+
+            // Send notification email to the organization
+            await sendEmailNotification(organization.email, 'Your organization has been resumed', `Dear ${organization.first_name} ${organization.last_name},\n\nYour organization's activities have been resumed. You can continue using the platform.\n\nBest regards,\nAdmin Team`);
+
             res.redirect('/admin/action-page');
         } catch (error) {
             console.error('Error resuming organization:', error);
@@ -80,8 +111,14 @@ const adminController = {
     deleteOrganization: async (req, res) => {
         const { orgId } = req.body;
         try {
-            await db.query('UPDATE organizations SET deleted = true WHERE organization_id = $1', [orgId]);
+            const result = await db.query('UPDATE organizations SET deleted = true WHERE organization_id = $1 RETURNING email, first_name, last_name', [orgId]);
+            const organization = result.rows[0];
+
             req.flash('success', 'Organization deleted successfully.');
+
+            // Send notification email to the organization
+            await sendEmailNotification(organization.email, 'Your organization has been deleted', `Dear ${organization.first_name} ${organization.last_name},\n\nYour organization has been deleted from our records. If you believe this is a mistake, please contact us.\n\nBest regards,\nAdmin Team`);
+
             res.redirect('/admin/');
         } catch (error) {
             console.error('Error deleting organization:', error);
@@ -105,8 +142,14 @@ const adminController = {
     restoreOrganization: async (req, res) => {
         const { orgId } = req.body;
         try {
-            await db.query('UPDATE organizations SET deleted = false WHERE organization_id = $1', [orgId]);
+            const result = await db.query('UPDATE organizations SET deleted = false WHERE organization_id = $1 RETURNING email, first_name, last_name', [orgId]);
+            const organization = result.rows[0];
+
             req.flash('success', 'Organization restored successfully.');
+
+            // Send notification email to the organization
+            await sendEmailNotification(organization.email, 'Your organization has been restored', `Dear ${organization.first_name} ${organization.last_name},\n\nWe apologize for any inconvenience caused. Your organization has been restored and all information is back as it was. You can continue using the platform.\n\nBest regards,\nAdmin Team`);
+
             res.redirect('/admin/superDashboard');
         } catch (error) {
             console.error('Error restoring organization:', error);
@@ -128,5 +171,24 @@ const adminController = {
         }
     }
 };
+
+async function sendEmailNotification(to, subject, text) {
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.ADMIN_NOTIFY_EMAIL_USER,
+            pass: process.env.ADMIN_NOTIFY_EMAIL_PASSWORD
+        }
+    });
+
+    const mailOptions = {
+        from: process.env.ADMIN_NOTIFY_EMAIL_USER,
+        to,
+        subject,
+        text
+    };
+
+    await transporter.sendMail(mailOptions);
+}
 
 module.exports = adminController;

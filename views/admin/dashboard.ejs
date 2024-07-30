@@ -36,9 +36,9 @@
                             <input type="hidden" name="orgId" value="<%= application.organization_id %>">
                             <button type="submit">Approve</button>
                         </form>
-                        <form action="/admin/hold" method="post" style="display:inline;">
+                        <form action="/admin/decline" method="post" style="display:inline;">
                             <input type="hidden" name="orgId" value="<%= application.organization_id %>">
-                            <button type="submit">Hold</button>
+                            <button type="submit">Decline</button>
                         </form>
                         <form action="/admin/delete" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this organization?');">
                             <input type="hidden" name="orgId" value="<%= application.organization_id %>">

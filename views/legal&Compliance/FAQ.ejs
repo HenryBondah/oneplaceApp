@@ -1,0 +1,39 @@
+
+    <style>
+        .faq-item { margin-bottom: 15px; }
+        .faq-question { cursor: pointer; }
+        .faq-answer { display: none; }
+        .faq-question::after { content: " +"; float: right; }
+        .faq-question.open::after { content: " -"; }
+    </style>
+    <main>
+        <h1>Frequently Asked Questions</h1>
+        <div class="faq-item">
+            <div class="faq-question">What is OnePlace?</div>
+            <div class="faq-answer">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">How does OnePlace work?</div>
+            <div class="faq-answer">Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">Can I try OnePlace for free?</div>
+            <div class="faq-answer">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
+        </div>
+    </main>
+
+    <script>
+        document.querySelectorAll('.faq-question').forEach(item => {
+            item.addEventListener('click', () => {
+                item.classList.toggle('open');
+                const answer = item.nextElementSibling;
+                if (answer.style.display === 'none' || answer.style.display === '') {
+                    answer.style.display = 'block';
+                } else {
+                    answer.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

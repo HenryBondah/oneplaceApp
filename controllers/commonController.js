@@ -18,16 +18,16 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-const getStudentsByClass = async (classId, db, organizationId) => {
-    const studentsResult = await db.query(`
-        SELECT student_id, first_name, last_name, total_percentage, grade 
-        FROM students 
-        WHERE class_id = $1 AND organization_id = $2
-        ORDER BY last_name, first_name
-    `, [classId, organizationId]);
+// const getStudentsByClass = async (classId, db, organizationId) => {
+//     const studentsResult = await db.query(`
+//         SELECT student_id, first_name, last_name, total_percentage, grade 
+//         FROM students 
+//         WHERE class_id = $1 AND organization_id = $2
+//         ORDER BY last_name, first_name
+//     `, [classId, organizationId]);
 
-    return studentsResult.rows;
-};
+//     return studentsResult.rows;
+// };
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req, res, next) {
@@ -1867,26 +1867,26 @@ deleteSubject: async (req, res, db) => {
 
 
 
-    getStudentsByClass: async (req, res, db) => {
-        const classId = req.query.classId;
+    // getStudentsByClass: async (req, res, db) => {
+    //     const classId = req.query.classId;
 
-        if (!classId) {
-            return res.status(400).json({ error: 'Class ID is required.' });
-        }
+    //     if (!classId) {
+    //         return res.status(400).json({ error: 'Class ID is required.' });
+    //     }
 
-        try {
-            const students = await fetchStudentsByClass(db, classId, req.session.organizationId);
+    //     try {
+    //         const students = await fetchStudentsByClass(db, classId, req.session.organizationId);
 
-            if (students.length === 0) {
-                return res.json({ error: 'No students found for the selected class.' });
-            }
+    //         if (students.length === 0) {
+    //             return res.json({ error: 'No students found for the selected class.' });
+    //         }
 
-            res.json({ students });
-        } catch (error) {
-            console.error('Error fetching students:', error);
-            res.status(500).json({ error: 'Error fetching students.' });
-        }
-    },
+    //         res.json({ students });
+    //     } catch (error) {
+    //         console.error('Error fetching students:', error);
+    //         res.status(500).json({ error: 'Error fetching students.' });
+    //     }
+    // },
     
     closeSchoolYear: async (req, res, db) => {
         try {

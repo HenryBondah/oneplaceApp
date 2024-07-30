@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const db = require('../config/db'); // Ensure this points to the correct db.js file
 const path = require('path');
+const nodemailer = require('nodemailer'); 
 
 const accountController = {
     registerGet: (req, res) => {
@@ -25,6 +26,46 @@ const accountController = {
             const orgId = result.rows[0].organization_id;
 
             await client.query('COMMIT');
+
+            // Send confirmation email to the user
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.NOTIFY_EMAIL_USER,
+                    pass: process.env.NOTIFY_EMAIL_PASSWORD
+                }
+            });
+
+            const userMailOptions = {
+                from: process.env.NOTIFY_EMAIL_USER,
+                to: email,
+                subject: 'Account Registration Confirmation',
+                text: `Hello ${firstName},\n\nYour account has been created and is pending approval.\n\nBest regards,\nONEPLACE Team`
+            };
+
+            const adminMailOptions = {
+                from: process.env.NOTIFY_EMAIL_USER,
+                to: process.env.ADMIN_EMAIL,
+                subject: 'New Account Registration',
+                text: `A new account has been registered with the following details:\n\nName: ${firstName} ${lastName}\nOrganization: ${orgName}\nEmail: ${email}\nPhone: ${orgPhone}\n\nPlease review and approve or reject the account.`
+            };
+
+            transporter.sendMail(userMailOptions, (error, info) => {
+                if (error) {
+                    // console.error('Error sending email to user:', error);
+                } else {
+                    // console.log('Email sent to user:', info.response);
+                }
+            });
+
+            transporter.sendMail(adminMailOptions, (error, info) => {
+                if (error) {
+                    console.error('Error sending email to admin:', error);
+                } else {
+                    // console.log('Email sent to admin:', info.response);
+                }
+            });
+
             req.flash('success', 'Registration successful. Please wait for approval.');
             res.redirect('/account/login');
         } catch (error) {
@@ -40,7 +81,8 @@ const accountController = {
             client.release();
         }
     },
-
+    
+    
     loginGet: (req, res) => {
         res.render('account/login', { title: 'Login', messages: req.flash() });
     },

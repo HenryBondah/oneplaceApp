@@ -40,11 +40,13 @@ const accountRoute = require('./routes/accountRoute');
 const adminRoute = require('./routes/adminRoute')(db);
 const commonRoute = require('./routes/commonRoute')(db);
 const printRoute = require('./routes/printRoute')(db);
+const legalRoute = require('./routes/legalRoute');
 
 app.use('/account', accountRoute);
 app.use('/admin', adminRoute);
 app.use('/common', commonRoute);
 app.use('/print', printRoute);
+app.use('/legal', legalRoute);
 
 app.get('/', (req, res) => {
     res.render('index', { title: 'Home' });

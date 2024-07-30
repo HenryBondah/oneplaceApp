@@ -10,8 +10,6 @@ module.exports = (db) => {
     router.post('/addStudent', upload.single('studentImage'), isAuthenticated, (req, res) => commonController.addStudentPost(req, res, db));
     router.get('/studentDetails', isAuthenticated, (req, res) => commonController.studentDetails(req, res, db));
     router.get('/management', isAuthenticated, (req, res) => commonController.management(req, res, db));
-    router.get('/getStudentsByClass', isAuthenticated, (req, res) => commonController.getStudentsByClass(req, res, db));
-    router.get('/studentsByClass', isAuthenticated, (req, res) => commonController.getStudentsByClass(req, res, db));
     router.get('/editStudent', isAuthenticated, (req, res) => commonController.editStudentGet(req, res, db));
     router.post('/editStudent/:studentId', upload.single('studentImage'), isAuthenticated, (req, res) => commonController.editStudentPost(req, res, db));
     router.post('/deleteStudent/:studentId', isAuthenticated, (req, res) => commonController.deleteStudent(req, res, db));
@@ -72,9 +70,6 @@ module.exports = (db) => {
     router.post('/deleteSubject', isAuthenticated, (req, res) => commonController.deleteSubject(req, res, db));
     router.get('/getGradYearGroupByClassId', isAuthenticated, (req, res) => commonController.getGradYearGroupByClassId(req, res, db));
     router.get('/getMajorityGraduationYearGroup', isAuthenticated, (req, res) => commonController.getMajorityGraduationYearGroup(req, res, db));
-    router.get('/manageStudents', isAuthenticated, (req, res) => commonController.manageStudents(req, res, db));
-    router.get('/studentListByClass', isAuthenticated, (req, res) => commonController.studentListByClass(req, res, db));
-    router.post('/studentListByClass', isAuthenticated, (req, res) => commonController.studentListByClass(req, res, db));
     router.get('/closeSchoolYear', isAuthenticated, (req, res) => commonController.closeSchoolYear(req, res, db));
     router.get('/termDetails', isAuthenticated, (req, res) => commonController.termDetails(req, res, db));
     router.get('/closeGraduationYearGroup', isAuthenticated, (req, res) => commonController.closeGraduationYearGroup(req, res, db));

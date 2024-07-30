@@ -1,11 +1,24 @@
 <footer>
     <p class="copyright">&copy; <%= new Date().getFullYear() %> ONEPLACE</p>
     <p>ONEPLACE Platform</p>
-
-    <a href="/help">Help</a> | 
-    <a href="/contact">Contact Us</a> | 
+    <a href="/legal/help">Help</a> | 
     <a href="/admin">Administration</a> |
-    <a href="/print/printStudentReport">Student final report</a> |
-
-
+    <a href="/legal/about-us">About Us</a> |
+    <a href="/legal/faq">FAQ</a> |
+    <a href="/legal/privacy-policy">Privacy Policy</a> |
+    <a href="/legal/terms-of-service">Terms of Service</a>
+    
+    <% if (!session.user) { %> <!-- Show only if user is not logged in -->
+    <div class="social-media">
+        <a href="https://youtube.com" target="_blank">
+            <img src="/images/social/youtubeicon.png" alt="YouTube">
+        </a>
+        <a href="https://linkedin.com" target="_blank">
+            <img src="/images/social/linkedinicon.png" alt="LinkedIn">
+        </a>
+        <a href="https://instagram.com" target="_blank">
+            <img src="/images/social/igicon.png" alt="Instagram">
+        </a>
+    </div>
+    <% } %>
 </footer>
