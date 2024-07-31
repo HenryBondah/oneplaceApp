@@ -7,6 +7,11 @@
         <div class="flash-message error"><%= messages.error %></div>
     <% } %>
 
+    <div class="link-to-next-back">
+        <a href="/admin/dashboard">Admin Dashboard</a>
+    </div>
+    <hr>
+
     <div class="applications-container">
         <% if (deletedAccounts && deletedAccounts.length > 0) { %>
             <% deletedAccounts.forEach(function(account) { %>

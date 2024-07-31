@@ -18,16 +18,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// const getStudentsByClass = async (classId, db, organizationId) => {
-//     const studentsResult = await db.query(`
-//         SELECT student_id, first_name, last_name, total_percentage, grade 
-//         FROM students 
-//         WHERE class_id = $1 AND organization_id = $2
-//         ORDER BY last_name, first_name
-//     `, [classId, organizationId]);
 
-//     return studentsResult.rows;
-// };
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req, res, next) {

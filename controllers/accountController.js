@@ -273,27 +273,35 @@ const accountController = {
     },
 
     updatePost: async (req, res) => {
-        const { firstName, lastName, email, phone, password } = req.body;
+        const { firstName, lastName, email, phone, password, confirmPassword } = req.body;
         const orgId = req.session.organizationId;
-
+    
+        // Check for password match and optional update
+        if (password && password !== confirmPassword) {
+            req.flash('error', 'Passwords do not match.');
+            return res.redirect('/account/update');
+        }
+    
         try {
             let query = 'UPDATE organizations SET first_name = $1, last_name = $2, email = $3, organization_phone = $4';
-            let params = [firstName, lastName, email, phone, orgId];
-
+            let params = [firstName, lastName, email, phone];
+    
             if (password) {
                 const hashedPassword = await bcrypt.hash(password, 10);
                 query += ', password = $5 WHERE organization_id = $6';
-                params.push(hashedPassword);
+                params.push(hashedPassword, orgId);
             } else {
                 query += ' WHERE organization_id = $5';
+                params.push(orgId);
             }
-
-            await db.query(query, params);
-
+    
+            const result = await db.query(query, params);
+    
             // Update session values
             req.session.firstName = firstName;
             req.session.lastName = lastName;
-
+            req.session.save();
+    
             req.flash('success', 'Account information updated successfully.');
             res.redirect('/account/update');
         } catch (error) {
@@ -302,7 +310,7 @@ const accountController = {
             res.redirect('/account/update');
         }
     },
-
+    
     personalizationGet: async (req, res) => {
         try {
             const { organizationId } = req.session;

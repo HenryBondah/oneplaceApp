@@ -1,12 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personalize Your Interface</title>
-    <link rel="stylesheet" href="/styles.css">
-</head>
-<body>
+<h1>Personalize Your Interface</h1>
+
 <% if (success_msg) { %>
     <div class="alert alert-success"><%= success_msg %></div>
 <% } %>
@@ -14,7 +7,6 @@
     <div class="alert alert-danger"><%= error_msg %></div>
 <% } %>
 
-<h1>Personalize Your Interface</h1>
 
 <!-- Form for updating the organization name and font -->
 <form action="/account/personalization" method="POST">

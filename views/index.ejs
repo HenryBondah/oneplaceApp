@@ -1,15 +1,11 @@
 <main>
-  <div id="hero">
-    <picture>
-      <source srcset="images/herosmall.webp" media="(max-width:560px)" />
-      <source srcset="images/heromedium.webp" media="(max-width:1200px)" />
-      <img src="images/hero-large.webp" alt="Hero image" />
-    </picture>
-    <div id="herostuff">
-      <h2>One Place where everything about school becomes easy</h2>
-    </div>
+  <div id="hero" class="video-container">
+    <video autoplay loop muted playsinline id="hero-video">
+      <source src="images/1place.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
   </div>
- 
+
   <section class="info">
     <p>
       Discover the freedom to manage your organization with complete control.
@@ -20,13 +16,13 @@
     </p>
   </section>
   <div class="services">
-    <h2>Our Services and Features</h2>
+    <h1>Our Services and Features</h1>
   </div>
- 
+
   <section id="features">
     <section class="feature">
-      <h3>Streamlined Project Management</h3>
-      <img id="img-feature" src="/images/home.jpeg" alt="Image 1" />
+      <img id="img-feature" src="/images/project-manager_11445631.png" alt="Image 1" />
+      <h3>Project Management Tool</h3>
       <p>
         Our platform provides a comprehensive project management system designed
         to help you oversee every aspect of your projects effortlessly. With
@@ -37,10 +33,10 @@
         overlooked.
       </p>
     </section>
- 
+
     <section class="feature">
+      <img id="img-feature" src="/images/workflow.jpg" alt="Image 2" />
       <h3>Customizable Workflows</h3>
-      <img id="img-feature" src="/images/home.jpeg" alt="Image 2" />
       <p>
         OnePlace offers highly customizable workflows to fit the unique needs of
         your organization. Whether you need a simple task list or a complex
@@ -50,10 +46,10 @@
         changing priorities and maintain productivity.
       </p>
     </section>
- 
+
     <section class="feature">
-      <h3>Integrated Communication Tools</h3>
-      <img id="img-feature" src="/images/home.jpeg" alt="Feature 3" />
+      <img id="img-feature" src="/images/communication.png" alt="Feature 3" />
+      <h3>Integrated Communication</h3>
       <p>
         Effective communication is at the heart of successful project
         management, and our platform integrates a range of communication tools
