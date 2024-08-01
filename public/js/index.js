@@ -17,6 +17,16 @@ function plusSlides(n) {
   showSlides(slideIndex += n);
 }
 
+  window.addEventListener('scroll', function() {
+    const header = document.getElementById('top-header');
+    if (window.scrollY > 0) {
+      header.classList.add('blur');
+    } else {
+      header.classList.remove('blur');
+    }
+  });
+
+
 // index page specific scripts
 document.addEventListener("DOMContentLoaded", function () {
     function updateDateTime() {
