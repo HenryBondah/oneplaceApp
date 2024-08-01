@@ -1,5 +1,10 @@
 <body>
-
+    <% if (messages && messages.success && messages.success.length > 0) { %>
+        <div class="flash-message flash-success"><%= messages.success %></div>
+    <% } %>
+    <% if (messages && messages.error && messages.error.length > 0) { %>
+        <div class="flash-message flash-error"><%= messages.error %></div>
+    <% } %>
     <div class="link-to-next-back">
         <a href="/common/classDashboard?classId=<%= student.class_id %>" class="btn btn-secondary">Back to Class Dashboard</a>
     </div>
@@ -15,6 +20,7 @@
             <h2><%= student.first_name %> <%= student.last_name %></h2>
         </div>
         <div class="student-info">
+            <p>Gender: <%= student.gender %></p>
             <p>Class: <%= student.class_name %></p>
             <p>Graduation Year: <%= gradYearGroupName %></p>
             <p>Date of Birth: <%= new Date(student.date_of_birth).toLocaleDateString() %></p>
