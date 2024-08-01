@@ -586,17 +586,21 @@ editStudentGet: async (req, res, db) => {
         const file = req.file;
 
         try {
+            let imageUrl = null;
             if (file) {
-                await db.query(
-                    `UPDATE students SET class_id = $1, first_name = $2, last_name = $3, date_of_birth = $4, height = $5, hometown = $6, image_url = $7, graduation_year_group_id = $8 WHERE student_id = $9 AND organization_id = $10`,
-                    [classId, firstName, lastName, dateOfBirth, height, hometown, file.filename, graduationYearGroupId, studentId, req.session.organizationId]
-                );
-            } else {
-                await db.query(
-                    `UPDATE students SET class_id = $1, first_name = $2, last_name = $3, date_of_birth = $4, height = $5, hometown = $6, graduation_year_group_id = $7 WHERE student_id = $8 AND organization_id = $9`,
-                    [classId, firstName, lastName, dateOfBirth, height, hometown, graduationYearGroupId, studentId, req.session.organizationId]
-                );
+                // Remove old image if exists and not placeholder
+                const student = await db.query('SELECT image_url FROM students WHERE student_id = $1', [studentId]);
+                imageUrl = student.rows[0].image_url;
+                if (imageUrl && imageUrl !== 'profilePlaceholder.png') {
+                    fs.unlinkSync(path.join(__dirname, '../uploads', imageUrl));
+                }
+                imageUrl = file.filename;
             }
+
+            await db.query(
+                `UPDATE students SET class_id = $1, first_name = $2, last_name = $3, date_of_birth = $4, height = $5, hometown = $6, image_url = $7, graduation_year_group_id = $8 WHERE student_id = $9 AND organization_id = $10`,
+                [classId, firstName, lastName, dateOfBirth, height, hometown, imageUrl, graduationYearGroupId, studentId, req.session.organizationId]
+            );
 
             await db.query('DELETE FROM student_subjects WHERE student_id = $1', [studentId]);
 
@@ -629,6 +633,29 @@ editStudentGet: async (req, res, db) => {
         }
     },
 
+    deleteStudentImage: async (req, res, db) => {
+        const { studentId } = req.params;
+
+        try {
+            const student = await db.query('SELECT image_url FROM students WHERE student_id = $1', [studentId]);
+            if (student.rows.length > 0) {
+                const imageUrl = student.rows[0].image_url;
+                if (imageUrl && imageUrl !== 'profilePlaceholder.png') {
+                    fs.unlinkSync(path.join(__dirname, '../uploads', imageUrl));
+                    await db.query('UPDATE students SET image_url = NULL WHERE student_id = $1', [studentId]);
+                }
+            }
+
+            req.flash('success', 'Student image deleted successfully.');
+            res.redirect(`/common/editStudent?studentId=${studentId}`);
+        } catch (error) {
+            console.error('Error deleting student image:', error);
+            req.flash('error', 'Failed to delete student image.');
+            res.redirect(`/common/editStudent?studentId=${studentId}`);
+        }
+    },
+    
+
     deleteStudent: async (req, res, db) => {
         const { studentId } = req.params;
 
@@ -637,6 +664,14 @@ editStudentGet: async (req, res, db) => {
         }
 
         try {
+            const student = await db.query('SELECT image_url FROM students WHERE student_id = $1', [studentId]);
+            if (student.rows.length > 0) {
+                const imageUrl = student.rows[0].image_url;
+                if (imageUrl && imageUrl !== 'profilePlaceholder.png') {
+                    fs.unlinkSync(path.join(__dirname, '../uploads', imageUrl));
+                }
+            }
+
             await db.query('DELETE FROM guardians WHERE student_id = $1', [studentId]);
             await db.query('DELETE FROM student_subjects WHERE student_id = $1', [studentId]);
             await db.query('DELETE FROM students WHERE student_id = $1 AND organization_id = $2', [studentId, req.session.organizationId]);
@@ -649,7 +684,7 @@ editStudentGet: async (req, res, db) => {
             res.redirect('/common/classDashboard');
         }
     },
-
+    
     getAttendanceForClass: async (req, res, db) => {
         const { classId } = req.query;
 

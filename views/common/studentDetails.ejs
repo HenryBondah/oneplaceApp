@@ -1,4 +1,3 @@
-
 <body>
 
     <div class="link-to-next-back">
@@ -9,9 +8,9 @@
         <h1>Student Information</h1>
         <div class="student-image-container">
             <% if (student.image_url) { %>
-                <img src="/<%= student.image_url %>" alt="Student Image" class="student-image">
+                <img src="/uploads/<%= student.image_url %>?v=<%= new Date().getTime() %>" alt="Student Image" class="student-image">
             <% } else { %>
-                <p>No image available</p>
+                <img src="/images/profilePlaceholder.png" alt="Placeholder Image" class="student-image">
             <% } %>
             <h2><%= student.first_name %> <%= student.last_name %></h2>
         </div>
@@ -75,3 +74,4 @@
             <a href="/common/editStudent?studentId=<%= student.student_id %>" class="btn btn-primary">Modify Student Information</a>
         </div>
     </main>
+</body>
