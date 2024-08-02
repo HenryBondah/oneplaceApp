@@ -13,7 +13,7 @@
         <h1>Student Information</h1>
         <div class="student-image-container">
             <% if (student.image_url) { %>
-                <img src="/uploads/<%= student.image_url %>?v=<%= new Date().getTime() %>" alt="Student Image" class="student-image">
+                <img src="/<%= student.image_url %>?v=<%= new Date().getTime() %>" alt="Student Image" class="student-image">
             <% } else { %>
                 <img src="/images/profilePlaceholder.png" alt="Placeholder Image" class="student-image">
             <% } %>

@@ -16,6 +16,7 @@ const storage = multer.diskStorage({
         cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
     }
 });
+
 const upload = multer({ storage: storage });
 
 
@@ -313,21 +314,21 @@ const commonController = {
 
     addStudentPost: async (req, res, db) => {
         const { firstName, lastName, dateOfBirth, height, hometown, classId, graduationYearGroupId, guardians, subjects, gender } = req.body;
-        const studentImageUrl = req.file ? req.file.filename : 'profilePlaceholder.png';
+        const studentImageUrl = req.file ? 'uploads/' + req.file.filename : 'profilePlaceholder.png';
         const organizationId = req.session.organizationId;
-    
+
         if (!firstName || !lastName || !classId || !dateOfBirth || !graduationYearGroupId || !gender) {
             req.flash('error', 'First name, last name, class, date of birth, graduation year group, and gender are required.');
             return res.redirect('/common/addStudent');
         }
-    
+
         try {
             const result = await db.query(
                 'INSERT INTO students (first_name, last_name, date_of_birth, height, hometown, class_id, image_url, graduation_year_group_id, gender, created_by, organization_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING student_id',
                 [firstName, lastName, dateOfBirth, height, hometown, classId, studentImageUrl, graduationYearGroupId, gender, req.session.userId, organizationId]
             );
             const studentId = result.rows[0].student_id;
-    
+
             if (Array.isArray(guardians)) {
                 for (const guardian of guardians) {
                     await db.query(
@@ -336,7 +337,7 @@ const commonController = {
                     );
                 }
             }
-    
+
             if (Array.isArray(subjects)) {
                 for (const subjectId of subjects) {
                     await db.query(
@@ -345,7 +346,7 @@ const commonController = {
                     );
                 }
             }
-    
+
             req.flash('success', 'Student added successfully.');
             res.redirect('/common/addStudent');
         } catch (err) {
@@ -589,39 +590,40 @@ editStudentGet: async (req, res, db) => {
 
     editStudentPost: async (req, res, db) => {
         const { studentId } = req.params;
-        const {
-            classId, firstName, lastName, dateOfBirth, height, hometown, gender, subjects = [], graduationYearGroupId,
-            guardians
-        } = req.body;
+        const { classId, firstName, lastName, dateOfBirth, height, hometown, gender, subjects = [], graduationYearGroupId, guardians } = req.body;
         const file = req.file;
-    
+
         try {
             let imageUrl = null;
             if (file) {
-                // Remove old image if exists and not placeholder
-                const student = await db.query('SELECT image_url FROM students WHERE student_id = $1', [studentId]);
-                imageUrl = student.rows[0].image_url;
+                const studentResult = await db.query('SELECT image_url FROM students WHERE student_id = $1', [studentId]);
+                const student = studentResult.rows[0];
+                imageUrl = student.image_url;
+
                 if (imageUrl && imageUrl !== 'profilePlaceholder.png') {
-                    fs.unlinkSync(path.join(__dirname, '../uploads', imageUrl));
+                    const oldImagePath = path.join(__dirname, '../', imageUrl);
+                    if (fs.existsSync(oldImagePath)) {
+                        fs.unlinkSync(oldImagePath);
+                    }
                 }
-                imageUrl = file.filename;
+                imageUrl = 'uploads/' + file.filename;
             }
-    
+
             await db.query(
                 `UPDATE students SET class_id = $1, first_name = $2, last_name = $3, date_of_birth = $4, height = $5, hometown = $6, gender = $7, image_url = $8, graduation_year_group_id = $9 WHERE student_id = $10 AND organization_id = $11`,
                 [classId, firstName, lastName, dateOfBirth, height, hometown, gender, imageUrl, graduationYearGroupId, studentId, req.session.organizationId]
             );
-    
+
             await db.query('DELETE FROM student_subjects WHERE student_id = $1', [studentId]);
-    
+
             if (Array.isArray(subjects)) {
                 for (const subjectId of subjects) {
                     await db.query('INSERT INTO student_subjects (student_id, subject_id) VALUES ($1, $2)', [studentId, subjectId]);
                 }
             }
-    
+
             await db.query('DELETE FROM guardians WHERE student_id = $1', [studentId]);
-    
+
             if (Array.isArray(guardians)) {
                 for (const guardian of guardians) {
                     if (guardian.firstName && guardian.lastName) {
@@ -632,7 +634,7 @@ editStudentGet: async (req, res, db) => {
                     }
                 }
             }
-    
+
             req.flash('success', 'Student details updated successfully.');
             res.redirect(`/common/studentDetails?studentId=${studentId}`);
         } catch (error) {
@@ -640,32 +642,32 @@ editStudentGet: async (req, res, db) => {
             req.flash('error', 'Failed to update student details.');
             res.redirect(`/common/editStudent?studentId=${studentId}`);
         }
-    },
-    
+    },            
     
     deleteStudentImage: async (req, res, db) => {
         const { studentId } = req.params;
-    
+
         try {
-            const student = await db.query('SELECT image_url FROM students WHERE student_id = $1', [studentId]);
-            if (student.rows.length > 0) {
-                const imageUrl = student.rows[0].image_url;
+            const studentResult = await db.query('SELECT image_url FROM students WHERE student_id = $1 AND organization_id = $2', [studentId, req.session.organizationId]);
+            if (studentResult.rows.length > 0) {
+                const imageUrl = studentResult.rows[0].image_url;
                 if (imageUrl && imageUrl !== 'profilePlaceholder.png') {
-                    fs.unlinkSync(path.join(__dirname, '../uploads', imageUrl));
-                    await db.query('UPDATE students SET image_url = NULL WHERE student_id = $1', [studentId]);
+                    const imagePath = path.join(__dirname, '../uploads', path.basename(imageUrl)); // Ensure correct path
+                    if (fs.existsSync(imagePath)) {
+                        fs.unlinkSync(imagePath);
+                    }
+                    await db.query('UPDATE students SET image_url = NULL WHERE student_id = $1 AND organization_id = $2', [studentId, req.session.organizationId]);
                 }
             }
-    
+
             req.flash('success', 'Student image deleted successfully.');
-            res.redirect(`/common/studentDetails?studentId=${studentId}`);
+            res.redirect(`/common/editStudent?studentId=${studentId}`);
         } catch (error) {
             console.error('Error deleting student image:', error);
             req.flash('error', 'Failed to delete student image.');
             res.redirect(`/common/editStudent?studentId=${studentId}`);
         }
-    },
-    
-    
+    },    
 
 deleteStudent: async (req, res, db) => {
     const { studentId } = req.params;

@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const db = require('../config/db');
 const path = require('path');
 const nodemailer = require('nodemailer'); 
+const fs = require('fs');
 
 async function sendRegistrationSuccessEmail(email, firstName, lastName, password) {
     const transporter = nodemailer.createTransport({
@@ -367,25 +368,31 @@ const accountController = {
     personalizationLogoPost: async (req, res) => {
         try {
             let logoPath = null;
-
+    
             if (req.file) {
-                // Save the logo file
-                logoPath = path.join('uploads', req.file.filename); // Use path.join to create the correct file path
-
+                logoPath = path.join('uploads', req.file.filename);
+    
+                const result = await db.query('SELECT logo FROM organizations WHERE organization_id = $1', [req.session.organizationId]);
+                const previousLogo = result.rows[0].logo;
+    
+                if (previousLogo && previousLogo !== 'profilePlaceholder.png') {
+                    fs.unlinkSync(path.join(__dirname, '../', previousLogo)); // Corrected path construction
+                }
+    
                 const updateQuery = `
                     UPDATE organizations
                     SET logo = $1
                     WHERE organization_id = $2
                 `;
-
+    
                 await db.query(updateQuery, [logoPath, req.session.organizationId]);
-
+    
                 req.session.logo = logoPath;
                 req.flash('success', 'Logo updated successfully.');
             } else {
                 req.flash('error', 'No file uploaded. Please select a file to upload.');
             }
-
+    
             res.redirect('/account/personalization');
         } catch (err) {
             console.error('Error updating logo:', err);

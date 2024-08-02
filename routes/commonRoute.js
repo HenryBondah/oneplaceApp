@@ -1,7 +1,20 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
 const { commonController } = require('../controllers/commonController');
-const { upload, isAuthenticated } = require('../middleware/middleware');
+const { isAuthenticated } = require('../middleware/middleware');
+
+// Setup multer for file uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + '-' + file.originalname); // Ensure filename includes extension
+    }
+});
+const upload = multer({ storage: storage });
 
 module.exports = (db) => {
     router.get('/orgDashboard', isAuthenticated, (req, res) => commonController.orgDashboard(req, res, db));
@@ -63,7 +76,7 @@ module.exports = (db) => {
             req.flash('error', 'Subject ID is required.');
             return res.redirect('/common/manageClassSubjectAndGradYr');
         }
-    
+
         commonController.deleteSubject(req, res, db);
     });
     router.get('/deleteStudentImage/:studentId', isAuthenticated, (req, res) => commonController.deleteStudentImage(req, res, db));
@@ -81,7 +94,7 @@ module.exports = (db) => {
     router.post('/setMainEmployee', isAuthenticated, (req, res) => commonController.setMainEmployee(req, res, db));
     router.post('/saveSingleScore', isAuthenticated, (req, res) => commonController.saveSingleScore(req, res, db));
     router.post('/saveSingleAttendance', (req, res) => commonController.saveSingleAttendance(req, res, db));
-        
-    
+
+
     return router;
 };
