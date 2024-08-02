@@ -417,8 +417,8 @@ const commonController = {
                 SELECT s.*, c.class_name, g.name AS grad_year_group_name
                 FROM students s
                 LEFT JOIN classes c ON s.class_id = c.class_id
-                LEFT JOIN graduation_year_groups g ON c.graduation_year_group_id = g.id
-                WHERE s.student_id = $1 AND c.organization_id = $2
+                LEFT JOIN graduation_year_groups g ON s.graduation_year_group_id = g.id
+                WHERE s.student_id = $1 AND s.organization_id = $2
             `, [studentId, req.session.organizationId]);
     
             if (studentResult.rows.length === 0) {
@@ -490,7 +490,7 @@ const commonController = {
             res.status(500).send('Failed to fetch student details');
         }
     },
-    
+        
     management: async (req, res, db) => {
         try {
             const schoolYears = await db.query(`
