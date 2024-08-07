@@ -1,25 +1,34 @@
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const multer = require('multer');
+const multerS3 = require('multer-s3');
 const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcrypt');
+require('dotenv').config(); // Load environment variables from .env file
+const { uploadToS3, deleteFromS3 } = require('../middleware/s3Upload');
 
-const uploadDirectory = './uploads';
-if (!fs.existsSync(uploadDirectory)) {
-    fs.mkdirSync(uploadDirectory, { recursive: true });
-}
+// Configure AWS S3
+const s3 = new S3Client({
+    region: process.env.AWS_REGION,
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    }
+});
 
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'uploads/');
-    },
-    filename: function (req, file, cb) {
-        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+const BUCKET_NAME = process.env.S3_BUCKET_NAME;
+
+// Setup multer for file uploads
+const storage = multerS3({
+    s3: s3,
+    bucket: BUCKET_NAME,
+    acl: 'public-read',
+    key: function (req, file, cb) {
+        cb(null, Date.now().toString() + '-' + file.originalname);
     }
 });
 
 const upload = multer({ storage: storage });
-
-
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req, res, next) {
@@ -314,7 +323,12 @@ const commonController = {
 
     addStudentPost: async (req, res, db) => {
         const { firstName, lastName, dateOfBirth, height, hometown, classId, graduationYearGroupId, guardians, subjects, gender } = req.body;
-        const studentImageUrl = req.file ? 'uploads/' + req.file.filename : 'profilePlaceholder.png';
+        let studentImageUrl = 'profilePlaceholder.png';
+
+        if (req.file) {
+            studentImageUrl = await uploadToS3(req.file);
+        }
+
         const organizationId = req.session.organizationId;
 
         if (!firstName || !lastName || !classId || !dateOfBirth || !graduationYearGroupId || !gender) {
@@ -355,7 +369,8 @@ const commonController = {
             res.redirect('/common/addStudent');
         }
     },
-        
+    
+    
     getMajorityGraduationYearGroup: async (req, res, db) => {
         const { classId } = req.query;
 
@@ -408,11 +423,11 @@ const commonController = {
 
     studentDetails: async (req, res, db) => {
         const studentId = req.query.studentId;
-    
+
         if (!studentId) {
             return res.status(400).send('Student ID is required.');
         }
-    
+
         try {
             const studentResult = await db.query(`
                 SELECT s.*, c.class_name, g.name AS grad_year_group_name
@@ -421,38 +436,38 @@ const commonController = {
                 LEFT JOIN graduation_year_groups g ON s.graduation_year_group_id = g.id
                 WHERE s.student_id = $1 AND s.organization_id = $2
             `, [studentId, req.session.organizationId]);
-    
+
             if (studentResult.rows.length === 0) {
                 return res.status(404).send('Student not found.');
             }
-    
+
             const student = studentResult.rows[0];
-    
+
             const guardiansResult = await db.query(`
                 SELECT * FROM guardians
                 WHERE student_id = $1
             `, [studentId]);
-    
+
             const guardians = guardiansResult.rows;
-    
+
             const subjectsResult = await db.query(`
                 SELECT ss.subject_id, sub.subject_name, ss.grade
                 FROM student_subjects ss
                 LEFT JOIN subjects sub ON ss.subject_id = sub.subject_id
                 WHERE ss.student_id = $1
             `, [studentId]);
-    
+
             const subjects = subjectsResult.rows;
-    
+
             const assessmentsResult = await db.query(`
                 SELECT a.assessment_id, a.title, a.weight, ar.score, a.subject_id
                 FROM assessments a
                 LEFT JOIN assessment_results ar ON a.assessment_id = ar.assessment_id
                 WHERE ar.student_id = $1
             `, [studentId]);
-    
+
             const assessments = assessmentsResult.rows;
-    
+
             const subjectsWithGrades = subjects.map(subject => {
                 let totalPercentage = 0;
                 let totalWeight = 0;
@@ -463,21 +478,21 @@ const commonController = {
                     }
                 });
                 totalPercentage = totalWeight > 0 ? totalPercentage : 0;
-    
+
                 let grade;
                 if (totalPercentage >= 90) grade = 'A';
                 else if (totalPercentage >= 80) grade = 'B';
                 else if (totalPercentage >= 70) grade = 'C';
                 else if (totalPercentage >= 60) grade = 'D';
                 else grade = 'F';
-    
+
                 return {
                     ...subject,
                     total_percentage: totalPercentage.toFixed(2),
                     grade: grade
                 };
             });
-    
+
             res.render('common/studentDetails', {
                 title: 'Student Details',
                 student,
@@ -491,7 +506,7 @@ const commonController = {
             res.status(500).send('Failed to fetch student details');
         }
     },
-        
+
     management: async (req, res, db) => {
         try {
             const schoolYears = await db.query(`
@@ -596,17 +611,16 @@ editStudentGet: async (req, res, db) => {
         try {
             let imageUrl = null;
             if (file) {
+                imageUrl = await uploadToS3(file);
+
                 const studentResult = await db.query('SELECT image_url FROM students WHERE student_id = $1', [studentId]);
                 const student = studentResult.rows[0];
-                imageUrl = student.image_url;
+                const oldImageUrl = student.image_url;
 
-                if (imageUrl && imageUrl !== 'profilePlaceholder.png') {
-                    const oldImagePath = path.join(__dirname, '../', imageUrl);
-                    if (fs.existsSync(oldImagePath)) {
-                        fs.unlinkSync(oldImagePath);
-                    }
+                if (oldImageUrl && oldImageUrl !== 'profilePlaceholder.png') {
+                    const oldImageKey = path.basename(oldImageUrl); 
+                    await deleteFromS3(`images/${oldImageKey}`);
                 }
-                imageUrl = 'uploads/' + file.filename;
             }
 
             await db.query(
@@ -642,32 +656,34 @@ editStudentGet: async (req, res, db) => {
             req.flash('error', 'Failed to update student details.');
             res.redirect(`/common/editStudent?studentId=${studentId}`);
         }
-    },            
-    
+    },
+
     deleteStudentImage: async (req, res, db) => {
         const { studentId } = req.params;
 
         try {
-            const studentResult = await db.query('SELECT image_url FROM students WHERE student_id = $1 AND organization_id = $2', [studentId, req.session.organizationId]);
-            if (studentResult.rows.length > 0) {
-                const imageUrl = studentResult.rows[0].image_url;
-                if (imageUrl && imageUrl !== 'profilePlaceholder.png') {
-                    const imagePath = path.join(__dirname, '../uploads', path.basename(imageUrl)); // Ensure correct path
-                    if (fs.existsSync(imagePath)) {
-                        fs.unlinkSync(imagePath);
-                    }
-                    await db.query('UPDATE students SET image_url = NULL WHERE student_id = $1 AND organization_id = $2', [studentId, req.session.organizationId]);
-                }
-            }
+            const studentResult = await db.query('SELECT image_url FROM students WHERE student_id = $1', [studentId]);
+            const student = studentResult.rows[0];
+            const imageUrl = student.image_url;
 
-            req.flash('success', 'Student image deleted successfully.');
-            res.redirect(`/common/editStudent?studentId=${studentId}`);
+            if (imageUrl && imageUrl !== 'profilePlaceholder.png') {
+                const imageKey = path.basename(imageUrl); 
+                await deleteFromS3(`images/${imageKey}`);
+
+                await db.query('UPDATE students SET image_url = $1 WHERE student_id = $2', ['profilePlaceholder.png', studentId]);
+
+                req.flash('success', 'Image deleted successfully.');
+                res.redirect(`/common/editStudent?studentId=${studentId}`);
+            } else {
+                req.flash('error', 'No image to delete.');
+                res.redirect(`/common/editStudent?studentId=${studentId}`);
+            }
         } catch (error) {
             console.error('Error deleting student image:', error);
             req.flash('error', 'Failed to delete student image.');
             res.redirect(`/common/editStudent?studentId=${studentId}`);
         }
-    },    
+    },       
 
 deleteStudent: async (req, res, db) => {
     const { studentId } = req.params;

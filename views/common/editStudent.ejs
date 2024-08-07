@@ -107,7 +107,7 @@
                 <label for="studentImage">Student Image (Optional):</label>
                 <input type="file" id="studentImage" name="studentImage" accept="image/*">
                 <div class="current-image">
-                    <img src="<%= student.image_url ? '/' + student.image_url : '/images/profilePlaceholder.png' %>" alt="Student Image" class="student-image">
+                    <img src="<%= student.image_url && student.image_url !== 'profilePlaceholder.png' ? student.image_url : '/images/profilePlaceholder.png' %>" alt="Student Image" class="student-image">
                 </div>
                 <% if (student.image_url && student.image_url !== 'profilePlaceholder.png') { %>
                     <button type="button" onclick="deleteImage('<%= student.student_id %>')">Delete Image</button>

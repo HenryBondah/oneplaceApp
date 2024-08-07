@@ -1,4 +1,12 @@
-<h1>Personalize Your Interface</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personalize Your Interface</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
 
 <% if (success_msg) { %>
     <div class="alert alert-success"><%= success_msg %></div>
@@ -7,6 +15,7 @@
     <div class="alert alert-danger"><%= error_msg %></div>
 <% } %>
 
+<h1>Personalize Your Interface</h1>
 
 <!-- Form for updating the organization name and font -->
 <form action="/account/personalization" method="POST">
@@ -46,10 +55,11 @@
         <label for="logo">Upload Logo:</label>
         <% if (orgDetails.logo) { %>
             <div>
-                <img src="/<%= orgDetails.logo %>" alt="Current Logo" style="max-width: 100px; display: block; margin-bottom: 10px;">
+                <img src="<%= orgDetails.logo %>" alt="Current Logo" style="max-width: 100px; display: block; margin-bottom: 10px;">
             </div>
         <% } %>
         <input type="file" id="logo" name="logo" accept="image/*">
+        <p style="color: red;">Note: Uploading a new logo will replace the existing one.</p>
     </div>
     <button type="submit">Upload Logo</button>
 </form>
@@ -91,16 +101,16 @@
         <textarea id="paragraph" name="paragraph" rows="4" required></textarea>
     </div>
     <button type="submit">Add Text Section</button>
-
-    <hr>
-    <div class="public-dashboard-link">
-        <h2>Public Dashboard</h2>
-        <p>Access the public dashboard for your organization:</p>
-        <a href="/common/publicDashboardContent?organizationId=<%= organizationId %>">
-            /common/publicDashboardContent?organizationId=<%= organizationId %>
-        </a>
-    </div>
 </form>
+
+<hr>
+<div class="public-dashboard-link">
+    <h2>Public Dashboard</h2>
+    <p>Access the public dashboard for your organization:</p>
+    <a href="/common/publicDashboardContent?organizationId=<%= organizationId %>">
+        /common/publicDashboardContent?organizationId=<%= organizationId %>
+    </a>
+</div>
 
 <script>
     function updateFontSample() {

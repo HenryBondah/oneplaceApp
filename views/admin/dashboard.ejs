@@ -3,7 +3,7 @@
     <div class="link-to-next-back">
         <a href="/admin/superDashboard">Super Admin Dashboard</a>
         <a href="/admin/superSettings">Super Settings</a>
-        </div>
+    </div>
     <hr>
     <% if (messages.success) { %>
         <div class="flash-message success"><%= messages.success %></div>
@@ -29,11 +29,11 @@
                         <p>Organization Phone: <%= application.organization_phone %></p>
                         <div>
                             <p>Proof of Existence 1:</p>
-                            <img src="/<%= application.proof_of_existence_1 %>" alt="Proof of Existence 1" class="thumbnail" onclick="openModal('/<%= application.proof_of_existence_1 %>')">
+                            <img src="<%= application.proof_of_existence_1 %>" alt="Proof of Existence 1" class="thumbnail" onclick="openModal('<%= application.proof_of_existence_1 %>')">
                         </div>
                         <div>
                             <p>Proof of Existence 2:</p>
-                            <img src="/<%= application.proof_of_existence_2 %>" alt="Proof of Existence 2" class="thumbnail" onclick="openModal('/<%= application.proof_of_existence_2 %>')">
+                            <img src="<%= application.proof_of_existence_2 %>" alt="Proof of Existence 2" class="thumbnail" onclick="openModal('<%= application.proof_of_existence_2 %>')">
                         </div>
                         <% if (application.on_hold) { %>
                             <form action="/admin/resume" method="post" style="display:inline;">
@@ -58,7 +58,6 @@
         <% } %>
     </div>
 </main>
-
 
 <script>
     function toggleDetails(id) {

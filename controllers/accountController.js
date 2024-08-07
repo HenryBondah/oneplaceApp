@@ -1,7 +1,8 @@
 const bcrypt = require('bcrypt');
 const db = require('../config/db');
 const path = require('path');
-const nodemailer = require('nodemailer'); 
+const nodemailer = require('nodemailer');
+const { upload, uploadToS3, deleteFromS3 } = require('../middleware/s3Upload');
 const fs = require('fs');
 
 async function sendRegistrationSuccessEmail(email, firstName, lastName, password) {
@@ -68,8 +69,8 @@ const accountController = {
 
     registerPost: async (req, res) => {
         const { firstName, lastName, email, password, orgName, orgAddress, orgPhone } = req.body;
-        const proof1 = req.files['proof1'] ? req.files['proof1'][0].path : '';
-        const proof2 = req.files['proof2'] ? req.files['proof2'][0].path : '';
+        const proof1 = req.files['proof1'] ? req.files['proof1'][0] : null;
+        const proof2 = req.files['proof2'] ? req.files['proof2'][0] : null;
 
         const client = await db.connect();
         try {
@@ -102,10 +103,20 @@ const accountController = {
             // Hash the password
             const hashedPassword = await bcrypt.hash(password, 10);
 
+            // Upload proof images to S3
+            let proof1Url = '';
+            let proof2Url = '';
+            if (proof1) {
+                proof1Url = await uploadToS3(proof1);
+            }
+            if (proof2) {
+                proof2Url = await uploadToS3(proof2);
+            }
+
             // Insert new organization record
             const result = await client.query(
                 'INSERT INTO organizations (organization_name, organization_address, organization_phone, proof_of_existence_1, proof_of_existence_2, email, password, first_name, last_name, approved, on_hold, deleted) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, false, false) RETURNING organization_id',
-                [orgName, orgAddress, orgPhone, proof1, proof2, email, hashedPassword, firstName, lastName]
+                [orgName, orgAddress, orgPhone, proof1Url, proof2Url, email, hashedPassword, firstName, lastName]
             );
 
             const orgId = result.rows[0].organization_id;
@@ -128,8 +139,6 @@ const accountController = {
             client.release();
         }
     },
-    
-    
 
     loginGet: (req, res) => {
         res.render('account/login', { title: 'Login', messages: req.flash() });
@@ -276,17 +285,17 @@ const accountController = {
     updatePost: async (req, res) => {
         const { firstName, lastName, email, phone, password, confirmPassword } = req.body;
         const orgId = req.session.organizationId;
-    
+
         // Check for password match and optional update
         if (password && password !== confirmPassword) {
             req.flash('error', 'Passwords do not match.');
             return res.redirect('/account/update');
         }
-    
+
         try {
             let query = 'UPDATE organizations SET first_name = $1, last_name = $2, email = $3, organization_phone = $4';
             let params = [firstName, lastName, email, phone];
-    
+
             if (password) {
                 const hashedPassword = await bcrypt.hash(password, 10);
                 query += ', password = $5 WHERE organization_id = $6';
@@ -295,14 +304,14 @@ const accountController = {
                 query += ' WHERE organization_id = $5';
                 params.push(orgId);
             }
-    
+
             const result = await db.query(query, params);
-    
+
             // Update session values
             req.session.firstName = firstName;
             req.session.lastName = lastName;
             req.session.save();
-    
+
             req.flash('success', 'Account information updated successfully.');
             res.redirect('/account/update');
         } catch (error) {
@@ -311,7 +320,7 @@ const accountController = {
             res.redirect('/account/update');
         }
     },
-    
+
     personalizationGet: async (req, res) => {
         try {
             const { organizationId } = req.session;
@@ -366,41 +375,44 @@ const accountController = {
     },
 
     personalizationLogoPost: async (req, res) => {
+        const { file } = req;
+        const { organizationId } = req.session;
+
+        if (!file) {
+            req.flash('error', 'No file uploaded. Please select a file to upload.');
+            return res.redirect('/account/personalization');
+        }
+
         try {
-            let logoPath = null;
-    
-            if (req.file) {
-                logoPath = path.join('uploads', req.file.filename);
-    
-                const result = await db.query('SELECT logo FROM organizations WHERE organization_id = $1', [req.session.organizationId]);
-                const previousLogo = result.rows[0].logo;
-    
-                if (previousLogo && previousLogo !== 'profilePlaceholder.png') {
-                    fs.unlinkSync(path.join(__dirname, '../', previousLogo)); // Corrected path construction
-                }
-    
-                const updateQuery = `
-                    UPDATE organizations
-                    SET logo = $1
-                    WHERE organization_id = $2
-                `;
-    
-                await db.query(updateQuery, [logoPath, req.session.organizationId]);
-    
-                req.session.logo = logoPath;
-                req.flash('success', 'Logo updated successfully.');
-            } else {
-                req.flash('error', 'No file uploaded. Please select a file to upload.');
+            const result = await db.query('SELECT logo FROM organizations WHERE organization_id = $1', [organizationId]);
+            const previousLogo = result.rows[0].logo;
+
+            // Upload the new logo to S3
+            const logoUrl = await uploadToS3(file);
+
+            // Update the organization record with the new logo URL
+            await db.query('UPDATE organizations SET logo = $1 WHERE organization_id = $2', [logoUrl, organizationId]);
+
+            // Update the session with the new logo URL
+            req.session.logo = logoUrl;
+            req.session.save();
+
+            // Delete the old logo from S3 if it exists
+            if (previousLogo) {
+                const oldLogoKey = previousLogo.split('/').pop();
+                await deleteFromS3(`images/${oldLogoKey}`);
             }
-    
+
+            req.flash('success', 'Logo updated successfully.');
             res.redirect('/account/personalization');
         } catch (err) {
             console.error('Error updating logo:', err);
-            req.flash('error', 'An error occurred while updating logo. Please try again.');
+            req.flash('error', 'An error occurred while updating the logo. Please try again.');
             res.redirect('/account/personalization');
         }
     },
-
+    
+    
     getSubjectsByClass: async (req, res) => {
         const { classId } = req.query;
         if (!classId) {
@@ -423,9 +435,10 @@ const accountController = {
 
         try {
             for (const image of images) {
+                const imageUrl = await uploadToS3(image);
                 await db.query(
                     'INSERT INTO organization_images (organization_id, image_url, caption, allocation) VALUES ($1, $2, $3, $4)',
-                    [orgId, image.path, imageText, imageAllocation]
+                    [orgId, imageUrl, imageText, imageAllocation]
                 );
             }
             req.flash('success', 'Images uploaded successfully.');

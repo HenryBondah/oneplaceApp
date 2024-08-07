@@ -2,7 +2,7 @@
   <span class="siteName">
     <img src="/images/1place.png" alt="Existing Logo" class="logo" />
     <% if (session.logo) { %>
-      <img src="/<%= session.logo %>" alt="Organization Logo" class="logo" />
+      <img src="<%= session.logo %>" alt="Organization Logo" class="logo" />
     <% } %>
     <% if (session.organizationName) { %>
       <a href="/common/orgDashboard" title="Go to dashboard"><%= session.organizationName %></a>
