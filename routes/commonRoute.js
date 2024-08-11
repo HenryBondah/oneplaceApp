@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { commonController } = require('../controllers/commonController');
 const { isAuthenticated } = require('../middleware/middleware');
-const { upload } = require('../middleware/s3Upload'); // Use the S3 upload middleware
+const { upload } = require('../middleware/s3Upload');
 
 module.exports = (db) => {
     router.get('/orgDashboard', isAuthenticated, (req, res) => commonController.orgDashboard(req, res, db));
@@ -14,7 +14,7 @@ module.exports = (db) => {
     router.get('/editStudent', isAuthenticated, (req, res) => commonController.editStudentGet(req, res, db));
     router.post('/editStudent/:studentId', upload.single('studentImage'), isAuthenticated, (req, res) => commonController.editStudentPost(req, res, db));
     router.post('/deleteStudent/:studentId', isAuthenticated, (req, res) => commonController.deleteStudent(req, res, db));
-    router.post('/common/saveAttendanceForDate', (req, res) => commonController.saveAttendance(req, res, db)); // Fixed function call
+    router.post('/saveAttendanceForDate', (req, res) => commonController.saveAttendance(req, res, db));
     router.get('/getAttendanceForClass', isAuthenticated, (req, res) => commonController.getAttendanceForClass(req, res, db));
     router.get('/attendance', isAuthenticated, (req, res) => commonController.attendance(req, res, db));
     router.get('/attendanceCollection', isAuthenticated, (req, res) => commonController.attendanceCollection(req, res, db));
@@ -32,10 +32,9 @@ module.exports = (db) => {
     router.get('/manageAssessment', isAuthenticated, (req, res) => commonController.manageAssessment(req, res, db));
     router.post('/updateAssessment', isAuthenticated, (req, res) => commonController.updateAssessment(req, res, db));
     router.post('/deleteAssessment', isAuthenticated, (req, res) => commonController.deleteAssessment(req, res, db));
-    router.post('/saveScores', isAuthenticated, (req, res) => commonController.saveScores(req, res, db));
+    router.post('/saveAllScores', isAuthenticated, (req, res) => commonController.saveAllScores(req, res, db));  // This now handles single and all scores
     router.get('/getSubjectsForClass', isAuthenticated, (req, res) => commonController.getSubjectsForClass(req, res, db));
     router.get('/classDashboard', isAuthenticated, (req, res) => commonController.classDashboard(req, res, db));
-    router.post('/saveScores', isAuthenticated, (req, res) => commonController.saveScores(req, res, db));
     router.post('/registerSchoolYear', isAuthenticated, (req, res) => commonController.registerSchoolYear(req, res, db));
     router.get('/registerSchoolYear', isAuthenticated, (req, res) => commonController.registerSchoolYearGet(req, res, db));
     router.get('/getClasses', isAuthenticated, (req, res) => commonController.getClasses(req, res, db));
@@ -57,16 +56,6 @@ module.exports = (db) => {
     router.get('/deleteClass', isAuthenticated, (req, res) => commonController.deleteClass(req, res, db));
     router.post('/editClass', isAuthenticated, (req, res) => commonController.editClass(req, res, db));
     router.get('/getSubjectsByClass', isAuthenticated, (req, res) => commonController.getSubjectsByClass(req, res, db));
-    router.post('/editSubject', isAuthenticated, (req, res) => commonController.editSubject(req, res, db));
-    router.get('/deleteSubject', (req, res) => {
-        const subjectId = req.query.subjectId;
-        if (!subjectId) {
-            req.flash('error', 'Subject ID is required.');
-            return res.redirect('/common/manageClassSubjectAndGradYr');
-        }
-
-        commonController.deleteSubject(req, res, db);
-    });
     router.get('/deleteStudentImage/:studentId', isAuthenticated, (req, res) => commonController.deleteStudentImage(req, res, db));
     router.post('/deleteSubject', isAuthenticated, (req, res) => commonController.deleteSubject(req, res, db));
     router.get('/getGradYearGroupByClassId', isAuthenticated, (req, res) => commonController.getGradYearGroupByClassId(req, res, db));
@@ -80,9 +69,7 @@ module.exports = (db) => {
     router.post('/deleteSchoolYear', isAuthenticated, (req, res) => commonController.deleteSchoolYear(req, res, db));
     router.post('/deleteSchoolYearPost', isAuthenticated, (req, res) => commonController.deleteSchoolYearPost(req, res, db));
     router.post('/setMainEmployee', isAuthenticated, (req, res) => commonController.setMainEmployee(req, res, db));
-    router.post('/saveSingleScore', isAuthenticated, (req, res) => commonController.saveSingleScore(req, res, db));
     router.post('/saveSingleAttendance', (req, res) => commonController.saveSingleAttendance(req, res, db));
-
 
     return router;
 };

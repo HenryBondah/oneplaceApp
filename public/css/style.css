@@ -19,6 +19,15 @@ h1 {
   text-align: center;
 }
 
+.flash-success {
+  color: green;
+  font-weight: bold;
+}
+.flash-error {
+  color: red;
+  font-weight: bold;
+}
+
 .link-to-next-back {
   text-align: center;
   margin-bottom: 20px;
