@@ -1,4 +1,9 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Assessments</title>
     <style>
         th, td {
             padding: 10px;
@@ -20,15 +25,15 @@
             display: flex;
             flex-direction: column;
         }
-        .weight-input {
+        .weight-input, .max-score-input {
             width: 100%;
         }
         @media (max-width: 768px) {
             .test-name-input {
-                width: 70%;
+                width: 60%;
             }
-            .weight-input {
-                width: 30%;
+            .weight-input, .max-score-input {
+                width: 20%;
             }
         }
     </style>
@@ -49,36 +54,46 @@
         <div class="flash-error"><%= messages.error %></div>
     <% } %>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Test Name</th>
-                <th>Weight</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% assessments.forEach(function(assessment) { %>
+    <!-- Wrap all assessments in a single form -->
+    <form action="/common/updateAssessments?classId=<%= classId %>&subjectId=<%= subjectId %>" method="post">
+        <table>
+            <thead>
                 <tr>
-                    <form action="/common/updateAssessment" method="post">
-                        <td>
-                            <input type="text" name="title" value="<%= assessment.title %>" class="test-name-input" required>
-                            <input type="hidden" name="assessmentId" value="<%= assessment.assessment_id %>">
-                        </td>
-                        <td>
-                            <input type="number" name="weight" value="<%= assessment.weight %>" step="0.1" class="weight-input" required>
-                        </td>
-                        <td class="action-buttons">
-                            <button type="submit">Update</button>
-                        </td>
-                    </form>
-                    <form action="/common/deleteAssessment" method="post">
-                        <td class="action-buttons">
-                            <input type="hidden" name="assessmentId" value="<%= assessment.assessment_id %>">
-                            <button type="submit">Delete</button>
-                        </td>
-                    </form>
+                    <th>Test Name</th>
+                    <th>Weight</th>
+                    <th>Score Out Of</th>
+                    <th>Actions</th>
                 </tr>
-            <% }); %>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <% assessments.forEach(function(assessment) { %>
+                    <tr>
+                        <td>
+                            <input type="text" name="title[<%= assessment.assessment_id %>]" value="<%= assessment.title %>" class="test-name-input" required>
+                        </td>
+                        <td>
+                            <input type="number" name="weight[<%= assessment.assessment_id %>]" value="<%= assessment.weight %>" step="0.1" class="weight-input" required>
+                        </td>
+                        <td>
+                            <input type="number" name="maxScore[<%= assessment.assessment_id %>]" value="<%= assessment.max_score %>" step="0.1" class="max-score-input" required>
+                        </td>
+                        <td class="action-buttons">
+                            <form action="/common/deleteAssessment" method="post" style="display:inline;">
+                                <input type="hidden" name="assessmentId" value="<%= assessment.assessment_id %>">
+                                <button type="submit">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+        <div class="action-buttons">
+            <!-- Pass classId and subjectId as hidden inputs -->
+            <input type="hidden" name="classId" value="<%= classId %>">
+            <input type="hidden" name="subjectId" value="<%= subjectId %>">
+            <button type="submit">Update All</button>
+        </div>
+    </form>
+    
+</body>
+</html>

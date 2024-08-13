@@ -30,7 +30,7 @@ module.exports = (db) => {
     router.get('/getAssessments', isAuthenticated, (req, res) => commonController.getAssessments(req, res, db));
     router.get('/getScores', isAuthenticated, (req, res) => commonController.getScores(req, res, db));
     router.get('/manageAssessment', isAuthenticated, (req, res) => commonController.manageAssessment(req, res, db));
-    router.post('/updateAssessment', isAuthenticated, (req, res) => commonController.updateAssessment(req, res, db));
+    router.post('/updateAssessments', isAuthenticated, (req, res) => commonController.updateAssessments(req, res, db));
     router.post('/deleteAssessment', isAuthenticated, (req, res) => commonController.deleteAssessment(req, res, db));
     router.post('/saveAllScores', isAuthenticated, (req, res) => commonController.saveAllScores(req, res, db));  // This now handles single and all scores
     router.get('/getSubjectsForClass', isAuthenticated, (req, res) => commonController.getSubjectsForClass(req, res, db));
