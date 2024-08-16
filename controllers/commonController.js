@@ -1537,66 +1537,41 @@ calculateGrade: (totalPercentage) => {
     },
     
     updateAssessments: async (req, res, db) => {
-        const { title, weight, maxScore } = req.body;
-        const { classId, subjectId } = req.body;
-    
-        const parsedClassId = parseInt(classId, 10);
-        const parsedSubjectId = parseInt(subjectId, 10);
-    
-        if (isNaN(parsedClassId) || isNaN(parsedSubjectId)) {
-            req.flash('error', 'Invalid Class ID or Subject ID.');
-            return res.status(400).send('Invalid Class ID or Subject ID.');
-        }
+        const { classId, subjectId } = req.query;
+        const { assessments } = req.body;
     
         try {
             await db.query('BEGIN');
     
-            for (let assessmentId in title) {
-                const newTitle = title[assessmentId];
-                const newWeight = parseFloat(weight[assessmentId]);
-                const newMaxScore = parseFloat(maxScore[assessmentId]);
+            for (let assessmentId in assessments) {
+                const { title, weight, maxScore } = assessments[assessmentId];
     
-                // Log the query parameters for debugging
-                console.log(`Updating assessment: 
-                    ID: ${assessmentId}, 
-                    Title: ${newTitle}, 
-                    Weight: ${newWeight}, 
-                    MaxScore: ${newMaxScore}, 
-                    ClassId: ${parsedClassId}, 
-                    SubjectId: ${parsedSubjectId}`
-                );
+                // Replace old data with new data
+                const result = await db.query(`
+                    UPDATE assessments
+                    SET title = $1, weight = $2, max_score = $3
+                    WHERE assessment_id = $4 AND class_id = $5 AND subject_id = $6 AND organization_id = $7
+                `, [title, parseFloat(weight), parseFloat(maxScore), assessmentId, classId, subjectId, req.session.organizationId]);
     
-                // Ensure all necessary data is present
-                if (!newTitle || isNaN(newWeight) || isNaN(newMaxScore)) {
-                    await db.query('ROLLBACK');
-                    req.flash('error', 'All fields are required.');
-                    return res.status(400).redirect(`/common/manageAssessment?classId=${parsedClassId}&subjectId=${parsedSubjectId}`);
+                if (result.rowCount === 0) {
+                    console.error(`Failed to update assessment ID: ${assessmentId}`);
+                } else {
+                    console.log(`Successfully updated assessment ID: ${assessmentId}`);
                 }
-    
-                // Update the assessment in the database
-                const updateResult = await db.query(
-                    `UPDATE assessments 
-                    SET title = $1, weight = $2, max_score = $3 
-                    WHERE assessment_id = $4 AND class_id = $5 AND subject_id = $6 AND organization_id = $7`,
-                    [newTitle, newWeight, newMaxScore, assessmentId, parsedClassId, parsedSubjectId, req.session.organizationId]
-                );
-    
-                // Log the result of the update query
-                console.log(`Update result for assessment ID ${assessmentId}:`, updateResult.rowCount);
             }
     
             await db.query('COMMIT');
     
             req.flash('success', 'Assessments updated successfully.');
-            res.redirect(`/common/manageAssessment?classId=${parsedClassId}&subjectId=${parsedSubjectId}`);
+            res.status(200).json({ success: true, message: 'Assessments updated successfully.' });
         } catch (err) {
             await db.query('ROLLBACK');
             console.error('Error updating assessments:', err);
             req.flash('error', 'Failed to update assessments.');
-            res.redirect(`/common/manageAssessment?classId=${parsedClassId}&subjectId=${parsedSubjectId}`);
+            res.status(500).json({ error: 'Failed to update assessments.' });
         }
     },
-        
+                            
         
     deleteAssessment: async (req, res, db) => {
         const { assessmentId } = req.body;

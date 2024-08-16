@@ -5,38 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Assessments</title>
     <style>
-        th, td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            vertical-align: top;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .flash-success {
-            color: green;
-            font-weight: bold;
-        }
-        .flash-error {
-            color: red;
-            font-weight: bold;
-        }
-        .action-buttons {
-            display: flex;
-            flex-direction: column;
-        }
-        .weight-input, .max-score-input {
-            width: 100%;
-        }
-        @media (max-width: 768px) {
-            .test-name-input {
-                width: 60%;
-            }
-            .weight-input, .max-score-input {
-                width: 20%;
-            }
-        }
-    </style>
+th, td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    vertical-align: top;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+}
+
+.weight-input, .max-score-input {
+    width: 100%;
+}
+
+.test-name-input {
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .test-name-input {
+        width: 60%;
+    }
+    .weight-input, .max-score-input {
+        width: 20%;
+    }
+}
+
+/* Styles for Delete button */
+.action-buttons form {
+    display: inline-block;
+    margin-top: 5px;
+}
+
+.action-buttons button {
+    padding: 8px 15px;
+    border: none;
+    background-color: #284cdb;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.action-buttons button:hover {
+    /* background-color: #c82333; */
+    transform: scale(1.05);
+}
+
+.action-buttons button:active {
+    /* background-color: #bd2130; */
+    transform: scale(0.95);
+}
+
+.action-buttons button:focus {
+    outline: none;
+}
+
+</style>
 </head>
 <body>
 
@@ -54,8 +86,8 @@
         <div class="flash-error"><%= messages.error %></div>
     <% } %>
 
-    <!-- Wrap all assessments in a single form -->
-    <form action="/common/updateAssessments?classId=<%= classId %>&subjectId=<%= subjectId %>" method="post">
+    <!-- Form to update assessments -->
+    <form id="updateAssessmentsForm">
         <table>
             <thead>
                 <tr>
@@ -91,9 +123,53 @@
             <!-- Pass classId and subjectId as hidden inputs -->
             <input type="hidden" name="classId" value="<%= classId %>">
             <input type="hidden" name="subjectId" value="<%= subjectId %>">
-            <button type="submit">Update All</button>
+            <button type="button" id="update-assessments-button">Update All</button>
         </div>
     </form>
     
+    <script>
+        document.getElementById('update-assessments-button').addEventListener('click', async function() {
+            const formElement = document.getElementById('updateAssessmentsForm');
+            const formData = new FormData(formElement);
+
+            const assessments = {};
+            formData.forEach((value, key) => {
+                const match = key.match(/title\[(\d+)\]|weight\[(\d+)\]|maxScore\[(\d+)\]/);
+                if (match) {
+                    const id = match[1] || match[2] || match[3];
+                    if (!assessments[id]) assessments[id] = {};
+                    if (key.startsWith('title')) assessments[id].title = value;
+                    if (key.startsWith('weight')) assessments[id].weight = parseFloat(value);
+                    if (key.startsWith('maxScore')) assessments[id].maxScore = parseFloat(value);
+                }
+            });
+
+            await saveAssessments(assessments);
+        });
+
+        async function saveAssessments(assessments) {
+            const classId = "<%= classId %>";
+            const subjectId = "<%= subjectId %>";
+
+            try {
+                const response = await fetch(`/common/updateAssessments?classId=${classId}&subjectId=${subjectId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ assessments })
+                });
+
+                if (response.ok) {
+                    alert('Assessments updated successfully.');
+                    location.reload();
+                } else {
+                    alert('Error updating assessments.');
+                }
+            } catch (error) {
+                alert('Error updating assessments.');
+            }
+        }
+    </script>
 </body>
 </html>

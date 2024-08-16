@@ -22,10 +22,12 @@ h1 {
 .flash-success {
   color: green;
   font-weight: bold;
+  text-align: center;
 }
 .flash-error {
   color: red;
   font-weight: bold;
+  text-align: center;
 }
 
 .link-to-next-back {
