@@ -99,6 +99,85 @@ async function fetchStudentsByClass(db, classId) {
     }
 }
 
+// async function updateStudentPositions(db, subjectId, organizationId) {
+//     const updateQuery = `
+//     WITH RankedScores AS (
+//         SELECT
+//             student_id,
+//             subject_id,
+//             SUM(score) AS total_subject_score,
+//             RANK() OVER (PARTITION BY subject_id ORDER BY SUM(score) DESC) AS position
+//         FROM assessment_results
+//         WHERE subject_id = $1 AND organization_id = $2
+//         GROUP BY student_id, subject_id
+//     )
+//     INSERT INTO student_positions (student_id, subject_id, organization_id, total_subject_score, position)
+//     SELECT 
+//         rs.student_id,
+//         rs.subject_id,
+//         $2,
+//         rs.total_subject_score,
+//         rs.position
+//     FROM RankedScores rs
+//     ON CONFLICT (student_id, subject_id) DO UPDATE
+//     SET 
+//         total_subject_score = EXCLUDED.total_subject_score,
+//         position = EXCLUDED.position;
+//     `;
+
+//     try {
+//         await db.query(updateQuery, [subjectId, organizationId]);
+//     } catch (error) {
+//         console.error('Error updating student positions:', error);
+//         throw error;
+//     }
+// }
+// async function saveAllScores(req, res, db) {
+//     const { subjectId } = req.query;
+//     const { scores } = req.body;
+
+//     try {
+//         await db.query('BEGIN');
+
+//         for (let studentId in scores) {
+//             let totalScore = 0;
+//             for (let assessmentId in scores[studentId]) {
+//                 const score = scores[studentId][assessmentId];
+//                 if (score !== null && score !== "") {
+//                     totalScore += parseFloat(score);
+//                     await db.query(`
+//                         INSERT INTO assessment_results (student_id, assessment_id, score, subject_id, organization_id)
+//                         VALUES ($1, $2, $3, $4, $5)
+//                         ON CONFLICT (student_id, assessment_id)
+//                         DO UPDATE SET score = EXCLUDED.score
+//                     `, [studentId, assessmentId, score, subjectId, req.session.organizationId]);
+//                 }
+//             }
+
+//             const totalPercentage = calculateTotalPercentage(scores[studentId]);
+//             const grade = calculateGrade(totalPercentage);
+
+//             await db.query(`
+//                 UPDATE assessment_results
+//                 SET total_subject_score = $1, total_percentage = $2, grade = $3
+//                 WHERE student_id = $4 AND subject_id = $5 AND organization_id = $6
+//             `, [totalScore, totalPercentage, grade, studentId, subjectId, req.session.organizationId]);
+//         }
+
+//         await updateStudentPositions(db, subjectId, req.session.organizationId);
+//         await db.query('COMMIT');
+
+//         req.flash('success', 'Scores saved successfully.');
+//         res.json({ success: true, message: 'Scores saved successfully.' });
+//     } catch (error) {
+//         await db.query('ROLLBACK');
+//         console.error('Error saving scores:', error);
+//         req.flash('error', 'An error occurred while saving scores. Please try again.');
+//         res.status(500).json({ error: 'An error occurred while saving scores. Please try again.' });
+//     }
+// }
+
+
 function generateLastFiveDates() {
     const dates = [];
     const today = new Date();
@@ -123,6 +202,22 @@ function generateAllDatesFromStart(termStartDate) {
     return dates;
 }
 
+function calculateGrade(percentage) {
+    if (percentage >= 90) return 'A';
+    if (percentage >= 80) return 'B';
+    if (percentage >= 70) return 'C';
+    if (percentage >= 60) return 'D';
+    return 'F';
+}
+
+function getOrdinalSuffix(i) {
+    const j = i % 10,
+          k = i % 100;
+    if (j == 1 && k != 11) return "st";
+    if (j == 2 && k != 12) return "nd";
+    if (j == 3 && k != 13) return "rd";
+    return "th";
+}
 
 const commonController = {
     deleteTerm: async (req, res, db) => {
@@ -407,7 +502,7 @@ const commonController = {
         if (!studentId) {
             return res.status(400).send('Student ID is required.');
         }
-
+    
         try {
             const studentResult = await db.query(`
                 SELECT s.*, c.class_name, g.name AS grad_year_group_name
@@ -416,68 +511,65 @@ const commonController = {
                 LEFT JOIN graduation_year_groups g ON s.graduation_year_group_id = g.id
                 WHERE s.student_id = $1 AND s.organization_id = $2
             `, [studentId, req.session.organizationId]);
-
+    
             if (studentResult.rows.length === 0) {
                 return res.status(404).send('Student not found.');
             }
-
+    
             const student = studentResult.rows[0];
-
+    
             const guardiansResult = await db.query(`
                 SELECT * FROM guardians
                 WHERE student_id = $1
             `, [studentId]);
-
-            const guardians = guardiansResult.rows;
-
-            const subjectsResult = await db.query(`
-                SELECT ss.subject_id, sub.subject_name, ss.grade
-                FROM student_subjects ss
-                LEFT JOIN subjects sub ON ss.subject_id = sub.subject_id
-                WHERE ss.student_id = $1
-            `, [studentId]);
-
-            const subjects = subjectsResult.rows;
-
+    
             const assessmentsResult = await db.query(`
-                SELECT a.assessment_id, a.title, a.weight, ar.score, a.subject_id
+                SELECT a.assessment_id, a.title, a.weight, ar.score, a.subject_id, a.max_score, sub.subject_name
                 FROM assessments a
                 LEFT JOIN assessment_results ar ON a.assessment_id = ar.assessment_id
+                LEFT JOIN subjects sub ON a.subject_id = sub.subject_id
                 WHERE ar.student_id = $1
             `, [studentId]);
-
+    
+            const guardians = guardiansResult.rows;
             const assessments = assessmentsResult.rows;
-
-            const subjectsWithGrades = subjects.map(subject => {
-                let totalPercentage = 0;
-                let totalWeight = 0;
-                assessments.forEach(assessment => {
-                    if (assessment.subject_id === subject.subject_id && assessment.score !== null) {
-                        totalPercentage += assessment.score * (assessment.weight / 100);
-                        totalWeight += assessment.weight;
-                    }
-                });
-                totalPercentage = totalWeight > 0 ? totalPercentage : 0;
-
-                let grade;
-                if (totalPercentage >= 90) grade = 'A';
-                else if (totalPercentage >= 80) grade = 'B';
-                else if (totalPercentage >= 70) grade = 'C';
-                else if (totalPercentage >= 60) grade = 'D';
-                else grade = 'F';
-
-                return {
-                    ...subject,
-                    total_percentage: totalPercentage.toFixed(2),
-                    grade: grade
-                };
+    
+            // Group assessments by subject and calculate grades, total scores, and positions
+            const subjects = assessments.reduce((acc, assessment) => {
+                let subject = acc.find(s => s.subject_id === assessment.subject_id);
+                if (!subject) {
+                    subject = {
+                        subject_id: assessment.subject_id,
+                        subject_name: assessment.subject_name,
+                        totalScore: 0,
+                        totalMaxScore: 0,
+                        grade: '',
+                        position: 0
+                    };
+                    acc.push(subject);
+                }
+                subject.totalScore += parseFloat(assessment.score) || 0;
+                subject.totalMaxScore += parseFloat(assessment.max_score) || 0;
+                return acc;
+            }, []);
+    
+            subjects.forEach(subject => {
+                const totalPercentage = subject.totalMaxScore > 0 ? (subject.totalScore / subject.totalMaxScore) * 100 : 0;
+                subject.grade = calculateGrade(totalPercentage);
             });
-
+    
+            // Calculate positions based on total scores
+            subjects.sort((a, b) => b.totalScore - a.totalScore);
+            subjects.forEach((subject, index) => {
+                subject.position = index + 1;
+            });
+    
             res.render('common/studentDetails', {
                 title: 'Student Details',
                 student,
                 guardians,
-                subjects: subjectsWithGrades,
+                subjects,
+                assessments,
                 gradYearGroupName: student.grad_year_group_name || 'No graduation year group assigned',
                 messages: req.flash()
             });
@@ -486,6 +578,7 @@ const commonController = {
             res.status(500).send('Failed to fetch student details');
         }
     },
+    
 
     management: async (req, res, db) => {
         try {
@@ -1072,6 +1165,7 @@ deleteStudent: async (req, res, db) => {
 
     assessment: async (req, res, db) => {
         const { classId, subjectId } = req.query;
+    
         if (!classId || !subjectId) {
             return res.status(400).send('Class ID and Subject ID are required for the assessment.');
         }
@@ -1087,8 +1181,8 @@ deleteStudent: async (req, res, db) => {
             const className = classNameResult.rows[0].class_name;
             const subjectName = subjectNameResult.rows[0].subject_name;
     
-            // Fetch students in the class
-            const students = await fetchStudentsByClass(db, classId);
+            // Fetch students in the class, ordered by last name and first name
+            let students = await db.query('SELECT student_id, first_name, last_name FROM students WHERE class_id = $1 AND organization_id = $2 ORDER BY last_name ASC, first_name ASC', [classId, req.session.organizationId]);
     
             // Fetch assessments for the subject
             const assessmentsResult = await db.query(`
@@ -1100,54 +1194,53 @@ deleteStudent: async (req, res, db) => {
     
             // Fetch scores for the students in this subject
             const resultsResult = await db.query(`
-                SELECT ar.assessment_id, ar.student_id, ar.score
+                SELECT ar.assessment_id, ar.student_id, ar.score, ar.total_subject_score, ar.total_percentage, ar.grade, ar.position
                 FROM assessment_results ar
                 WHERE ar.assessment_id IN (
                     SELECT assessment_id
                     FROM assessments
                     WHERE class_id = $1 AND subject_id = $2 AND organization_id = $3
-                )`, [classId, subjectId, req.session.organizationId]);
+                )
+                AND ar.student_id IN (
+                    SELECT student_id
+                    FROM students
+                    WHERE class_id = $1
+                )
+                ORDER BY ar.student_id, ar.assessment_id`, [classId, subjectId, req.session.organizationId]);
+    
             const results = resultsResult.rows;
     
-            // Organize the scores by student and calculate total score
+            // Organize the scores by student and populate total scores and other details
             const studentScores = {};
             results.forEach(result => {
                 if (!studentScores[result.student_id]) {
-                    studentScores[result.student_id] = {};
+                    studentScores[result.student_id] = {
+                        assessments: {},
+                        total_subject_score: result.total_subject_score,
+                        total_percentage: result.total_percentage,
+                        grade: result.grade,
+                        position: result.position,
+                    };
                 }
-                studentScores[result.student_id][result.assessment_id] = result.score;
+                studentScores[result.student_id].assessments[result.assessment_id] = result.score;
             });
     
-            // Calculate total score for each student
-            students.forEach(student => {
-                student.scores = studentScores[student.student_id] || {};
-                student.total_score = Object.values(student.scores).reduce((sum, score) => sum + (score || 0), 0);
-                student.total_percentage = commonController.calculateTotalPercentage(student.scores, assessments);
-                student.grade = commonController.calculateGrade(student.total_percentage);
+            students.rows.forEach(student => {
+                student.scores = studentScores[student.student_id] ? studentScores[student.student_id].assessments : {};
+                student.total_subject_score = studentScores[student.student_id] ? studentScores[student.student_id].total_subject_score : '-';
+                student.total_percentage = studentScores[student.student_id] ? studentScores[student.student_id].total_percentage : '-';
+                student.grade = studentScores[student.student_id] ? studentScores[student.student_id].grade : '-';
+                student.position = studentScores[student.student_id] ? studentScores[student.student_id].position : '-';
             });
     
-            // Sort students by total score for ranking
-            students.sort((a, b) => b.total_score - a.total_score);
-    
-            // Assign ranks based on sorted position
-            students.forEach((student, index) => {
-                student.position = index + 1;
-            });
-    
-            // Fetch employees for the class
+            // Fetch employees assigned to the class
             const employeesResult = await db.query(`
-                SELECT u.user_id, u.first_name, u.last_name, uc.main
+                SELECT u.first_name, u.last_name, uc.main
                 FROM user_classes uc
                 JOIN users u ON uc.user_id = u.user_id
-                WHERE uc.class_id = $1 AND u.organization_id = $2 AND uc.main = TRUE
-                UNION
-                SELECT u.user_id, u.first_name, u.last_name, FALSE AS main
-                FROM user_subjects us
-                JOIN users u ON us.user_id = u.user_id
-                WHERE us.subject_id = $3 AND u.organization_id = $2`, [classId, req.session.organizationId, subjectId]);
+                WHERE uc.class_id = $1 AND u.organization_id = $2`, [classId, req.session.organizationId]);
             const employees = employeesResult.rows;
     
-            // Render the assessment page
             res.render('common/assessment', {
                 title: 'Assessment',
                 classId,
@@ -1155,88 +1248,79 @@ deleteStudent: async (req, res, db) => {
                 subjectId,
                 subjectName,
                 assessments,
-                students,
-                employees,
-                messages: req.flash()
+                students: students.rows,
+                employees, // Pass the employees to the template
+                messages: req.flash() // Pass messages to the template
             });
         } catch (err) {
             console.error('Error fetching assessment data:', err);
             res.status(500).send('Error fetching assessment data.');
         }
     },
-             
+    
     saveAllScores: async (req, res, db) => {
-        const { classId, subjectId } = req.query;
+        const { subjectId } = req.query;
         const { scores } = req.body;
-    
+
         try {
+            // Fetch the assessments related to this subject
+            const assessmentsResult = await db.query(`
+                SELECT assessment_id, title, weight, max_score
+                FROM assessments
+                WHERE subject_id = $1 AND organization_id = $2
+                ORDER BY assessment_id`, [subjectId, req.session.organizationId]);
+
+            const assessments = assessmentsResult.rows;
+
             await db.query('BEGIN');
-    
+
+            const studentScores = {};
+
             for (let studentId in scores) {
+                let totalScore = 0;
+                studentScores[studentId] = {}; 
+
                 for (let assessmentId in scores[studentId]) {
                     let score = scores[studentId][assessmentId];
-    
                     if (score === null || score === "") continue;
-    
+
                     const assessmentResult = await db.query(
-                        'SELECT weight, max_score FROM assessments WHERE assessment_id = $1 AND class_id = $2 AND subject_id = $3 AND organization_id = $4',
-                        [assessmentId, classId, subjectId, req.session.organizationId]
+                        'SELECT max_score FROM assessments WHERE assessment_id = $1 AND subject_id = $2 AND organization_id = $3',
+                        [assessmentId, subjectId, req.session.organizationId]
                     );
-    
-                    if (assessmentResult.rows.length === 0) {
-                        continue;
-                    }
-    
-                    const assessment = assessmentResult.rows[0];
-                    const minAllowedScore = -10;
-                    const maxAllowedScore = assessment.max_score + 10;
-    
-                    if (score < minAllowedScore || score > maxAllowedScore) {
-                        await db.query('ROLLBACK');
-                        req.flash('error', `Score for assessment ID ${assessmentId} must be between ${minAllowedScore} and ${maxAllowedScore}.`);
-                        return res.status(400).json({ error: `Score for assessment ID ${assessmentId} must be between ${minAllowedScore} and ${maxAllowedScore}.` });
-                    }
-    
+
+                    if (assessmentResult.rows.length === 0) continue;
+
+                    totalScore += parseFloat(score);
+
+                    studentScores[studentId][assessmentId] = score; 
+
                     await db.query(`
-                        INSERT INTO assessment_results (student_id, assessment_id, score, organization_id)
-                        VALUES ($1, $2, $3, $4)
+                        INSERT INTO assessment_results (student_id, assessment_id, score, subject_id, organization_id)
+                        VALUES ($1, $2, $3, $4, $5)
                         ON CONFLICT (student_id, assessment_id)
                         DO UPDATE SET score = EXCLUDED.score
-                    `, [studentId, assessmentId, score, req.session.organizationId]);
+                    `, [studentId, assessmentId, score, subjectId, req.session.organizationId]);
                 }
-            }
-    
-            const studentsResult = await db.query(`
-                SELECT s.student_id, 
-                       jsonb_object_agg(a.assessment_id, COALESCE(ar.score, 0)) AS scores
-                FROM students s
-                LEFT JOIN assessment_results ar ON s.student_id = ar.student_id 
-                LEFT JOIN assessments a ON ar.assessment_id = a.assessment_id 
-                WHERE s.class_id = $1 AND a.subject_id = $2 AND s.organization_id = $3
-                GROUP BY s.student_id
-            `, [classId, subjectId, req.session.organizationId]);
-    
-            const assessmentsResult = await db.query(`
-                SELECT * FROM assessments WHERE class_id = $1 AND subject_id = $2 AND organization_id = $3
-            `, [classId, subjectId, req.session.organizationId]);
-    
-            const assessments = assessmentsResult.rows;
-    
-            for (const student of studentsResult.rows) {
-                if (!student.scores) continue;
-    
-                const totalPercentage = commonController.calculateTotalPercentage(student.scores, assessments);
+
+                const totalPercentage = commonController.calculateTotalPercentage(studentScores[studentId], assessments);
                 const grade = commonController.calculateGrade(totalPercentage);
-    
+
+                const validTotalPercentage = totalPercentage !== "-" ? totalPercentage : null;
+                const validGrade = grade !== "-" ? grade : null;
+
                 await db.query(`
-                    UPDATE students
-                    SET total_percentage = $1, grade = $2
-                    WHERE student_id = $3 AND organization_id = $4
-                `, [totalPercentage, grade, student.student_id, req.session.organizationId]);
+                    UPDATE assessment_results
+                    SET total_subject_score = $1, total_percentage = $2, grade = $3
+                    WHERE student_id = $4 AND subject_id = $5 AND organization_id = $6
+                `, [totalScore, validTotalPercentage, validGrade, studentId, subjectId, req.session.organizationId]);
             }
-    
+
+            // Update positions based on total scores
+            await commonController.updateStudentPositions(db, subjectId, req.session.organizationId);
+
             await db.query('COMMIT');
-    
+
             req.flash('success', 'Scores saved successfully.');
             res.status(200).json({ success: true, message: 'Scores saved successfully.' });
         } catch (error) {
@@ -1246,9 +1330,41 @@ deleteStudent: async (req, res, db) => {
             res.status(500).json({ error: 'An error occurred while saving scores. Please try again.' });
         }
     },
-    
 
-        
+    updateStudentPositions: async function (db, subjectId, organizationId) {
+        const updateQuery = `
+        WITH RankedScores AS (
+            SELECT
+                student_id,
+                subject_id,
+                SUM(score) AS total_subject_score,
+                RANK() OVER (PARTITION BY subject_id ORDER BY SUM(score) DESC) AS position
+            FROM assessment_results
+            WHERE subject_id = $1 AND organization_id = $2
+            GROUP BY student_id, subject_id
+        )
+        INSERT INTO student_positions (student_id, subject_id, organization_id, total_subject_score, position)
+        SELECT 
+            rs.student_id,
+            rs.subject_id,
+            $2,
+            rs.total_subject_score,
+            rs.position
+        FROM RankedScores rs
+        ON CONFLICT (student_id, subject_id) DO UPDATE
+        SET 
+            total_subject_score = EXCLUDED.total_subject_score,
+            position = EXCLUDED.position;
+        `;
+
+        try {
+            await db.query(updateQuery, [subjectId, organizationId]);
+        } catch (error) {
+            console.error('Error updating student positions:', error);
+            throw error;
+        }
+    },
+
 calculateTotalPercentage: (scores, assessments) => {
     let totalWeightedScore = 0;
     let totalWeight = 0;
@@ -1257,7 +1373,7 @@ calculateTotalPercentage: (scores, assessments) => {
     assessments.forEach(assessment => {
         const score = scores ? scores[assessment.assessment_id] : null;
         let scorePercentage = 100; // Default to 100% if no score is present
-       
+        
         if (score !== null && score !== undefined) {
             hasScore = true;
             scorePercentage = (score / assessment.max_score) * 100; // Calculate the percentage score
@@ -1285,7 +1401,30 @@ calculateGrade: (totalPercentage) => {
     return 'F';
 },
 
+// calculatePositions: (students) => {
+//     // Sort students by total score in descending order
+//     students.sort((a, b) => b.total_subject_score - a.total_subject_score);
 
+//     let position = 1;
+//     let lastScore = null;
+//     let samePositionCount = 0;
+
+//     students.forEach((student, index) => {
+//         if (student.total_subject_score === lastScore) {
+//             // If the score is the same as the last student's, assign the same position
+//             student.position = position;
+//             samePositionCount++;
+//         } else {
+//             // Otherwise, assign the current position and update it for the next distinct score
+//             position += samePositionCount; // Increment position by the count of students who had the same score
+//             student.position = position;
+//             lastScore = student.total_subject_score;
+//             samePositionCount = 1; // Reset the count for the new score
+//         }
+//     });
+
+//     return students;
+// },
 
     getAssessments: async (req, res, db) => {
         const { classId, subjectId } = req.query;
@@ -1597,6 +1736,7 @@ calculateGrade: (totalPercentage) => {
             res.status(500).json({ error: 'Failed to load classes.' });
         }
     },
+
     registerSchoolYearEvent: async (req, res, db) => {
         try {
             await db.query('INSERT INTO school_events (name, event_date, details, organization_id, visibility) VALUES ($1, $2, $3, $4, $5)', [req.body.eventName, req.body.startDate, req.body.eventDetails, req.session.organizationId, req.body.visibility]);

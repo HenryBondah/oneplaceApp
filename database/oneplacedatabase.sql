@@ -354,3 +354,22 @@ ALTER TABLE assessment_results ADD COLUMN title VARCHAR(255);
 ALTER TABLE organizations ADD COLUMN logo_path VARCHAR(255);
 ALTER TABLE organizations ADD COLUMN font_style VARCHAR(50);
 ALTER TABLE students ADD COLUMN gender VARCHAR(10);
+ALTER TABLE assessment_results
+ADD COLUMN total_subject_score NUMERIC(10, 2);
+
+ALTER TABLE assessment_results
+ADD COLUMN total_percentage NUMERIC(5, 2);
+
+ALTER TABLE assessment_results
+ADD COLUMN position INTEGER;
+
+-- Student Positions Table
+CREATE TABLE IF NOT EXISTS student_positions (
+    position_id SERIAL PRIMARY KEY,
+    student_id INT REFERENCES students(student_id) ON DELETE CASCADE,
+    subject_id INT REFERENCES subjects(subject_id) ON DELETE CASCADE,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
+    total_subject_score NUMERIC(10, 2),
+    position INT,
+    UNIQUE (student_id, subject_id)
+);

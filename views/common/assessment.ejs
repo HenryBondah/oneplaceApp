@@ -82,10 +82,10 @@
     </div>
 
     <hr>
-    <% if (messages.success && messages.success.length > 0) { %>
+    <% if (messages && messages.success && messages.success.length > 0) { %>
         <div class="flash-success"><%= messages.success %></div>
     <% } %>
-    <% if (messages.error && messages.error.length > 0) { %>
+    <% if (messages && messages.error && messages.error.length > 0) { %>
         <div class="flash-error"><%= messages.error %></div>
     <% } %>
     <h1>Assessments for <%= className %></h1>
@@ -142,44 +142,46 @@
                         <th>Position</th>
                     </tr>
                 </thead>
+                
                 <tbody id="students-table-body">
-                    <% students.forEach(function(student) { %>
+                    <% 
+                    // Ensure that the students are sorted based on position which is already computed by the backend
+                    students.sort((a, b) => a.position - b.position);
+
+                    function getOrdinalSuffix(i) {
+                        const j = i % 10,
+                              k = i % 100;
+                        if (j == 1 && k != 11) {
+                            return "st";
+                        }
+                        if (j == 2 && k != 12) {
+                            return "nd";
+                        }
+                        if (j == 3 && k != 13) {
+                            return "rd";
+                        }
+                        return "th";
+                    }
+                    %>
+                
+                    <% students.forEach(function(student, index) { %>
                         <tr>
                             <td><%= student.first_name %> <%= student.last_name %></td>
-                            <% let totalScore = 0; %>
                             <% assessments.forEach(function(assessment) { %>
                                 <td>
                                     <input type="number" 
                                            name="scores[<%= student.student_id %>][<%= assessment.assessment_id %>]" 
-                                           min="<%= assessment.max_score - 10 %>" 
-                                           max="<%= assessment.max_score + 10 %>" 
+                                           min="0" 
+                                           max="<%= assessment.max_score %>" 
                                            step="0.1" 
-                                           value="<%= student.scores[assessment.assessment_id] %>">
-                                    <% if (typeof student.scores[assessment.assessment_id] === "number") { %>
-                                        <% totalScore += student.scores[assessment.assessment_id] %>
-                                    <% } %>
+                                           value="<%= student.scores ? student.scores[assessment.assessment_id] : '' %>">
                                 </td>
                             <% }); %>
-                            <td>
-                                <span class="total-score" id="total-score-<%= student.student_id %>">
-                                    <%= totalScore.toFixed(2) %>
-                                </span>
-                            </td>
-                            <td>
-                                <span class="total-percentage" id="total-percentage-<%= student.student_id %>">
-                                    <%= student.total_percentage !== "-" ? student.total_percentage.toFixed(2) : "-" %>
-                                </span>%
-                            </td>
-                            <td>
-                                <span class="grade" id="grade-<%= student.student_id %>">
-                                    <%= student.total_percentage !== "-" ? student.grade : "-" %>
-                                </span>
-                            </td>
-                            <td>
-                                <span class="position" id="position-<%= student.student_id %>">
-                                    <%= student.position || "-" %>
-                                </span>
-                            </td>
+
+                            <td><%= student.total_subject_score !== undefined && student.total_subject_score !== null ? parseFloat(student.total_subject_score).toFixed(2) : '-' %></td>
+                            <td><%= student.total_percentage !== undefined && student.total_percentage !== null ? parseFloat(student.total_percentage).toFixed(2) : '-' %> %</td>
+                            <td><%= student.grade ? student.grade : '-' %></td>
+                            <td><%= student.position !== undefined && student.position !== null ? student.position + getOrdinalSuffix(student.position) : '-' %></td>
                         </tr>
                     <% }); %>
                 </tbody>
@@ -192,54 +194,6 @@
 </main>
 
 <script>
-    function calculateTotalScoresAndRanks() {
-        const rows = Array.from(document.querySelectorAll('#students-table-body tr'));
-        const students = rows.map(row => {
-            const scoreCells = row.querySelectorAll('input[name^="scores"]');
-            let totalScore = 0;
-
-            scoreCells.forEach((input) => {
-                const score = parseFloat(input.value) || 0;
-                totalScore += score;
-            });
-
-            row.querySelector('.total-score').textContent = totalScore.toFixed(2);
-
-            return { row, totalScore };
-        });
-
-        // Sort by total score (highest to lowest)
-        students.sort((a, b) => b.totalScore - a.totalScore);
-
-        students.forEach((student, index) => {
-            const positionCell = student.row.querySelector('.position');
-            const position = index + 1;
-            const suffix = getOrdinalSuffix(position);
-            positionCell.textContent = `${position}${suffix}`;
-        });
-    }
-
-    // Function to get the ordinal suffix
-    function getOrdinalSuffix(i) {
-        const j = i % 10,
-              k = i % 100;
-        if (j == 1 && k != 11) {
-            return "st";
-        }
-        if (j == 2 && k != 12) {
-            return "nd";
-        }
-        if (j == 3 && k != 13) {
-            return "rd";
-        }
-        return "th";
-    }
-
-    // Calculate total scores and ranks on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        calculateTotalScoresAndRanks();
-    });
-
     document.getElementById('addTestForm').addEventListener('submit', async function(event) {
         event.preventDefault();
         const testName = document.getElementById('testName').value;
@@ -300,7 +254,6 @@
             });
 
             if (response.ok) {
-                const data = await response.json();
                 alert('Scores saved successfully.');
                 location.reload();
             } else {

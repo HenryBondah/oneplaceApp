@@ -1,3 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Details</title>
+    <style>
+        main {
+            text-align: center;
+            margin: 0 auto;
+            width: 90%;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .flash-message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .flash-success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .flash-error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+</head>
 <body>
     <% if (messages && messages.success && messages.success.length > 0) { %>
         <div class="flash-message flash-success"><%= messages.success %></div>
@@ -34,16 +81,20 @@
                 <thead>
                     <tr>
                         <th>Subject</th>
-                        <th>Grade</th>
+                        <th>Total Subject Score</th>
                         <th>Total Percentage</th>
+                        <th>Grade</th>
+                        <th>Position</th>
                     </tr>
                 </thead>
                 <tbody>
                     <% subjects.forEach(subject => { %>
                         <tr>
                             <td><%= subject.subject_name %></td>
+                            <td><%= subject.totalScore.toFixed(2) %></td>
+                            <td><%= subject.totalMaxScore > 0 ? ((subject.totalScore / subject.totalMaxScore) * 100).toFixed(2) : '0.00' %> %</td>
                             <td><%= subject.grade %></td>
-                            <td><%= subject.total_percentage %> %</td>
+                            <td>-</td> <!-- Assuming position is handled elsewhere -->
                         </tr>
                     <% }) %>
                 </tbody>
@@ -81,3 +132,4 @@
         </div>
     </main>
 </body>
+</html>
