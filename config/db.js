@@ -7,7 +7,7 @@ const pool = new Pool({
 });
 
 pool.on('connect', () => {
-    console.log('Database connected successfully.');
+    // console.log('Database connected successfully.');
 });
 
 pool.on('error', (err) => {

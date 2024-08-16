@@ -99,85 +99,6 @@ async function fetchStudentsByClass(db, classId) {
     }
 }
 
-// async function updateStudentPositions(db, subjectId, organizationId) {
-//     const updateQuery = `
-//     WITH RankedScores AS (
-//         SELECT
-//             student_id,
-//             subject_id,
-//             SUM(score) AS total_subject_score,
-//             RANK() OVER (PARTITION BY subject_id ORDER BY SUM(score) DESC) AS position
-//         FROM assessment_results
-//         WHERE subject_id = $1 AND organization_id = $2
-//         GROUP BY student_id, subject_id
-//     )
-//     INSERT INTO student_positions (student_id, subject_id, organization_id, total_subject_score, position)
-//     SELECT 
-//         rs.student_id,
-//         rs.subject_id,
-//         $2,
-//         rs.total_subject_score,
-//         rs.position
-//     FROM RankedScores rs
-//     ON CONFLICT (student_id, subject_id) DO UPDATE
-//     SET 
-//         total_subject_score = EXCLUDED.total_subject_score,
-//         position = EXCLUDED.position;
-//     `;
-
-//     try {
-//         await db.query(updateQuery, [subjectId, organizationId]);
-//     } catch (error) {
-//         console.error('Error updating student positions:', error);
-//         throw error;
-//     }
-// }
-// async function saveAllScores(req, res, db) {
-//     const { subjectId } = req.query;
-//     const { scores } = req.body;
-
-//     try {
-//         await db.query('BEGIN');
-
-//         for (let studentId in scores) {
-//             let totalScore = 0;
-//             for (let assessmentId in scores[studentId]) {
-//                 const score = scores[studentId][assessmentId];
-//                 if (score !== null && score !== "") {
-//                     totalScore += parseFloat(score);
-//                     await db.query(`
-//                         INSERT INTO assessment_results (student_id, assessment_id, score, subject_id, organization_id)
-//                         VALUES ($1, $2, $3, $4, $5)
-//                         ON CONFLICT (student_id, assessment_id)
-//                         DO UPDATE SET score = EXCLUDED.score
-//                     `, [studentId, assessmentId, score, subjectId, req.session.organizationId]);
-//                 }
-//             }
-
-//             const totalPercentage = calculateTotalPercentage(scores[studentId]);
-//             const grade = calculateGrade(totalPercentage);
-
-//             await db.query(`
-//                 UPDATE assessment_results
-//                 SET total_subject_score = $1, total_percentage = $2, grade = $3
-//                 WHERE student_id = $4 AND subject_id = $5 AND organization_id = $6
-//             `, [totalScore, totalPercentage, grade, studentId, subjectId, req.session.organizationId]);
-//         }
-
-//         await updateStudentPositions(db, subjectId, req.session.organizationId);
-//         await db.query('COMMIT');
-
-//         req.flash('success', 'Scores saved successfully.');
-//         res.json({ success: true, message: 'Scores saved successfully.' });
-//     } catch (error) {
-//         await db.query('ROLLBACK');
-//         console.error('Error saving scores:', error);
-//         req.flash('error', 'An error occurred while saving scores. Please try again.');
-//         res.status(500).json({ error: 'An error occurred while saving scores. Please try again.' });
-//     }
-// }
-
-
 function generateLastFiveDates() {
     const dates = [];
     const today = new Date();
@@ -928,9 +849,6 @@ deleteStudent: async (req, res, db) => {
     
     saveSingleAttendance: async (req, res, db) => {
         const { attendance, classId, date } = req.body;
-    console.log('Received attendance data:', attendance); // Log for debugging
-    console.log('Received classId:', classId); // Log for debugging
-    console.log('Received date:', date); // Log for debugging
 
     try {
         await db.query('BEGIN');
@@ -1460,10 +1378,7 @@ calculateGrade: (totalPercentage) => {
 
     manageAssessment: async (req, res, db) => {
         let { classId, subjectId } = req.query;
-    
-        console.log("Incoming classId:", classId);
-        console.log("Incoming subjectId:", subjectId);
-    
+        
         // Validate incoming classId and subjectId
         if (!classId || !subjectId) {
             console.error("Class ID or Subject ID is missing.");
@@ -1474,8 +1389,6 @@ calculateGrade: (totalPercentage) => {
         classId = parseInt(classId, 10);
         subjectId = parseInt(subjectId, 10);
     
-        console.log("Parsed classId:", classId);
-        console.log("Parsed subjectId:", subjectId);
     
         if (isNaN(classId) || isNaN(subjectId)) {
             console.error("Class ID or Subject ID is not a valid integer.");
@@ -1556,7 +1469,7 @@ calculateGrade: (totalPercentage) => {
                 if (result.rowCount === 0) {
                     console.error(`Failed to update assessment ID: ${assessmentId}`);
                 } else {
-                    console.log(`Successfully updated assessment ID: ${assessmentId}`);
+                    // console.log(`Successfully updated assessment ID: ${assessmentId}`);
                 }
             }
     
