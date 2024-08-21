@@ -419,7 +419,7 @@ const commonController = {
 
     studentDetails: async (req, res, db) => {
         const studentId = req.query.studentId;
-
+    
         if (!studentId) {
             return res.status(400).send('Student ID is required.');
         }
@@ -445,18 +445,15 @@ const commonController = {
             `, [studentId]);
     
             const assessmentsResult = await db.query(`
-                SELECT a.assessment_id, a.title, a.weight, ar.score, a.subject_id, a.max_score, sub.subject_name
+                SELECT a.assessment_id, a.title, a.weight, ar.score, a.subject_id, a.max_score, sub.subject_name, 
+                       ar.total_percentage, ar.total_subject_score, ar.grade
                 FROM assessments a
                 LEFT JOIN assessment_results ar ON a.assessment_id = ar.assessment_id
                 LEFT JOIN subjects sub ON a.subject_id = sub.subject_id
-                WHERE ar.student_id = $1
-            `, [studentId]);
+                WHERE ar.student_id = $1 AND ar.organization_id = $2
+            `, [studentId, req.session.organizationId]);
     
-            const guardians = guardiansResult.rows;
-            const assessments = assessmentsResult.rows;
-    
-            // Group assessments by subject and calculate grades, total scores, and positions
-            const subjects = assessments.reduce((acc, assessment) => {
+            const subjects = assessmentsResult.rows.reduce((acc, assessment) => {
                 let subject = acc.find(s => s.subject_id === assessment.subject_id);
                 if (!subject) {
                     subject = {
@@ -464,33 +461,43 @@ const commonController = {
                         subject_name: assessment.subject_name,
                         totalScore: 0,
                         totalMaxScore: 0,
+                        totalPercentage: null, // Initialize as null
                         grade: '',
-                        position: 0
+                        position: null
                     };
                     acc.push(subject);
                 }
                 subject.totalScore += parseFloat(assessment.score) || 0;
                 subject.totalMaxScore += parseFloat(assessment.max_score) || 0;
+                subject.totalPercentage = assessment.total_percentage ? parseFloat(assessment.total_percentage) : null; // Ensure it's a number
+                subject.grade = assessment.grade;
                 return acc;
             }, []);
     
+            // Fetch positions from student_positions table
+            const positionsResult = await db.query(`
+                SELECT subject_id, position
+                FROM student_positions
+                WHERE student_id = $1 AND organization_id = $2
+            `, [studentId, req.session.organizationId]);
+    
+            const positions = positionsResult.rows.reduce((acc, position) => {
+                acc[position.subject_id] = position.position;
+                return acc;
+            }, {});
+    
             subjects.forEach(subject => {
-                const totalPercentage = subject.totalMaxScore > 0 ? (subject.totalScore / subject.totalMaxScore) * 100 : 0;
-                subject.grade = calculateGrade(totalPercentage);
+                subject.position = positions[subject.subject_id] || '-'; // Assign position from positions result or '-' if not found
             });
     
-            // Calculate positions based on total scores
-            subjects.sort((a, b) => b.totalScore - a.totalScore);
-            subjects.forEach((subject, index) => {
-                subject.position = index + 1;
-            });
+            const guardians = guardiansResult.rows;
     
             res.render('common/studentDetails', {
                 title: 'Student Details',
                 student,
                 guardians,
                 subjects,
-                assessments,
+                getOrdinalSuffix, // Passing the function to the template
                 gradYearGroupName: student.grad_year_group_name || 'No graduation year group assigned',
                 messages: req.flash()
             });
@@ -499,104 +506,7 @@ const commonController = {
             res.status(500).send('Failed to fetch student details');
         }
     },
-    
-
-    management: async (req, res, db) => {
-        try {
-            const schoolYears = await db.query(`
-                SELECT sy.*, t.*
-                FROM school_years sy
-                LEFT JOIN terms t ON t.year_id = sy.id
-                ORDER BY sy.year_label DESC, t.start_date ASC;
-            `);
-
-            let structuredSchoolYears = {};
-            schoolYears.rows.forEach(row => {
-                if (!structuredSchoolYears[row.id]) {
-                    structuredSchoolYears[row.id] = {
-                        id: row.id,
-                        year_label: row.year_label,
-                        terms: []
-                    };
-                }
-                if (row.term_id) {
-                    structuredSchoolYears[row.id].terms.push({
-                        term_id: row.term_id,
-                        term_name: row.term_name,
-                        start_date: row.start_date,
-                        end_date: row.end_date
-                    });
-                }
-            });
-
-            res.render('common/management', {
-                title: 'Management Tools',
-                schoolYears: Object.values(structuredSchoolYears)
-            });
-        } catch (error) {
-            console.error('Error fetching management data:', error);
-            res.status(500).send('Failed to load management data');
-        }
-    },
-
-editStudentGet: async (req, res, db) => {
-        const { studentId } = req.query;
-
-        if (!studentId) {
-            res.status(400).send('Student ID is required.');
-            return;
-        }
-
-        try {
-            const studentDetails = await db.query('SELECT * FROM students WHERE student_id = $1 AND organization_id = $2', [studentId, req.session.organizationId]);
-            if (studentDetails.rows.length === 0) {
-                res.status(404).send('Student not found.');
-                return;
-            }
-            const student = studentDetails.rows[0];
-
-            const classes = await db.query('SELECT * FROM classes WHERE organization_id = $1 ORDER BY class_name ASC', [req.session.organizationId]);
-
-            const subjectsResult = await db.query('SELECT * FROM subjects WHERE class_id = $1', [student.class_id]);
-
-            const enrolledSubjectsResult = await db.query('SELECT subject_id FROM student_subjects WHERE student_id = $1', [studentId]);
-            const enrolledSubjectIds = enrolledSubjectsResult.rows.map(subject => subject.subject_id);
-
-            const guardiansResult = await db.query('SELECT * FROM guardians WHERE student_id = $1', [studentId]);
-            const guardians = guardiansResult.rows;
-
-            const gradYearGroupResult = await db.query(`
-                SELECT g.name AS grad_year_group_name, g.id AS grad_year_group_id
-                FROM classes c
-                LEFT JOIN graduation_year_groups g ON c.graduation_year_group_id = g.id
-                WHERE c.class_id = $1
-            `, [student.class_id]);
-            const gradYearGroup = gradYearGroupResult.rows[0];
-
-            const graduationYearGroupsResult = await db.query(`
-                SELECT id, name
-                FROM graduation_year_groups
-                WHERE organization_id = $1
-                ORDER BY name ASC;
-            `, [req.session.organizationId]);
-
-            res.render('common/editStudent', {
-                title: 'Edit Student',
-                student,
-                classes: classes.rows,
-                subjects: subjectsResult.rows,
-                enrolledSubjects: enrolledSubjectIds,
-                guardians,
-                gradYearGroup,
-                graduationYearGroups: graduationYearGroupsResult.rows,
-                messages: req.flash()
-            });
-        } catch (error) {
-            console.error('Error loading edit student page:', error);
-            res.status(500).send('Failed to load student details.');
-        }
-    },
-
+            
     editStudentPost: async (req, res, db) => {
         const { studentId } = req.params;
         const { classId, firstName, lastName, dateOfBirth, height, hometown, gender, subjects = [], graduationYearGroupId, guardians } = req.body;
@@ -1110,10 +1020,13 @@ deleteStudent: async (req, res, db) => {
                 ORDER BY assessment_id`, [classId, subjectId, req.session.organizationId]);
             const assessments = assessmentsResult.rows;
     
-            // Fetch scores for the students in this subject
+            // Fetch scores and positions for the students in this subject
             const resultsResult = await db.query(`
-                SELECT ar.assessment_id, ar.student_id, ar.score, ar.total_subject_score, ar.total_percentage, ar.grade, ar.position
+                SELECT ar.assessment_id, ar.student_id, ar.score, ar.total_subject_score, ar.total_percentage, ar.grade,
+                       sp.position
                 FROM assessment_results ar
+                LEFT JOIN student_positions sp
+                ON ar.student_id = sp.student_id AND ar.subject_id = sp.subject_id
                 WHERE ar.assessment_id IN (
                     SELECT assessment_id
                     FROM assessments
@@ -1137,7 +1050,7 @@ deleteStudent: async (req, res, db) => {
                         total_subject_score: result.total_subject_score,
                         total_percentage: result.total_percentage,
                         grade: result.grade,
-                        position: result.position,
+                        position: result.position, // Added position from student_positions table
                     };
                 }
                 studentScores[result.student_id].assessments[result.assessment_id] = result.score;
@@ -1175,7 +1088,7 @@ deleteStudent: async (req, res, db) => {
             res.status(500).send('Error fetching assessment data.');
         }
     },
-    
+        
     saveAllScores: async (req, res, db) => {
         const { subjectId } = req.query;
         const { scores } = req.body;
@@ -1319,30 +1232,6 @@ calculateGrade: (totalPercentage) => {
     return 'F';
 },
 
-// calculatePositions: (students) => {
-//     // Sort students by total score in descending order
-//     students.sort((a, b) => b.total_subject_score - a.total_subject_score);
-
-//     let position = 1;
-//     let lastScore = null;
-//     let samePositionCount = 0;
-
-//     students.forEach((student, index) => {
-//         if (student.total_subject_score === lastScore) {
-//             // If the score is the same as the last student's, assign the same position
-//             student.position = position;
-//             samePositionCount++;
-//         } else {
-//             // Otherwise, assign the current position and update it for the next distinct score
-//             position += samePositionCount; // Increment position by the count of students who had the same score
-//             student.position = position;
-//             lastScore = student.total_subject_score;
-//             samePositionCount = 1; // Reset the count for the new score
-//         }
-//     });
-
-//     return students;
-// },
 
     getAssessments: async (req, res, db) => {
         const { classId, subjectId } = req.query;
@@ -1911,6 +1800,44 @@ calculateGrade: (totalPercentage) => {
         }
     },
 
+    management: async (req, res, db) => {
+        try {
+            const schoolYears = await db.query(`
+                SELECT sy.*, t.*
+                FROM school_years sy
+                LEFT JOIN terms t ON t.year_id = sy.id
+                ORDER BY sy.year_label DESC, t.start_date ASC;
+            `);
+
+            let structuredSchoolYears = {};
+            schoolYears.rows.forEach(row => {
+                if (!structuredSchoolYears[row.id]) {
+                    structuredSchoolYears[row.id] = {
+                        id: row.id,
+                        year_label: row.year_label,
+                        terms: []
+                    };
+                }
+                if (row.term_id) {
+                    structuredSchoolYears[row.id].terms.push({
+                        term_id: row.term_id,
+                        term_name: row.term_name,
+                        start_date: row.start_date,
+                        end_date: row.end_date
+                    });
+                }
+            });
+
+            res.render('common/management', {
+                title: 'Management Tools',
+                schoolYears: Object.values(structuredSchoolYears)
+            });
+        } catch (error) {
+            console.error('Error fetching management data:', error);
+            res.status(500).send('Failed to load management data');
+        }
+    },
+
     editGraduationYearGroup: async (req, res, db) => {
         const { id, newName } = req.body;
         try {
@@ -2074,33 +2001,38 @@ deleteSubject: async (req, res, db) => {
             res.status(500).send('Failed to load close school year page.');
         }
     },
-
     termDetails: async (req, res, db) => {
-        const { termId } = req.query;
+        const { termId } = req.query; // You might still want to use the termId for filtering if needed
         try {
-            const termResult = await db.query('SELECT * FROM terms WHERE term_id = $1 AND organization_id = $2', [termId, req.session.organizationId]);
+            const termResult = await db.query(
+                'SELECT * FROM terms WHERE term_id = $1 AND organization_id = $2',
+                [termId, req.session.organizationId]
+            );
             if (termResult.rows.length === 0) {
                 return res.status(404).send('Term not found.');
             }
-
+    
+            // Querying directly from the classes table
             const classesResult = await db.query(`
-                SELECT c.class_id, c.class_name
-                FROM term_classes tc
-                JOIN classes c ON tc.class_id = c.class_id
-                WHERE tc.term_id = $1 AND c.organization_id = $2
-            `, [termId, req.session.organizationId]);
-
-            res.render('common/termDetails', { 
-                title: 'Term Details', 
-                term: termResult.rows[0], 
-                classes: classesResult.rows 
+                SELECT class_id, class_name 
+                FROM classes 
+                WHERE organization_id = $1
+                ORDER BY class_name ASC
+            `, [req.session.organizationId]);
+    
+            res.render('common/termDetails', {
+                title: 'Term Details',
+                term: termResult.rows[0],
+                classes: classesResult.rows
             });
         } catch (error) {
             console.error('Error fetching term details:', error);
             res.status(500).send('Failed to load term details page.');
         }
-    },
-
+    }
+    
+    ,
+    
     closeGraduationYearGroup: async (req, res, db) => {
         try {
             const gradYearGroupsResult = await db.query('SELECT * FROM graduation_year_groups WHERE organization_id = $1 ORDER BY name', [req.session.organizationId]);

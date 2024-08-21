@@ -1,6 +1,6 @@
 /* manage class subject and grad year */
 .container {
-  display: flex;
+  /* display: flex; */
   justify-content: center;
   min-height: 80vh;
   width: 100%;

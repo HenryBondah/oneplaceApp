@@ -1,41 +1,29 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Term Details</title>
     <style>
-        main {
-            text-align: center;
-        }
-        table {
-            margin: 0 auto;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
         body {
             font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
             margin: 0;
             padding: 0;
-            background-color: #f9f9f9;
-        }
-
-        h1 {
-            text-align: center;
-            margin-top: 20px;
-            color: #333;
         }
 
         .container {
             width: 80%;
-            margin: 0 auto;
-            padding: 20px;
+            margin: 20px auto;
             background-color: #fff;
-            border: 1px solid #ddd;
+            padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
-        h2 {
-            color: #555;
+        h1, h2, h3 {
+            color: #333;
+            text-align: center;
         }
 
         ul {
@@ -46,20 +34,19 @@
         li {
             margin-bottom: 10px;
             padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
             background-color: #f1f1f1;
+            border-radius: 4px;
+            border: 1px solid #ddd;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .btn {
-            display: inline-block;
             padding: 8px 12px;
             font-size: 14px;
             color: #fff;
-            background-color: #007BFF;
+            background-color: #007bff;
             border: none;
             border-radius: 4px;
             text-decoration: none;
@@ -67,31 +54,32 @@
             transition: background-color 0.3s ease;
         }
 
-        .btn-primary:hover {
+        .btn:hover {
             background-color: #0056b3;
         }
     </style>
 </head>
 <body>
-    <h2>Term: <%= term.term_name %></h2>
-    <h3>Start Date: <%= term.start_date.toISOString().split('T')[0] %></h3>
-    <h3>End Date: <%= term.end_date.toISOString().split('T')[0] %></h3>
+    <div class="container">
+        <h1>Term: <%= term.term_name %></h1>
+        <h3>Start Date: <%= new Date(term.start_date).toLocaleDateString() %></h3>
+        <h3>End Date: <%= new Date(term.end_date).toLocaleDateString() %></h3>
 
-
-    <table>
-        <thead>
-            <tr>
-                <th>Class Name</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% classes.forEach(function(classItem) { %>
-                <tr>
-                    <td>
-                        <%= classItem.class_name %>
-                        <a href="/print/printStudentReport?classId=<%= classItem.class_id %>" class="btn btn-primary">Generate Report</a>
-                    </td>
-                </tr>
-            <% }); %>
-        </tbody>
-    </table>
+        <div class="classes-container">
+            <h2>Classes</h2>
+            <ul>
+                <% if (classes && classes.length > 0) { %>
+                    <% classes.forEach(function(cls) { %>
+                        <li>
+                            <span><%= cls.class_name %></span>
+                            <a href="/print/printStudentReport?classId=<%= cls.class_id %>" class="btn">Generate Report</a>
+                        </li>
+                    <% }); %>
+                <% } else { %>
+                    <li>No classes found</li>
+                <% } %>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

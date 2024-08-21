@@ -91,10 +91,10 @@
                     <% subjects.forEach(subject => { %>
                         <tr>
                             <td><%= subject.subject_name %></td>
-                            <td><%= subject.totalScore.toFixed(2) %></td>
-                            <td><%= subject.totalMaxScore > 0 ? ((subject.totalScore / subject.totalMaxScore) * 100).toFixed(2) : '0.00' %> %</td>
-                            <td><%= subject.grade %></td>
-                            <td>-</td> <!-- Assuming position is handled elsewhere -->
+                            <td><%= subject.totalScore !== null && subject.totalScore !== undefined ? subject.totalScore.toFixed(2) : '-' %></td>
+                            <td><%= subject.totalPercentage !== null && subject.totalPercentage !== undefined ? subject.totalPercentage.toFixed(2) : '-' %> %</td>
+                            <td><%= subject.grade ? subject.grade : '-' %></td>
+                            <td><%= subject.position !== null && subject.position !== undefined ? subject.position + getOrdinalSuffix(subject.position) : '-' %></td>
                         </tr>
                     <% }) %>
                 </tbody>
@@ -133,3 +133,14 @@
     </main>
 </body>
 </html>
+
+<script>
+    function getOrdinalSuffix(i) {
+        const j = i % 10,
+              k = i % 100;
+        if (j == 1 && k != 11) return "st";
+        if (j == 2 && k != 12) return "nd";
+        if (j == 3 && k != 13) return "rd";
+        return "th";
+    }
+</script>
