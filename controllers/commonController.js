@@ -30,8 +30,6 @@ const storage = multerS3({
 
 const upload = multer({ storage: storage });
 
-
-
 // Middleware to check if user is authenticated
 function isAuthenticated(req, res, next) {
     if (req.session.organizationId || req.session.userId) {
