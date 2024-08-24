@@ -363,6 +363,9 @@ ADD COLUMN total_percentage NUMERIC(5, 2);
 ALTER TABLE assessment_results
 ADD COLUMN position INTEGER;
 
+ALTER TABLE assessments ADD COLUMN category VARCHAR(50);
+
+
 -- Student Positions Table
 CREATE TABLE IF NOT EXISTS student_positions (
     position_id SERIAL PRIMARY KEY,

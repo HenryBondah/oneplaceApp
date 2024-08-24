@@ -1,4 +1,5 @@
 const printController = (db) => ({
+    
     printStudentReport: async (req, res) => {
         const { classId } = req.query;
         const organizationId = req.session.organizationId;
@@ -8,75 +9,92 @@ const printController = (db) => ({
                 throw new Error('Organization ID is not set in session.');
             }
 
+            const getOrdinalSuffix = (i) => {
+                const j = i % 10, k = i % 100;
+                if (j == 1 && k != 11) return i + "st";
+                if (j == 2 && k != 12) return i + "nd";
+                if (j == 3 && k != 13) return i + "rd";
+                return i + "th";
+            };
+
             // Fetch class details
-            const classResult = await db.query('SELECT * FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, organizationId]);
+            const classResult = await db.query(
+                'SELECT * FROM classes WHERE class_id = $1 AND organization_id = $2',
+                [classId, organizationId]
+            );
             const classData = classResult.rows[0];
             if (!classData) {
                 throw new Error('Class not found for the given class ID and organization ID.');
             }
 
             // Fetch organization details including logo URL
-            const organizationResult = await db.query('SELECT organization_name, organization_address, logo FROM organizations WHERE organization_id = $1', [organizationId]);
+            const organizationResult = await db.query(
+                'SELECT organization_name, organization_address, logo FROM organizations WHERE organization_id = $1',
+                [organizationId]
+            );
             const organization = organizationResult.rows[0];
             if (!organization) {
                 throw new Error('Organization not found');
             }
 
             // Fetch students by class
-            const students = await fetchStudentsByClass(db, classId);
-            if (!students || students.length === 0) {
-                res.render('print/printStudentReport', {
-                    title: 'Student Final Report',
-                    class: classData,
-                    students: [],
-                    orgName: organization.organization_name,
-                    orgAddress: organization.organization_address,
-                    logoUrl: organization.logo,
-                    date: new Date().toLocaleDateString(),
-                    teacherRemarks: [],
-                    term: {},
-                    signatureImageUrl: ''
-                });
-                return;
-            }
+            const studentsResult = await db.query(`
+                SELECT s.student_id, s.first_name, s.last_name, s.image_url, c.class_name
+                FROM students s
+                JOIN classes c ON s.class_id = c.class_id
+                WHERE s.class_id = $1 AND s.organization_id = $2
+            `, [classId, organizationId]);
 
-            // Fetch report settings including signature image URL
-            const settingsResult = await db.query('SELECT * FROM report_settings WHERE organization_id = $1 LIMIT 1', [organizationId]);
-            const reportSettings = settingsResult.rows[0] || {};
-            const cutOffPoint = reportSettings.cut_off_point || 50;
-            const promotedClass = reportSettings.promoted_class || 'Next Class';
-            const repeatedClass = reportSettings.repeated_class || 'Same Class';
-            const scoreRemark = reportSettings.score_remark || [];
-            const teacherRemarks = reportSettings.teacher_remarks || [];
-            const signatureImageUrl = reportSettings.signature_image_url || '';
+            const students = studentsResult.rows;
 
-            // Hardcoded subjects and scores for each student
-            const hardcodedSubjects = [
-                { subject_name: 'Mathematics', class_score: 80, exams_score: 90, total_score: 170, grade: 'A', position: 1, remarks: 'Excellent' },
-                { subject_name: 'Science', class_score: 75, exams_score: 85, total_score: 160, grade: 'B+', position: 2, remarks: 'Very Good' },
-                { subject_name: 'History', class_score: 70, exams_score: 80, total_score: 150, grade: 'B', position: 3, remarks: 'Good' }
-            ];
+            // Fetch all subjects for the class
+            const subjectsResult = await db.query(`
+                SELECT subject_id, subject_name
+                FROM subjects
+                WHERE class_id = $1 AND organization_id = $2
+            `, [classId, organizationId]);
+            const allSubjects = subjectsResult.rows;
 
+            // Process each student
             for (const student of students) {
-                student.subjects = hardcodedSubjects;
+                student.subjects = [];
 
-                // Fetch attendance
-                const attendanceResult = await db.query(`
-                    SELECT COUNT(*) as attendance
-                    FROM attendance_records
-                    WHERE student_id = $1 AND status = 'Present'
-                `, [student.student_id]);
-                student.attendance = attendanceResult.rows[0].attendance;
+                // For each subject, calculate the scores
+                for (const subject of allSubjects) {
+                    const scoresResult = await db.query(`
+                        SELECT 
+                            COALESCE(SUM(CASE WHEN a.category = 'Class Assessment' THEN ar.score ELSE 0 END), 0) AS classAssessmentScore,
+                            COALESCE(SUM(CASE WHEN a.category = 'Exams Assessment' THEN ar.score ELSE 0 END), 0) AS examsAssessmentScore,
+                            COALESCE(SUM(CASE WHEN a.category = 'Other' THEN ar.score ELSE 0 END), 0) AS otherAssessmentScore,
+                            COALESCE(SUM(ar.score), 0) AS totalScore,
+                            COALESCE(SUM(ar.score * a.weight / 100), 0) AS weightedScore,
+                            COALESCE(SUM(a.max_score * a.weight / 100), 0) AS weightedMaxScore,
+                            sp.position, 
+                            ar.grade
+                        FROM assessments a
+                        LEFT JOIN assessment_results ar ON a.assessment_id = ar.assessment_id AND ar.student_id = $1
+                        LEFT JOIN student_positions sp ON sp.student_id = ar.student_id AND sp.subject_id = a.subject_id
+                        WHERE a.subject_id = $2 AND a.class_id = $3 AND a.organization_id = $4
+                        GROUP BY sp.position, ar.grade
+                    `, [student.student_id, subject.subject_id, classId, organizationId]);
 
-                // Determine promotion status
-                const totalScore = student.subjects.reduce((acc, subject) => acc + subject.total_score, 0) / student.subjects.length;
-                student.promotionStatus = totalScore >= cutOffPoint ? `Promoted to: ${promotedClass}` : `Repeated: ${repeatedClass}`;
+                    const subjectScores = scoresResult.rows[0] || {};
+                    const totalPercentage = subjectScores.weightedMaxScore > 0 ? (subjectScores.weightedScore / subjectScores.weightedMaxScore) * 100 : 0;
+
+                    student.subjects.push({
+                        subject_name: subject.subject_name,
+                        classAssessmentScore: subjectScores.classAssessmentScore || '-',
+                        examsAssessmentScore: subjectScores.examsAssessmentScore || '-',
+                        otherAssessmentScore: subjectScores.otherAssessmentScore || '-',
+                        totalScore: subjectScores.totalScore || '-',
+                        totalPercentage: totalPercentage !== 0 ? totalPercentage.toFixed(2) : '-',
+                        grade: subjectScores.grade || '-',
+                        position: subjectScores.position !== null ? getOrdinalSuffix(subjectScores.position) : '-',
+                    });
+                }
             }
 
-            // Fetch term details
-            const termResult = await db.query('SELECT * FROM terms WHERE organization_id = $1 AND current = TRUE', [organizationId]);
-            const term = termResult.rows[0];
-
+            // Render the report page
             res.render('print/printStudentReport', {
                 title: 'Student Final Report',
                 class: classData,
@@ -85,15 +103,18 @@ const printController = (db) => ({
                 orgAddress: organization.organization_address,
                 logoUrl: organization.logo,
                 date: new Date().toLocaleDateString(),
-                teacherRemarks: teacherRemarks,
-                term: term || {}, // Pass term data to the view
-                signatureImageUrl: signatureImageUrl
+                teacherRemarks: [], // Add actual remarks if available
+                term: {}, // Add actual term data if available
+                signatureImageUrl: '', // Add signature image URL if available
             });
         } catch (error) {
             console.error('Error generating student report:', error);
             res.status(500).send('Failed to generate student report.');
         }
     },
+    
+    
+    
 
     remarksPage: async (req, res) => {
         const organizationId = req.session.organizationId;

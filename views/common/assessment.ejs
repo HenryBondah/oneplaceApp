@@ -116,6 +116,14 @@
             <label for="maxScore">Score Out Of:</label>
             <input type="number" id="maxScore" name="maxScore" required>
         </div>
+        <div class="form-group">
+            <label for="category">Category:</label>
+            <select id="category" name="category" required>
+                <option value="Class Assessment">Class Assessment</option>
+                <option value="Exams Assessment">Exams Assessment</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
         <input type="hidden" id="classId" value="<%= classId %>">
         <input type="hidden" id="subjectId" value="<%= subjectId %>">
         <button type="submit">Add Test</button>
@@ -132,6 +140,7 @@
                         <% assessments.forEach(function(assessment) { %>
                             <th>
                                 <%= assessment.title %> (<%= assessment.weight %>%)<br>
+                                <%= assessment.category %><br>
                                 <hr>
                                 Score Out Of: <%= assessment.max_score %>
                             </th>
@@ -145,7 +154,6 @@
                 
                 <tbody id="students-table-body">
                     <% 
-                    // Ensure that the students are sorted based on position which is already computed by the backend
                     students.sort((a, b) => a.position - b.position);
 
                     function getOrdinalSuffix(i) {
@@ -199,6 +207,7 @@
         const testName = document.getElementById('testName').value;
         const testWeight = document.getElementById('testWeight').value;
         const maxScore = document.getElementById('maxScore').value;
+        const category = document.getElementById('category').value;
         const classId = document.getElementById('classId').value;
         const subjectId = document.getElementById('subjectId').value;
 
@@ -208,7 +217,7 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ testName, testWeight, maxScore, classId, subjectId })
+                body: JSON.stringify({ testName, testWeight, maxScore, category, classId, subjectId })
             });
 
             if (response.ok) {

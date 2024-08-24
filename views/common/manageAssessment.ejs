@@ -4,71 +4,79 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Assessments</title>
+    <% if (messages.success && messages.success.length > 0) { %>
+        <div class="flash-success"><%= messages.success %></div>
+    <% } %>
+    <% if (messages.error && messages.error.length > 0) { %>
+        <div class="flash-error"><%= messages.error %></div>
+    <% } %>
+
     <style>
-th, td {
-    padding: 10px;
-    border: 1px solid #ddd;
-    vertical-align: top;
-}
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
 
-.form-group {
-    margin-bottom: 15px;
-}
+        .form-group {
+            margin-bottom: 15px;
+        }
 
-.action-buttons {
-    display: flex;
-    flex-direction: column;
-}
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+        }
 
-.weight-input, .max-score-input {
-    width: 100%;
-}
+        .weight-input, .max-score-input {
+            width: 100%;
+        }
 
-.test-name-input {
-    width: 100%;
-}
+        .test-name-input {
+            width: 100%;
+        }
 
-@media (max-width: 768px) {
-    .test-name-input {
-        width: 60%;
-    }
-    .weight-input, .max-score-input {
-        width: 20%;
-    }
-}
+        .category-select {
+            width: 100%;
+            padding: 5px;
+        }
 
-/* Styles for Delete button */
-.action-buttons form {
-    display: inline-block;
-    margin-top: 5px;
-}
+        @media (max-width: 768px) {
+            .test-name-input {
+                width: 60%;
+            }
+            .weight-input, .max-score-input, .category-select {
+                width: 20%;
+            }
+        }
 
-.action-buttons button {
-    padding: 8px 15px;
-    border: none;
-    background-color: #284cdb;
-    color: white;
-    font-size: 14px;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-}
+        .action-buttons form {
+            display: inline-block;
+            margin-top: 5px;
+        }
 
-.action-buttons button:hover {
-    /* background-color: #c82333; */
-    transform: scale(1.05);
-}
+        .action-buttons button {
+            padding: 8px 15px;
+            border: none;
+            background-color: #284cdb;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
 
-.action-buttons button:active {
-    /* background-color: #bd2130; */
-    transform: scale(0.95);
-}
+        .action-buttons button:hover {
+            transform: scale(1.05);
+        }
 
-.action-buttons button:focus {
-    outline: none;
-}
+        .action-buttons button:active {
+            transform: scale(0.95);
+        }
 
-</style>
+        .action-buttons button:focus {
+            outline: none;
+        }
+    </style>
 </head>
 <body>
 
@@ -79,12 +87,6 @@ th, td {
     <h1>Manage Assessments for <%= className %></h1>
     <h1>Subject: <%= subjectName %></h1>
 
-    <% if (messages.success && messages.success.length > 0) { %>
-        <div class="flash-success"><%= messages.success %></div>
-    <% } %>
-    <% if (messages.error && messages.error.length > 0) { %>
-        <div class="flash-error"><%= messages.error %></div>
-    <% } %>
 
     <!-- Form to update assessments -->
     <form id="updateAssessmentsForm">
@@ -94,6 +96,7 @@ th, td {
                     <th>Test Name</th>
                     <th>Weight</th>
                     <th>Score Out Of</th>
+                    <th>Category</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -108,6 +111,13 @@ th, td {
                         </td>
                         <td>
                             <input type="number" name="maxScore[<%= assessment.assessment_id %>]" value="<%= assessment.max_score %>" step="0.1" class="max-score-input" required>
+                        </td>
+                        <td>
+                            <select name="category[<%= assessment.assessment_id %>]" class="category-select">
+                                <option value="Class Assessment" <%= assessment.category === 'Class Assessment' ? 'selected' : '' %>>Class Assessment</option>
+                                <option value="Exams Assessment" <%= assessment.category === 'Exams Assessment' ? 'selected' : '' %>>Exams Assessment</option>
+                                <option value="Other" <%= assessment.category === 'Other' ? 'selected' : '' %>>Other</option>
+                            </select>
                         </td>
                         <td class="action-buttons">
                             <form action="/common/deleteAssessment" method="post" style="display:inline;">
@@ -134,13 +144,14 @@ th, td {
 
             const assessments = {};
             formData.forEach((value, key) => {
-                const match = key.match(/title\[(\d+)\]|weight\[(\d+)\]|maxScore\[(\d+)\]/);
+                const match = key.match(/title\[(\d+)\]|weight\[(\d+)\]|maxScore\[(\d+)\]|category\[(\d+)\]/);
                 if (match) {
-                    const id = match[1] || match[2] || match[3];
+                    const id = match[1] || match[2] || match[3] || match[4];
                     if (!assessments[id]) assessments[id] = {};
                     if (key.startsWith('title')) assessments[id].title = value;
                     if (key.startsWith('weight')) assessments[id].weight = parseFloat(value);
                     if (key.startsWith('maxScore')) assessments[id].maxScore = parseFloat(value);
+                    if (key.startsWith('category')) assessments[id].category = value;
                 }
             });
 
