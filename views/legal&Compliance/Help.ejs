@@ -1,70 +1,191 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title><%= title %></title>
     <style>
-        /* Add some basic styling */
-        .form-group {
-            margin-bottom: 15px;
+      body {
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        background-color: #f4f4f9;
+        color: #333;
+        margin: 0;
+        padding: 0;
+        line-height: 1.6;
+      }
+ 
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-top: 50px;
+        font-size: 2.4em;
+        font-weight: bold;
+      }
+ 
+      .alert-success,
+      .alert-error {
+        max-width: 800px;
+        margin: 20px auto;
+        /* padding: 15px; */
+        border-radius: 5px;
+        font-size: 1em;
+        text-align: center;
+      }
+ 
+      .alert-success {
+        background-color: #dff0d8;
+        color: #3c763d;
+      }
+ 
+      .alert-error {
+        background-color: #f2dede;
+        color: #a94442;
+      }
+ 
+      .contact-info {
+        max-width: 800px;
+        margin: 20px auto;
+        font-size: 1.1em;
+        color: #555;
+      }
+ 
+      .contact-info p {
+        margin-bottom: 15px;
+      }
+ 
+      .contact-info a {
+        color: #007bff;
+        text-decoration: none;
+        transition: color 0.3s;
+      }
+ 
+      .contact-info a:hover {
+        color: #0056b3;
+      }
+ 
+      form {
+        max-width: 800px;
+        margin: 40px auto;
+        /* padding: 20px; */
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+ 
+      .form-group {
+        margin-bottom: 20px;
+      }
+ 
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #333;
+      }
+ 
+      .form-group input,
+      .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1em;
+        transition: border-color 0.3s;
+      }
+ 
+      .form-group input:focus,
+      .form-group textarea:focus {
+        border-color: #007bff;
+        outline: none;
+      }
+ 
+      .form-group textarea {
+        resize: vertical;
+        height: 150px;
+      }
+ 
+      button[type="submit"] {
+        display: block;
+        width: 100%;
+        padding: 15px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        font-size: 1.2em;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+ 
+      button[type="submit"]:hover {
+        background-color: #0056b3;
+      }
+ 
+      @media (max-width: 768px) {
+        h1 {
+          font-size: 2em;
         }
-        .alert-success, .alert-error {
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 5px;
+ 
+        .alert-success,
+        .alert-error,
+        .contact-info,
+        form {
+          padding: 15px;
         }
-        .alert-success {
-            color: green;
-            background-color: #d4edda;
+ 
+        .form-group input,
+        .form-group textarea {
+          font-size: 0.95em;
         }
-        .alert-error {
-            color: red;
-            background-color: #f8d7da;
+ 
+        button[type="submit"] {
+          font-size: 1.1em;
         }
-        .contact-info {
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Contact Us</h1>
-
+ 
     <% if (success && success.length > 0) { %>
-        <div class="alert-success"><%= success %></div>
+    <div class="alert-success"><%= success %></div>
+    <% } %> <% if (error && error.length > 0) { %>
+    <div class="alert-error"><%= error %></div>
     <% } %>
-    <% if (error && error.length > 0) { %>
-        <div class="alert-error"><%= error %></div>
-    <% } %>
-
+ 
     <div class="contact-info">
-        <p>For a quicker response, please visit our <a href="/legal/faq">FAQ page</a> or visit our <a href="https://www.youtube.com/">YouTube Page</a> for an easy step by step process of each action in one place..</p>
-        <p>otherwise contact Support Phone: +1 (555) 123-4567</p> 
+      <p>
+        For a quicker response, please visit our
+        <a href="/legal/faq">FAQ page</a> or visit our
+        <a href="https://www.youtube.com/">YouTube Page</a> for an easy step by
+        step process of each action in one place..
+      </p>
+      <p>otherwise contact Support Phone: +1 (555) 123-4567</p>
     </div>
-
+ 
     <form action="/legal/help" method="POST">
-        <div class="form-group">
-            <label for="name">Help Seekers Full Name:</label>
-            <input type="text" id="name" name="name" required>
-        </div>
-        <div class="form-group">
-            <label for="organization">Which Organization do you belong to:</label>
-            <input type="text" id="organization" name="organization">
-        </div>
-        <div class="form-group">
-            <label for="phone">Phone:</label>
-            <input type="tel" id="phone" name="phone" required>
-        </div>
-        <div class="form-group">
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
-        </div>
-        <div class="form-group">
-            <label for="message">Message:</label>
-            <textarea id="message" name="message" required></textarea>
-        </div>
-        <button type="submit">Seek Help</button>
+      <div class="form-group">
+        <label for="name">Help Seekers Full Name:</label>
+        <input type="text" id="name" name="name" required />
+      </div>
+      <div class="form-group">
+        <label for="organization">Which Organization do you belong to:</label>
+        <input type="text" id="organization" name="organization" />
+      </div>
+      <div class="form-group">
+        <label for="phone">Phone:</label>
+        <input type="tel" id="phone" name="phone" required />
+      </div>
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required />
+      </div>
+      <div class="form-group">
+        <label for="message">Message:</label>
+        <textarea id="message" name="message" required></textarea>
+      </div>
+      <button type="submit">Seek Help</button>
     </form>
-</body>
+  </body>
 </html>
+ 
+ 

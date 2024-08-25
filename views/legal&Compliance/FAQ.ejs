@@ -1,94 +1,176 @@
+<style>
+    body {
+font-family: Arial, sans-serif;
+background-color: #f4f4f9;
+color: #333;
+margin: 0;
+padding: 0;
+line-height: 1.6;
+}
 
-    <style>
-        .faq-item { margin-bottom: 30px; }
-        .faq-question { cursor: pointer; }
-        .faq-answer { display: none; }
-        .faq-question::after { content: " +"; float: right; }
-        .faq-question.open::after { content: " -"; }
-    </style>
-    <main>
-        <h1>Frequently Asked Questions</h1>
-        <div class="faq-item">
-            <div class="faq-question">1. What is OnePlace?</div>
-            <div class="faq-answer">OnePlace is an educational platform designed to help schools manage and track student performance. 
-                It allows teachers to input test scores and other academic metrics, which can be shared with parents and school administrators. 
-                The platform also enables school owners to add and manage teachers and events.</div>
-        </div>
-        <div class="faq-item">
-            <div class="faq-question">2. How do I register my school on OnePlace?
-            </div>
-            <div class="faq-answer">To register your school, simply visit our sign-up page and fill out the registration form with your school’s details, including the administrator’s contact information. Once registered, you can start adding teachers to manage classes, students, events and announcements to your school’s profile for easy and direct communication. </div>
-        </div>
-        <div class="faq-item">
-            <div class="faq-question">3. How can teachers use OnePlace?</div>
-            <div class="faq-answer">Teachers can use OnePlace to enter and monitor student performance data, such as test scores, grades and attendance. The platform allows teachers to generate reports and share performance insights with parents and school administrators. It gives them first class access to student information digitally to know students strengths and capabilities.</div>
-        </div>
-        <div class="faq-item">
-            <div class="faq-question">4. Can parents access their child's performance data?
-            </div>
-            <div class="faq-answer">Yes, parents can access their child’s performance data through OnePlace. The school must authorize parent access, and once granted, parents can log in to view their child’s academic progress.</div>
-        </div>
-        <div class="faq-item">
-            <div class="faq-question">5. How secure is the student data on OnePlace?</div>
-            <div class="faq-answer">We take data security seriously. OnePlace employs various security measures, including encryption, secure servers, and restricted access, to protect all personal and performance data. While we strive to ensure the utmost security, please note that no system can be completely secure.</div>
-        </div>
-        <div class="faq-item">
-            <div class="faq-question">6. How long is the data retained on OnePlace?</div>
-            <div class="faq-answer">Student performance data and personal information are retained for as long as the school’s account remains active. And it’s a guaranteed safe haven for all the students' information. If a school decides to terminate its account, the data will be archived and could be accessed by the school at all times through one place. </div>
-        </div>
-        <div class="faq-item">
-            <div class="faq-question">7. How can I correct or update my information on OnePlace?</div>
-            <div class="faq-answer">Schools, teachers, and parents can request to correct or update their personal information by contacting the school administrator. The administrator can make the necessary changes through their account.
-            </div>
-        </div>
-        <div class="faq-item">
-            <div class="faq-question">8. What should I do if I forget my password?
-            </div>
-            <div class="faq-answer">If you forget your password, you can reset it by clicking the "Forgot Password" link on the login page. Follow the instructions provided, and you’ll receive an email with a link to reset your password.
-            </div>
-        </div>
-        <div class="faq-item">
-            <div class="faq-question">9. Can I add events to the school calendar on OnePlace?</div>
-            <div class="faq-answer">Yes, school administrators and authorized staff can add events to the school calendar. This feature helps schools keep teachers, students, and parents informed about upcoming activities and important dates.</div>
-        </div>
-        <div class="faq-item">
-            <div class="faq-question">10. Who do I contact if I have questions or need support?</div>
-            <div class="faq-answer">If you have any questions or need support, please contact our customer service team at OnePlace@gmail.com. We’re here to help with any issues or inquiries you may have.</div>
-        </div>
-        <div class="faq-item">
-            <div class="faq-question">11. Does every student get transcript access? </div>
-            <div class="faq-answer">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
-        </div>
-        <div class="faq-item">
-            <div class="faq-question">12. What’s the process of accessing transcript? </div>
-            <div class="faq-answer">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
-        </div>
-        <div class="faq-item">
-            <div class="faq-question">13. What platform can this be fully accessed? </div>
-            <div class="faq-answer">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
-        </div>
-        <div class="faq-item">
-            <div class="faq-question">14. How easy can a student report be accessed? </div>
-            <div class="faq-answer">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
-        </div>
-        <div class="faq-item">
-            <div class="faq-question">15. Student information update. </div>
-            <div class="faq-answer">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
-        </div>
-    </main>
+main {
+max-width: 1400px;
+margin: 50px auto;
+/* padding: 20px; */
+background: #fff;
+border-radius: 8px;
+/* box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); */
+}
 
-    <script>
-        document.querySelectorAll('.faq-question').forEach(item => {
-            item.addEventListener('click', () => {
-                item.classList.toggle('open');
-                const answer = item.nextElementSibling;
-                if (answer.style.display === 'none' || answer.style.display === '') {
-                    answer.style.display = 'block';
-                } else {
-                    answer.style.display = 'none';
-                }
-            });
+h1 {
+text-align: center;
+color: #333;
+margin-bottom: 40px;
+font-size: 2.2em;
+font-weight: bold;
+}
+
+.faq-item {
+margin-bottom: 20px;
+border-bottom: 1px solid #e0e0e0;
+padding-bottom: 10px;
+}
+
+.faq-question {
+font-size: 1.2em;
+font-weight: bold;
+color: #000000;
+cursor: pointer;
+padding: 10px 0;
+position: relative;
+transition: color 0.3s;
+}
+
+.faq-question::after {
+content: '+';
+position: absolute;
+right: 0;
+font-size: 1.5em;
+color: #007bff;
+transition: transform 0.3s;
+}
+
+.faq-question.open::after {
+transform: rotate(45deg);
+}
+
+.faq-question:hover {
+color: #0056b3;
+}
+
+.faq-answer {
+display: none;
+font-size: 1em;
+line-height: 1.6;
+color: #555;
+margin-top: 10px;
+padding-left: 10px;
+border-left: 4px solid #007bff;
+transition: max-height 0.3s ease-in-out;
+}
+
+@media (max-width: 768px) {
+main {
+    padding: 15px;
+}
+
+h1 {
+    font-size: 1.8em;
+}
+
+.faq-question {
+    font-size: 1.1em;
+}
+
+.faq-answer {
+    font-size: 0.95em;
+}
+}
+
+</style>
+<main>
+    <h1>Frequently Asked Questions</h1>
+    <div class="faq-item">
+        <div class="faq-question">1. What is OnePlace?</div>
+        <div class="faq-answer">OnePlace is an educational platform designed to help schools manage and track student performance.
+            It allows teachers to input test scores and other academic metrics, which can be shared with parents and school administrators.
+            The platform also enables school owners to add and manage teachers and events.</div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">2. How do I register my school on OnePlace?
+        </div>
+        <div class="faq-answer">To register your school, simply visit our sign-up page and fill out the registration form with your school’s details, including the administrator’s contact information. Once registered, you can start adding teachers to manage classes, students, events and announcements to your school’s profile for easy and direct communication. </div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">3. How can teachers use OnePlace?</div>
+        <div class="faq-answer">Teachers can use OnePlace to enter and monitor student performance data, such as test scores, grades and attendance. The platform allows teachers to generate reports and share performance insights with parents and school administrators. It gives them first class access to student information digitally to know students strengths and capabilities.</div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">4. Can parents access their child's performance data?
+        </div>
+        <div class="faq-answer">Yes, parents can access their child’s performance data through OnePlace. The school must authorize parent access, and once granted, parents can log in to view their child’s academic progress.</div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">5. How secure is the student data on OnePlace?</div>
+        <div class="faq-answer">We take data security seriously. OnePlace employs various security measures, including encryption, secure servers, and restricted access, to protect all personal and performance data. While we strive to ensure the utmost security, please note that no system can be completely secure.</div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">6. How long is the data retained on OnePlace?</div>
+        <div class="faq-answer">Student performance data and personal information are retained for as long as the school’s account remains active. And it’s a guaranteed safe haven for all the students' information. If a school decides to terminate its account, the data will be archived and could be accessed by the school at all times through one place. </div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">7. How can I correct or update my information on OnePlace?</div>
+        <div class="faq-answer">Schools, teachers, and parents can request to correct or update their personal information by contacting the school administrator. The administrator can make the necessary changes through their account.
+        </div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">8. What should I do if I forget my password?
+        </div>
+        <div class="faq-answer">If you forget your password, you can reset it by clicking the "Forgot Password" link on the login page. Follow the instructions provided, and you’ll receive an email with a link to reset your password.
+        </div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">9. Can I add events to the school calendar on OnePlace?</div>
+        <div class="faq-answer">Yes, school administrators and authorized staff can add events to the school calendar. This feature helps schools keep teachers, students, and parents informed about upcoming activities and important dates.</div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">10. Who do I contact if I have questions or need support?</div>
+        <div class="faq-answer">If you have any questions or need support, please contact our customer service team at OnePlace@gmail.com. We’re here to help with any issues or inquiries you may have.</div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">11. Does every student get transcript access? </div>
+        <div class="faq-answer">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">12. What’s the process of accessing transcript? </div>
+        <div class="faq-answer">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">13. What platform can this be fully accessed? </div>
+        <div class="faq-answer">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">14. How easy can a student report be accessed? </div>
+        <div class="faq-answer">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
+    </div>
+    <div class="faq-item">
+        <div class="faq-question">15. Student information update. </div>
+        <div class="faq-answer">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</div>
+    </div>
+</main>
+
+<script>
+    document.querySelectorAll('.faq-question').forEach(item => {
+        item.addEventListener('click', () => {
+            item.classList.toggle('open');
+            const answer = item.nextElementSibling;
+            if (answer.style.display === 'none' || answer.style.display === '') {
+                answer.style.display = 'block';
+            } else {
+                answer.style.display = 'none';
+            }
         });
-    </script>
+    });
+</script>
 </body>
 </html>

@@ -1,4 +1,67 @@
-
+<style>
+    body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+ 
+main {
+    max-width: 1300px;
+    margin: 20px auto;
+    /* padding: 10px; */
+    background: #fff;
+    border-radius: 8px;
+    /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); */
+}
+ 
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 40px;
+    font-size: 2.4em;
+    font-weight: bold;
+}
+ 
+p {
+    font-size: 1.1em;
+    color: #555;
+    margin-bottom: 20px;
+    line-height: 1.8;
+}
+ 
+p:first-of-type {
+    font-weight: bold;
+}
+ 
+p:last-child {
+    margin-bottom: 0;
+}
+ 
+p::before {
+    content: attr(data-section);
+    font-weight: bold;
+    display: block;
+    margin-bottom: 10px;
+}
+ 
+@media (max-width: 768px) {
+    main {
+        padding: 15px;
+    }
+ 
+    h1 {
+        font-size: 2em;
+    }
+ 
+    p {
+        font-size: 1em;
+    }
+}
+ 
+</style>
     <main>
         <h1>Terms of Service</h1>
         <p>1. Acceptance of Terms
@@ -49,6 +112,5 @@
             .
             </p>
         <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam.</p>
-    
+   
     </main>
-
