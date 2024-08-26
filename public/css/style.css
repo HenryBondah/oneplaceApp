@@ -7,7 +7,7 @@
 
 /* Define the font-family variable */
 :root {
-  --font-family: 'Roboto', sans-serif;
+  --font-family: 'Arial', sans-serif;
 }
 
 body {
@@ -724,7 +724,7 @@ h3 {
   }
 
   .feature h3 {
-    font-size: 18px;
+    font-size: 20px;
   }
 
   #features {
