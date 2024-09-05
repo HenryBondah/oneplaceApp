@@ -1,4 +1,9 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Class, Subject & Graduation Year</title>
     <style>
         .separator {
             border-bottom: 1px solid #ccc;
@@ -18,7 +23,7 @@
             background-color: #f8d7da;
             color: #721c24;
         }
-    
+
         .form-container {
             display: flex;
             align-items: center;
@@ -28,7 +33,7 @@
             flex-grow: 1;
             margin-right: 10px;
         }
- 
+
         .form-container a {
             text-decoration: none;
             display: inline-block;
@@ -38,8 +43,9 @@
         .delete-link {
             color: red;
             margin-left: 10px;
+            cursor: pointer;
         }
-   
+
         .subject-item {
             display: flex;
             align-items: center;
@@ -64,7 +70,7 @@
     <div class="link-to-next-back">
         <a href="/common/addClassSubject">Add Class, Subject & Graduation Year Group</a>
     </div>
-<hr>
+    <hr>
     <!-- Horizontal line separator -->
 
     <div class="container">
@@ -76,8 +82,7 @@
                         <input type="hidden" name="id" value="<%= group.id %>">
                         <input type="text" name="newName" value="<%= group.name %>">
                         <button type="submit">Update</button>
-                        <a href="/common/deleteGraduationYearGroup?id=<%= group.id %>" class="delete-link">Delete</a>
-
+                        <a href="javascript:void(0)" class="delete-link" onclick="confirmDelete('/common/deleteGraduationYearGroup?id=<%= group.id %>')">Delete</a>
                     </form>
                 </div>
             <% }); %>
@@ -91,7 +96,7 @@
                         <input type="hidden" name="classId" value="<%= cls.class_id %>">
                         <input type="text" name="newClassName" value="<%= cls.class_name %>">
                         <button type="submit">Update</button>
-                        <a href="/common/deleteClass?classId=<%= cls.class_id %>" class="delete-link">Delete</a>
+                        <a href="javascript:void(0)" class="delete-link" onclick="confirmDelete('/common/deleteClass?classId=<%= cls.class_id %>')">Delete</a>
                     </form>
                 </div>
             <% }); %>
@@ -113,6 +118,13 @@
     </div>
 
     <script>
+        function confirmDelete(url) {
+            const confirmation = confirm("Warning: Deleting this will also delete related information like subjects, assessments, and student data. Are you sure you want to proceed?");
+            if (confirmation) {
+                window.location.href = url;
+            }
+        }
+
         function fetchSubjects() {
             const classId = document.getElementById('classSelect').value;
             if (!classId) {
@@ -135,7 +147,7 @@
                                 <input type="text" name="newName" value="${subject.subject_name}">
                                 <button type="submit">Update</button>
                             </form>
-                            <a href="/common/deleteSubject?subjectId=${subject.subject_id}" class="delete-link">Delete</a>
+                            <a href="javascript:void(0)" class="delete-link" onclick="confirmDelete('/common/deleteSubject?subjectId=${subject.subject_id}')">Delete</a>
                         `;
                         subjectsContainer.appendChild(subjectElement);
                     });
@@ -146,3 +158,5 @@
                 });
         }
     </script>
+</body>
+</html>

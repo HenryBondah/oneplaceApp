@@ -43,6 +43,9 @@
             background-color: #007bff;
             color: white;
         }
+        .table-container {
+            overflow-x: auto;
+        }
     </style>
 </head>
 <body>
@@ -81,6 +84,15 @@
                 <thead>
                     <tr>
                         <th>Subject</th>
+                        <% if (subjects.length > 0 && subjects[0].assessments.length > 0) { %>
+                            <% subjects[0].assessments.forEach(function(assessment) { %>
+                                <th>
+                                    <%= assessment.title %> (<%= assessment.weight %>%)<br>
+                                    <small><%= assessment.category %></small><br>
+                                    Score Out Of: <%= assessment.max_score %>
+                                </th>
+                            <% }); %>
+                        <% } %>
                         <th>Total Subject Score</th>
                         <th>Total Percentage</th>
                         <th>Grade</th>
@@ -91,6 +103,11 @@
                     <% subjects.forEach(subject => { %>
                         <tr>
                             <td><%= subject.subject_name %></td>
+                            <% subject.assessments.forEach(function(assessment) { %>
+                                <td>
+                                    <%= typeof assessment.score === 'number' ? assessment.score.toFixed(2) : (assessment.score !== null && assessment.score !== undefined ? assessment.score : '-') %>
+                                </td>
+                            <% }); %>
                             <td><%= subject.totalScore !== null && subject.totalScore !== undefined ? subject.totalScore.toFixed(2) : '-' %></td>
                             <td><%= subject.totalPercentage !== null && subject.totalPercentage !== undefined ? subject.totalPercentage.toFixed(2) : '-' %> %</td>
                             <td><%= subject.grade ? subject.grade : '-' %></td>

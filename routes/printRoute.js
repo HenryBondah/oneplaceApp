@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { isAuthenticated } = require('../middleware/middleware'); // Ensure correct path to middleware
-
+const { isAuthenticated } = require('../middleware/middleware');
 const multer = require('multer');
 const path = require('path');
 
@@ -14,19 +13,26 @@ const storage = multer.diskStorage({
         cb(null, Date.now() + path.extname(file.originalname));
     }
 });
-
 const upload = multer({ storage: storage });
 
 module.exports = (db) => {
     const printController = require('../controllers/printController')(db);
 
+    // Ensure controller methods are defined before using them in routes
+    if (!printController || typeof printController.printStudentReport !== 'function') {
+        throw new Error('printController is not properly initialized');
+    }
+
+    // Route definitions
     router.get('/printStudentReport', isAuthenticated, printController.printStudentReport);
-    router.get('/remarks', isAuthenticated, printController.remarksPage);
-    router.post('/saveRemarks', isAuthenticated, printController.saveRemarks);
-    router.post('/uploadSignatureImage', isAuthenticated, upload.single('signatureImage'), printController.uploadSignatureImage); // Add this route
-    router.post('/deleteRemarks/:id', isAuthenticated, printController.deleteRemarks);
-    router.get('/editRemarks/:id', isAuthenticated, printController.editRemarks);
-    router.post('/updateRemarks', isAuthenticated, printController.updateRemarks);
+    router.get('/reportSettings', isAuthenticated, printController.reportSettingsPage);
+    router.post('/savePromotionSettings', isAuthenticated, printController.savePromotionSettings);
+    router.post('/saveTeacherRemarks', isAuthenticated, printController.saveTeacherRemarks);
+    router.post('/saveScoreRemarks', isAuthenticated, printController.saveScoreRemarks);
+    router.post('/uploadSignatureImage', upload.single('signatureImage'), printController.uploadSignatureImage);
+    router.get('/deleteSignatureImage', isAuthenticated, printController.deleteSignatureImage);
+    router.get('/deleteTeacherRemark/:id', isAuthenticated, printController.deleteTeacherRemark);
+    router.get('/deleteScoreRemark/:id', isAuthenticated, printController.deleteScoreRemark);
 
     return router;
 };

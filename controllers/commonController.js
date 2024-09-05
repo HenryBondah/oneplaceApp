@@ -417,6 +417,8 @@ const commonController = {
         }
     },
 
+
+
     studentDetails: async (req, res, db) => {
         const studentId = req.query.studentId;
     
@@ -425,6 +427,7 @@ const commonController = {
         }
     
         try {
+            // Fetch student details
             const studentResult = await db.query(`
                 SELECT s.*, c.class_name, g.name AS grad_year_group_name
                 FROM students s
@@ -439,40 +442,59 @@ const commonController = {
     
             const student = studentResult.rows[0];
     
+            // Fetch guardians associated with the student
             const guardiansResult = await db.query(`
                 SELECT * FROM guardians
                 WHERE student_id = $1
             `, [studentId]);
     
-            const assessmentsResult = await db.query(`
-                SELECT a.assessment_id, a.title, a.weight, ar.score, a.subject_id, a.max_score, sub.subject_name, 
-                       ar.total_percentage, ar.total_subject_score, ar.grade
-                FROM assessments a
-                LEFT JOIN assessment_results ar ON a.assessment_id = ar.assessment_id
-                LEFT JOIN subjects sub ON a.subject_id = sub.subject_id
-                WHERE ar.student_id = $1 AND ar.organization_id = $2
+            // Fetch all subjects for the student's class
+            const subjectsResult = await db.query(`
+                SELECT s.subject_id, s.subject_name
+                FROM subjects s
+                LEFT JOIN student_subjects ss ON s.subject_id = ss.subject_id
+                WHERE ss.student_id = $1 AND s.organization_id = $2
+                ORDER BY s.subject_name
             `, [studentId, req.session.organizationId]);
     
-            const subjects = assessmentsResult.rows.reduce((acc, assessment) => {
-                let subject = acc.find(s => s.subject_id === assessment.subject_id);
-                if (!subject) {
-                    subject = {
-                        subject_id: assessment.subject_id,
-                        subject_name: assessment.subject_name,
-                        totalScore: 0,
-                        totalMaxScore: 0,
-                        totalPercentage: null, // Initialize as null
-                        grade: '',
-                        position: null
-                    };
-                    acc.push(subject);
+            const subjects = subjectsResult.rows.map(subject => ({
+                ...subject,
+                totalScore: 0,
+                totalMaxScore: 0,
+                totalPercentage: null,
+                grade: null,
+                position: null,
+                assessments: []
+            }));
+    
+            // Fetch assessments and scores for the student
+            const assessmentsResult = await db.query(`
+                SELECT a.assessment_id, a.title, a.weight, ar.score, a.subject_id, a.max_score, a.category,
+                       ar.total_subject_score, ar.total_percentage, ar.grade
+                FROM assessments a
+                LEFT JOIN assessment_results ar ON a.assessment_id = ar.assessment_id AND ar.student_id = $1
+                WHERE a.subject_id IN (SELECT subject_id FROM student_subjects WHERE student_id = $1)
+                AND a.organization_id = $2
+                ORDER BY a.subject_id, a.assessment_id
+            `, [studentId, req.session.organizationId]);
+    
+            // Aggregate assessments by subject
+            assessmentsResult.rows.forEach(assessment => {
+                const subject = subjects.find(sub => sub.subject_id === assessment.subject_id);
+                if (subject) {
+                    subject.assessments.push(assessment);
+                    if (assessment.score !== null) {
+                        subject.totalScore += parseFloat(assessment.score);
+                        subject.totalMaxScore += parseFloat(assessment.max_score);
+                    }
+                    if (assessment.total_percentage !== null) {
+                        subject.totalPercentage = parseFloat(assessment.total_percentage);
+                    }
+                    if (assessment.grade) {
+                        subject.grade = assessment.grade;
+                    }
                 }
-                subject.totalScore += parseFloat(assessment.score) || 0;
-                subject.totalMaxScore += parseFloat(assessment.max_score) || 0;
-                subject.totalPercentage = assessment.total_percentage ? parseFloat(assessment.total_percentage) : null; // Ensure it's a number
-                subject.grade = assessment.grade;
-                return acc;
-            }, []);
+            });
     
             // Fetch positions from student_positions table
             const positionsResult = await db.query(`
@@ -487,7 +509,7 @@ const commonController = {
             }, {});
     
             subjects.forEach(subject => {
-                subject.position = positions[subject.subject_id] || '-'; // Assign position from positions result or '-' if not found
+                subject.position = positions[subject.subject_id] || '-';
             });
     
             const guardians = guardiansResult.rows;
@@ -506,7 +528,9 @@ const commonController = {
             res.status(500).send('Failed to fetch student details');
         }
     },
+        
 
+    
     editStudentGet: async (req, res, db) => {
         const studentId = req.query.studentId;
     
@@ -1063,35 +1087,36 @@ const commonController = {
         }
     },
 
+
     assessment: async (req, res, db) => {
         const { classId, subjectId } = req.query;
-    
+
         if (!classId || !subjectId) {
             return res.status(400).send('Class ID and Subject ID are required for the assessment.');
         }
-    
+
         try {
             const classNameResult = await db.query('SELECT class_name FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, req.session.organizationId]);
             const subjectNameResult = await db.query('SELECT subject_name FROM subjects WHERE subject_id = $1 AND organization_id = $2', [subjectId, req.session.organizationId]);
-    
+
             if (classNameResult.rows.length === 0 || subjectNameResult.rows.length === 0) {
                 return res.status(404).send('Class or Subject not found.');
             }
-    
+
             const className = classNameResult.rows[0].class_name;
             const subjectName = subjectNameResult.rows[0].subject_name;
-    
+
             // Fetch students in the class, ordered by last name and first name
             let students = await db.query('SELECT student_id, first_name, last_name FROM students WHERE class_id = $1 AND organization_id = $2 ORDER BY last_name ASC, first_name ASC', [classId, req.session.organizationId]);
-    
-            // Fetch assessments for the subject
+
+            // Fetch assessments for the subject, including the category
             const assessmentsResult = await db.query(`
-                SELECT assessment_id, title, weight, max_score
+                SELECT assessment_id, title, weight, max_score, category
                 FROM assessments
                 WHERE class_id = $1 AND subject_id = $2 AND organization_id = $3
                 ORDER BY assessment_id`, [classId, subjectId, req.session.organizationId]);
             const assessments = assessmentsResult.rows;
-    
+
             // Fetch scores and positions for the students in this subject
             const resultsResult = await db.query(`
                 SELECT ar.assessment_id, ar.student_id, ar.score, ar.total_subject_score, ar.total_percentage, ar.grade,
@@ -1110,9 +1135,9 @@ const commonController = {
                     WHERE class_id = $1
                 )
                 ORDER BY ar.student_id, ar.assessment_id`, [classId, subjectId, req.session.organizationId]);
-    
+
             const results = resultsResult.rows;
-    
+
             // Organize the scores by student and populate total scores and other details
             const studentScores = {};
             results.forEach(result => {
@@ -1127,7 +1152,7 @@ const commonController = {
                 }
                 studentScores[result.student_id].assessments[result.assessment_id] = result.score;
             });
-    
+
             students.rows.forEach(student => {
                 student.scores = studentScores[student.student_id] ? studentScores[student.student_id].assessments : {};
                 student.total_subject_score = studentScores[student.student_id] ? studentScores[student.student_id].total_subject_score : '-';
@@ -1135,7 +1160,7 @@ const commonController = {
                 student.grade = studentScores[student.student_id] ? studentScores[student.student_id].grade : '-';
                 student.position = studentScores[student.student_id] ? studentScores[student.student_id].position : '-';
             });
-    
+
             // Fetch employees assigned to the class
             const employeesResult = await db.query(`
                 SELECT u.first_name, u.last_name, uc.main
@@ -1143,7 +1168,7 @@ const commonController = {
                 JOIN users u ON uc.user_id = u.user_id
                 WHERE uc.class_id = $1 AND u.organization_id = $2`, [classId, req.session.organizationId]);
             const employees = employeesResult.rows;
-    
+
             res.render('common/assessment', {
                 title: 'Assessment',
                 classId,
@@ -1160,6 +1185,7 @@ const commonController = {
             res.status(500).send('Error fetching assessment data.');
         }
     },
+
         
     saveAllScores: async (req, res, db) => {
         const { subjectId } = req.query;
@@ -1943,16 +1969,35 @@ calculateGrade: (totalPercentage) => {
     
     deleteClass: async (req, res, db) => {
         const { classId } = req.query;
+    
         try {
+            // Warn the user about the consequences of deleting the class
+            req.flash('warning', 'This will delete all associated subjects and user data. Are you sure?');
+    
+            // Check if the class has associated subjects and delete them first
+            const subjects = await db.query('SELECT subject_id FROM subjects WHERE class_id = $1', [classId]);
+    
+            for (let subject of subjects.rows) {
+                // Delete associated records from user_subjects for each subject
+                await db.query('DELETE FROM user_subjects WHERE subject_id = $1', [subject.subject_id]);
+    
+                // Delete the subject itself
+                await db.query('DELETE FROM subjects WHERE subject_id = $1', [subject.subject_id]);
+            }
+    
+            // Now, delete the class after its subjects and dependencies have been removed
             await db.query('DELETE FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, req.session.organizationId]);
-            req.flash('success', 'Class deleted successfully.');
-            res.redirect('/common/manageClassSubjectAndGradYr');
+    
+            req.flash('success', 'Class and all associated subjects deleted successfully.');
         } catch (error) {
             console.error('Error deleting class:', error);
-            req.flash('error', 'Failed to delete class.');
-            res.redirect('/common/manageClassSubjectAndGradYr');
+            req.flash('error', 'Failed to delete class. ' + error.message);
         }
+    
+        res.redirect('/common/manageClassSubjectAndGradYr');
     },
+    
+        
     
     editClass: async (req, res, db) => {
         const { classId, newClassName } = req.body;
@@ -1985,7 +2030,11 @@ calculateGrade: (totalPercentage) => {
 editSubject: async (req, res, db) => {
     const { subjectId, newName } = req.body;
     try {
-        await db.query('UPDATE subjects SET subject_name = $1 WHERE subject_id = $2 AND organization_id = $3', [newName, subjectId, req.session.organizationId]);
+        // console.log(`Editing subject with ID: ${subjectId}, New Name: ${newName}`);
+        await db.query(
+            'UPDATE subjects SET subject_name = $1 WHERE subject_id = $2 AND organization_id = $3',
+            [newName, subjectId, req.session.organizationId]
+        );
         req.flash('success', 'Subject updated successfully.');
         res.redirect('/common/manageClassSubjectAndGradYr');
     } catch (error) {
@@ -1996,23 +2045,27 @@ editSubject: async (req, res, db) => {
 },
 
 deleteSubject: async (req, res, db) => {
-    const subjectId = req.query.subjectId;
-
-    if (!subjectId) {
-        req.flash('error', 'Subject ID is required.');
-        return res.redirect('/common/manageClassSubjectAndGradYr');
-    }
+    const { subjectId } = req.query;
 
     try {
+        // console.log(`Deleting subject with ID: ${subjectId}`);
+        // Delete all user_subjects entries related to the subject
+        await db.query('DELETE FROM user_subjects WHERE subject_id = $1', [subjectId]);
+
+        // Now delete the subject
         await db.query('DELETE FROM subjects WHERE subject_id = $1 AND organization_id = $2', [subjectId, req.session.organizationId]);
+
         req.flash('success', 'Subject deleted successfully.');
+        res.redirect('/common/manageClassSubjectAndGradYr');
     } catch (err) {
         console.error('Error deleting subject:', err);
         req.flash('error', 'Failed to delete subject.');
+        res.redirect('/common/manageClassSubjectAndGradYr');
     }
-
-    res.redirect('/common/manageClassSubjectAndGradYr');
 },
+
+
+
 
     getGradYearGroupByClassId: async (req, res, db) => {
         const { classId } = req.query;

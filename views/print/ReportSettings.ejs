@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Settings</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { width: 100%; display: flex; justify-content: space-between; gap: 20px; padding: 20px; }
+        h2 { color: #333; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; }
+        .form-group input, .form-group textarea { width: 100%; padding: 8px; margin-top: 5px; }
+        .btn { padding: 8px 16px; background-color: #007BFF; color: white; border: none; cursor: pointer; }
+        .btn:hover { background-color: #0056b3; }
+        .remarks-list div { display: flex; justify-content: space-between; align-items: center; padding: 8px; background-color: #f9f9f9; border: 1px solid #ddd; margin-bottom: 8px; }
+        .remarks-list a { color: red; text-decoration: none; }
+        .remarks-list a:hover { text-decoration: underline; }
+        .form-section { flex: 1; }
+        .signature-section { margin-top: 40px; }
+        img { max-width: 100px; }
+    </style>
+</head>
+<body>
+    <% if (success_msg) { %>
+        <div class="alert alert-success"><%= success_msg %></div>
+    <% } %>
+    <% if (error_msg) { %>
+        <div class="alert alert-danger"><%= error_msg %></div>
+    <% } %>
+    <a href="/print/printStudentReport" class="back-btn">Back</a>
+    <hr>
+    <div class="container">
+        <!-- Status Settings Form -->
+        <div class="form-section">
+            <form action="/print/savePromotionSettings" method="POST">
+                <h2>Status Settings</h2>
+                <div class="form-group">
+                    <label for="cutOffPoint">Cut Off Point:</label>
+                    <input type="number" name="cutOffPoint" id="cutOffPoint" value="<%= statusSettings.cut_off_point || '' %>">
+                </div>
+                <div class="form-group">
+                    <label for="promotedClass">Promoted Class:</label>
+                    <input type="text" name="promotedClass" id="promotedClass" value="<%= statusSettings.promoted_class || '' %>">
+                </div>
+                <div class="form-group">
+                    <label for="repeatedClass">Repeated Class:</label>
+                    <input type="text" name="repeatedClass" id="repeatedClass" value="<%= statusSettings.repeated_class || '' %>">
+                </div>
+                <div class="form-group">
+                    <label for="schoolReopenDate">School Reopen Date:</label>
+                    <input type="date" name="schoolReopenDate" id="schoolReopenDate" value="<%= statusSettings.school_reopen_date || '' %>">
+                </div>
+                <% if (statusSettings.school_reopen_date) { %>
+                    <p><strong>Saved Date:</strong> <%= new Date(statusSettings.school_reopen_date).toLocaleDateString() %></p>
+                <% } %>
+                <button type="submit" class="btn">Save Status Settings</button>
+            </form>
+        </div>
+
+        <!-- Teacher's Remarks Form -->
+        <div class="form-section">
+            <form action="/print/saveTeacherRemarks" method="POST">
+                <h2>Teacher's Remarks</h2>
+                <div class="form-group">
+                    <textarea name="teacherRemarks" id="teacherRemarks"></textarea>
+                </div>
+                <button type="submit" class="btn">Save Teacher's Remarks</button>
+                <br><hr>
+                <div class="remarks-list">
+                    <% teacherRemarks.forEach((remark) => { %>
+                        <div>
+                            <span><%= remark.remark %></span>
+                            <a href="/print/deleteTeacherRemark/<%= remark.id %>">Delete</a>
+                        </div>
+                    <% }); %>
+                </div>
+            </form>
+        </div>
+
+        <!-- Score Remarks Form -->
+        <div class="form-section">
+            <form action="/print/saveScoreRemarks" method="POST">
+                <h2>Score Remarks</h2>
+                <div class="form-group">
+                    <textarea name="scoreRemarks" id="scoreRemarks"></textarea>
+                </div>
+                <button type="submit" class="btn">Save Score Remarks</button>
+                <br><hr>
+                <div class="remarks-list">
+                    <% scoreRemarks.forEach((remark) => { %>
+                        <div>
+                            <span><%= remark.remark %></span>
+                            <a href="/print/deleteScoreRemark/<%= remark.id %>">Delete</a>
+                        </div>
+                    <% }); %>
+                </div>
+            </form>
+        </div>
+
+        <!-- Signature Image Section -->
+        <div class="form-section signature-section">
+            <form action="/print/uploadSignatureImage" method="POST" enctype="multipart/form-data">
+                <h2>Signature Image</h2>
+                <% if (signatureImageUrl) { %>
+                    <div>
+                        <img src="<%= signatureImageUrl %>" alt="Current Signature" style="max-width: 100px; display: block; margin-bottom: 10px;">
+                    </div>
+                <% } %>
+                <div class="form-group">
+                    <input type="file" name="signatureImage" accept="image/*">
+                </div>
+                <button type="submit" class="btn">Upload Signature Image</button>
+            </form>
+
+            <% if (signatureImageUrl) { %>
+                <a href="/print/deleteSignatureImage" class="btn btn-danger" style="margin-top: 10px;">Delete Signature Image</a>
+            <% } %>
+        </div>
+    </div>
+</body>
+</html>

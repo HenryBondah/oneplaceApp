@@ -128,7 +128,7 @@
 <body>
     <div class="actions no-print">
         <button class="btn btn-primary" onclick="printAllReports()">Print All Reports</button>
-        <a href="/print/remarks" class="btn btn-primary">Manage Remarks</a>
+        <a href="/print/reportSettings?classId=<%= classId %>" class="btn btn-primary">Report Settings</a>
     </div>
     <hr>
     <% if (students.length === 0) { %>
@@ -153,12 +153,11 @@
                 <h2 style="text-align: center;">Student Report</h2>
                 <div class="info">
                     <table>
-                       
                         <tr>
                             <td>Student Name:</td>
                             <td><%= student.first_name %> <%= student.last_name %></td>
                             <td>Term:</td>
-                            <td><%= term.term_name %></td>
+                            <td><%= term ? term.term_name : 'No term available' %></td>
                         </tr>
                         <tr>
                             <td>Student No:</td>
@@ -170,8 +169,10 @@
                             <td>Class:</td>
                             <td><%= student.class_name %></td>
                             <td>School Reopens:</td>
-                            <td><%= new Date(term.school_reopen_date).toLocaleDateString() %></td>
+                            <td><%= schoolReopenDate ? new Date(schoolReopenDate).toLocaleDateString() : 'TBA' %></td>
                         </tr>
+                        
+                        
                     </table>
                 </div>
                 <br>
@@ -201,38 +202,27 @@
                                     <td><%= subject.totalPercentage !== '-' ? parseFloat(subject.totalPercentage).toFixed(2) : '-' %> %</td>
                                     <td><%= subject.grade %></td>
                                     <td><%= subject.position !== '-' ? subject.position : '-' %></td>
-                                    <td><%=  %></td>
+                                    <td><%= subject.remarks || '-' %></td>
                                 </tr>
                             <% }) %>
                         </tbody>
                     </table>
                 </div>
                 <br>
-                <div class="attendance-info">
-                    <table>
-                        <tr>
-                            <td>Total Attendance:</td>
-                            <td><%= student.attendance %> / <%= term.total_days %> days</td>
-                            <td>Position in Class:</td>
-                            <td><%= student.position !== '-' ? student.position : '-' %></td>
-                            <td>Promotion Status:</td>
-                            <td><%= student.promotionStatus %></td>
-                        </tr>
-                    </table>
-                </div>
                 <div class="remarks">
                     <div>
-                        <h3>Teacher's Remarks</h3>
-                        <select id="teacherRemarks-<%= index %>" name="teacherRemarks-<%= index %>">
-                            <% teacherRemarks.forEach(function(remark) { %>
-                                <option value="<%= remark %>" <%= remark === student.teacherRemarks ? 'selected' : '' %>><%= remark %></option>
-                            <% }); %>
-                        </select>
-                    </div>
+    <h3>Teacher's Remarks</h3>
+    <select id="teacherRemarks-<%= index %>" name="teacherRemarks-<%= index %>">
+        <% teacherRemarks.forEach(function(remark) { %>
+            <option value="<%= remark.remark %>" <%= remark.remark === student.teacherRemarks ? 'selected' : '' %>><%= remark.remark %></option>
+        <% }); %>
+    </select>
+</div>
+
                     <div class="signature-info">
                         <h3>Signature</h3>
                         <% if (signatureImageUrl) { %>
-                            <img src="/<%= signatureImageUrl %>" alt="Signature Image">
+                            <img src="<%= signatureImageUrl %>" alt="Signature Image" style="max-width: 100px; display: block; margin-bottom: 10px;">
                         <% } %>
                     </div>
                 </div>

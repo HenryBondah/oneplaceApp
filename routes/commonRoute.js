@@ -57,7 +57,8 @@ module.exports = (db) => {
     router.post('/editClass', isAuthenticated, (req, res) => commonController.editClass(req, res, db));
     router.get('/getSubjectsByClass', isAuthenticated, (req, res) => commonController.getSubjectsByClass(req, res, db));
     router.get('/deleteStudentImage/:studentId', isAuthenticated, (req, res) => commonController.deleteStudentImage(req, res, db));
-    router.post('/deleteSubject', isAuthenticated, (req, res) => commonController.deleteSubject(req, res, db));
+    router.get('/deleteSubject', isAuthenticated, (req, res) => commonController.deleteSubject(req, res, db));
+    router.post('/editSubject', isAuthenticated, (req, res) => commonController.editSubject(req, res, db));
     router.get('/getGradYearGroupByClassId', isAuthenticated, (req, res) => commonController.getGradYearGroupByClassId(req, res, db));
     router.get('/getMajorityGraduationYearGroup', isAuthenticated, (req, res) => commonController.getMajorityGraduationYearGroup(req, res, db));
     router.get('/closeSchoolYear', isAuthenticated, (req, res) => commonController.closeSchoolYear(req, res, db));

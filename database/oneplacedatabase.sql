@@ -56,7 +56,9 @@ CREATE TABLE IF NOT EXISTS organizations (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     review_timestamp TIMESTAMP WITH TIME ZONE,
-    deleted BOOLEAN DEFAULT false
+    deleted BOOLEAN DEFAULT false,
+    logo_path VARCHAR(255),
+    font_style VARCHAR(50)
 );
 
 CREATE OR REPLACE FUNCTION update_modified_column()
@@ -83,7 +85,8 @@ CREATE TABLE IF NOT EXISTS users (
     organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    class_id INT REFERENCES classes(class_id) ON DELETE SET NULL
+    class_id INT REFERENCES classes(class_id) ON DELETE SET NULL,
+    on_hold BOOLEAN DEFAULT FALSE
 );
 
 CREATE TRIGGER update_users_modtime
@@ -130,7 +133,9 @@ CREATE TABLE IF NOT EXISTS students (
     hometown VARCHAR(255),
     image_url VARCHAR(255),
     age INTEGER,
-    total_percentage DECIMAL(5,2)
+    total_percentage DECIMAL(5,2),
+    grade VARCHAR(2),
+    gender VARCHAR(10)
 );
 
 -- Guardians Table
@@ -158,15 +163,6 @@ CREATE TABLE IF NOT EXISTS student_subjects (
     organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE
 );
 
--- Applications Table
-CREATE TABLE IF NOT EXISTS applications (
-    application_id SERIAL PRIMARY KEY,
-    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
-    status application_status DEFAULT 'Pending',
-    review_timestamp TIMESTAMP WITH TIME ZONE,
-    reviewed_by INT REFERENCES users(user_id) ON DELETE SET NULL,
-    reason_for_decline TEXT
-);
 
 -- Assessments Table
 CREATE TABLE IF NOT EXISTS assessments (
@@ -177,7 +173,8 @@ CREATE TABLE IF NOT EXISTS assessments (
     description TEXT,
     created_by INT REFERENCES users(user_id) ON DELETE SET NULL,
     organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
-    weight NUMERIC
+    weight NUMERIC,
+    category VARCHAR(50)
 );
 
 -- Assessment Results Table
@@ -189,7 +186,11 @@ CREATE TABLE IF NOT EXISTS assessment_results (
     grade VARCHAR(2),
     created_by INT REFERENCES users(user_id) ON DELETE SET NULL,
     organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
-    CONSTRAINT unique_student_assessment UNIQUE (student_id, assessment_id)
+    title VARCHAR(255),
+    total_subject_score NUMERIC(10, 2),
+    total_percentage NUMERIC(5, 2),
+    position INTEGER,
+    category VARCHAR(50)
 );
 
 -- Attendance Records Table
@@ -269,25 +270,7 @@ CREATE TABLE IF NOT EXISTS term_classes (
     FOREIGN KEY (class_id) REFERENCES classes(class_id) ON DELETE CASCADE
 );
 
--- Ensure indexes for optimization
-CREATE INDEX IF NOT EXISTS idx_user_email ON users (email);
-CREATE INDEX IF NOT EXISTS idx_org_name ON organizations (organization_name);
-CREATE INDEX IF NOT EXISTS idx_class_name ON classes (class_name);
-CREATE INDEX IF NOT EXISTS idx_student_name ON students (first_name, last_name);
 
--- Unique constraint for attendance records
-ALTER TABLE attendance_records
-ADD CONSTRAINT unique_attendance_record
-UNIQUE (student_id, class_id, date);
-
--- Organization Images Table
-CREATE TABLE IF NOT EXISTS organization_images (
-    image_id SERIAL PRIMARY KEY,
-    organization_id INTEGER NOT NULL,
-    image_url TEXT NOT NULL,
-    caption TEXT NOT NULL,
-    FOREIGN KEY (organization_id) REFERENCES organizations(organization_id)
-);
 
 -- Organization Texts Table
 CREATE TABLE IF NOT EXISTS organization_texts (
@@ -302,69 +285,16 @@ CREATE TABLE IF NOT EXISTS organization_texts (
 CREATE TABLE IF NOT EXISTS user_classes (
     user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
     class_id INT REFERENCES classes(class_id) ON DELETE CASCADE,
-    PRIMARY KEY (user_id, class_id)
+    PRIMARY KEY (user_id, class_id),
+    main BOOLEAN DEFAULT FALSE
 );
 
-
--- Ensure user_role ENUM values
-DO $$ BEGIN
-    ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'Teacher';
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
-
-DO $$ BEGIN
-    ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'Supervisor';
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
-
-
-ALTER TABLE announcements ADD COLUMN visibility VARCHAR(10);
-
-CREATE TABLE user_subjects (
+-- Users Subjects Table
+CREATE TABLE IF NOT EXISTS user_subjects (
     user_id INTEGER REFERENCES users(user_id),
     subject_id INTEGER REFERENCES subjects(subject_id),
     PRIMARY KEY (user_id, subject_id)
 );
-
-ALTER TABLE users ADD COLUMN on_hold BOOLEAN DEFAULT FALSE;
-
-ALTER TABLE user_classes ADD COLUMN main BOOLEAN DEFAULT FALSE;
-
-CREATE TABLE report_settings (
-    id SERIAL PRIMARY KEY,
-    organization_id INT NOT NULL,
-    cut_off_point INT DEFAULT 50,
-    promoted_class VARCHAR(255) DEFAULT 'Next Class',
-    repeated_class VARCHAR(255) DEFAULT 'Same Class',
-    school_reopen_date DATE,
-    score_remark JSONB,
-    teacher_remarks TEXT[]
-);
-
-
-ALTER TABLE students ADD COLUMN grade VARCHAR(2);
-
-UPDATE assessment_results ar
-SET title = a.title
-FROM assessments a
-WHERE ar.assessment_id = a.assessment_id;
-ALTER TABLE assessment_results ADD COLUMN title VARCHAR(255);
-ALTER TABLE organizations ADD COLUMN logo_path VARCHAR(255);
-ALTER TABLE organizations ADD COLUMN font_style VARCHAR(50);
-ALTER TABLE students ADD COLUMN gender VARCHAR(10);
-ALTER TABLE assessment_results
-ADD COLUMN total_subject_score NUMERIC(10, 2);
-
-ALTER TABLE assessment_results
-ADD COLUMN total_percentage NUMERIC(5, 2);
-
-ALTER TABLE assessment_results
-ADD COLUMN position INTEGER;
-
-ALTER TABLE assessments ADD COLUMN category VARCHAR(50);
-
 
 -- Student Positions Table
 CREATE TABLE IF NOT EXISTS student_positions (
@@ -375,4 +305,73 @@ CREATE TABLE IF NOT EXISTS student_positions (
     total_subject_score NUMERIC(10, 2),
     position INT,
     UNIQUE (student_id, subject_id)
+);
+
+-- Category Scores Table
+CREATE TABLE IF NOT EXISTS category_scores (
+    category_score_id SERIAL PRIMARY KEY,
+    student_id INT REFERENCES students(student_id) ON DELETE CASCADE,
+    class_id INT REFERENCES classes(class_id) ON DELETE CASCADE,
+    subject_id INT REFERENCES subjects(subject_id) ON DELETE CASCADE,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
+    category VARCHAR(50),
+    total_score DECIMAL(10, 2) DEFAULT 0,
+    UNIQUE (student_id, class_id, subject_id, category, organization_id),
+    CONSTRAINT unique_student_class_category_org UNIQUE (student_id, class_id, category, organization_id)
+);
+
+-- Ensure indexes for optimization
+CREATE INDEX IF NOT EXISTS idx_user_email ON users (email);
+CREATE INDEX IF NOT EXISTS idx_org_name ON organizations (organization_name);
+CREATE INDEX IF NOT EXISTS idx_class_name ON classes (class_name);
+CREATE INDEX IF NOT EXISTS idx_student_name ON students (first_name, last_name);
+
+-- Update assessment_results to include category information from assessments
+UPDATE assessment_results ar
+SET category = a.category
+FROM assessments a
+WHERE ar.assessment_id = a.assessment_id;
+
+-- Update assessment_results with assessment titles
+UPDATE assessment_results ar
+SET title = a.title
+FROM assessments a
+WHERE ar.assessment_id = a.assessment_id;
+
+ALTER TABLE terms ADD COLUMN current_term BOOLEAN DEFAULT false;
+
+
+-- Status Settings Table
+CREATE TABLE IF NOT EXISTS status_settings (
+    id SERIAL PRIMARY KEY,
+    organization_id INT NOT NULL,
+    cut_off_point INT,
+    promoted_class VARCHAR(255),
+    repeated_class VARCHAR(255),
+    school_reopen_date DATE,
+    CONSTRAINT fk_org FOREIGN KEY (organization_id) REFERENCES organizations(organization_id) ON DELETE CASCADE
+);
+
+-- Teacher Remarks Table
+CREATE TABLE IF NOT EXISTS teacher_remarks (
+    id SERIAL PRIMARY KEY,
+    organization_id INT NOT NULL,
+    remark TEXT NOT NULL,
+    CONSTRAINT fk_org_teacher FOREIGN KEY (organization_id) REFERENCES organizations(organization_id) ON DELETE CASCADE
+);
+
+-- Score Remarks Table
+CREATE TABLE IF NOT EXISTS score_remarks (
+    id SERIAL PRIMARY KEY,
+    organization_id INT NOT NULL,
+    remark TEXT NOT NULL,
+    CONSTRAINT fk_org_score FOREIGN KEY (organization_id) REFERENCES organizations(organization_id) ON DELETE CASCADE
+);
+ALTER TABLE status_settings ADD CONSTRAINT unique_organization_id UNIQUE (organization_id);
+CREATE TABLE organization_images (
+    image_id SERIAL PRIMARY KEY,
+    organization_id INT NOT NULL,
+    image_url TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (organization_id) REFERENCES organizations(organization_id)
 );
