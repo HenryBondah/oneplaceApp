@@ -1,18 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { isAuthenticated } = require('../middleware/middleware');
-const multer = require('multer');
 const path = require('path');
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    }
-});
+const multer = require('multer');
+
+// Use memory storage instead of disk storage
+const storage = multer.memoryStorage();  // Files are kept in memory and not saved to disk
 const upload = multer({ storage: storage });
 
 module.exports = (db) => {
@@ -29,7 +23,11 @@ module.exports = (db) => {
     router.post('/savePromotionSettings', isAuthenticated, printController.savePromotionSettings);
     router.post('/saveTeacherRemarks', isAuthenticated, printController.saveTeacherRemarks);
     router.post('/saveScoreRemarks', isAuthenticated, printController.saveScoreRemarks);
+
+    // Use `upload.single()` with `multer.memoryStorage` to upload the file to S3
     router.post('/uploadSignatureImage', upload.single('signatureImage'), printController.uploadSignatureImage);
+
+    // Deletion route for the signature image
     router.get('/deleteSignatureImage', isAuthenticated, printController.deleteSignatureImage);
     router.get('/deleteTeacherRemark/:id', isAuthenticated, printController.deleteTeacherRemark);
     router.get('/deleteScoreRemark/:id', isAuthenticated, printController.deleteScoreRemark);

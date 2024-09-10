@@ -73,9 +73,16 @@
         }
         .signature-info {
             position: relative;
-            left: 130%;
+            left: 100%;
+            top: 10px;
             width: 48%;
             text-align: right;
+        }
+
+        .signature-info img{
+            position: absolute;
+            top: -30px;
+            right: 10px;
         }
         .remarks select {
             width: 100%;
@@ -211,20 +218,24 @@
                 <br>
                 <div class="remarks">
                     <div>
-    <h3>Teacher's Remarks</h3>
     <select id="teacherRemarks-<%= index %>" name="teacherRemarks-<%= index %>">
         <% teacherRemarks.forEach(function(remark) { %>
             <option value="<%= remark.remark %>" <%= remark.remark === student.teacherRemarks ? 'selected' : '' %>><%= remark.remark %></option>
         <% }); %>
     </select>
+    <h3>Teacher's Remarks</h3>
+
 </div>
 
-                    <div class="signature-info">
-                        <h3>Signature</h3>
-                        <% if (signatureImageUrl) { %>
-                            <img src="<%= signatureImageUrl %>" alt="Signature Image" style="max-width: 100px; display: block; margin-bottom: 10px;">
-                        <% } %>
-                    </div>
+<div class="signature-info">
+    <h3>Signature</h3>
+    <% if (signatureImageUrl) { %>
+        <img src="<%= signatureImageUrl %>" alt="Signature Image" style="max-width: 100px; display: block; margin-bottom: 10px;">
+    <% } else { %>
+        <p>No signature available.</p>
+    <% } %>
+</div>
+
                 </div>
                 <div class="print no-print">
                     <button class="btn btn-primary" onclick="printReport(<%= index %>)">Print This Report</button>

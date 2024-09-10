@@ -270,8 +270,6 @@ CREATE TABLE IF NOT EXISTS term_classes (
     FOREIGN KEY (class_id) REFERENCES classes(class_id) ON DELETE CASCADE
 );
 
-
-
 -- Organization Texts Table
 CREATE TABLE IF NOT EXISTS organization_texts (
     text_id SERIAL PRIMARY KEY,
@@ -367,6 +365,7 @@ CREATE TABLE IF NOT EXISTS score_remarks (
     remark TEXT NOT NULL,
     CONSTRAINT fk_org_score FOREIGN KEY (organization_id) REFERENCES organizations(organization_id) ON DELETE CASCADE
 );
+
 ALTER TABLE status_settings ADD CONSTRAINT unique_organization_id UNIQUE (organization_id);
 CREATE TABLE organization_images (
     image_id SERIAL PRIMARY KEY,
@@ -374,4 +373,22 @@ CREATE TABLE organization_images (
     image_url TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
     FOREIGN KEY (organization_id) REFERENCES organizations(organization_id)
+);
+
+ALTER TABLE score_remarks
+ADD COLUMN from_percentage INT,
+ADD COLUMN to_percentage INT;
+
+ALTER TABLE score_remarks
+  ALTER COLUMN from_percentage TYPE numeric USING from_percentage::numeric,
+  ALTER COLUMN to_percentage TYPE numeric USING to_percentage::numeric;
+
+
+CREATE TABLE organization_images (
+    image_id SERIAL PRIMARY KEY,
+    organization_id INTEGER REFERENCES organizations(organization_id),
+    image_url TEXT NOT NULL,
+    caption TEXT,
+    allocation VARCHAR(50),  -- This is the column you are missing
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
