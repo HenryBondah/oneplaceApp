@@ -392,3 +392,15 @@ CREATE TABLE organization_images (
     allocation VARCHAR(50),  -- This is the column you are missing
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE status_settings ADD COLUMN activate_promotion BOOLEAN DEFAULT false;
+ALTER TABLE assessment_results
+ADD COLUMN total_category_score NUMERIC(10, 2);
+ALTER TABLE assessment_results ADD COLUMN class_id INT;
+
+-- Assuming `class_id` is a foreign key referencing `classes` table, you can add the constraint as well:
+ALTER TABLE assessment_results
+ADD CONSTRAINT fk_class
+FOREIGN KEY (class_id) REFERENCES classes(class_id) ON DELETE CASCADE;
+ALTER TABLE student_positions 
+ADD COLUMN total_category_score NUMERIC(10, 2),
+ADD COLUMN class_id INTEGER;

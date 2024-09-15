@@ -1188,68 +1188,111 @@ const commonController = {
 
         
     saveAllScores: async (req, res, db) => {
-        const { subjectId } = req.query;
+        const { subjectId, classId } = req.query;
         const { scores } = req.body;
-
+    
         try {
-            // Fetch the assessments related to this subject
+            // Fetch assessments related to this subject and class, including categories
             const assessmentsResult = await db.query(`
-                SELECT assessment_id, title, weight, max_score
+                SELECT assessment_id, title, weight, max_score, category
                 FROM assessments
-                WHERE subject_id = $1 AND organization_id = $2
-                ORDER BY assessment_id`, [subjectId, req.session.organizationId]);
-
+                WHERE subject_id = $1 AND class_id = $2 AND organization_id = $3
+                ORDER BY assessment_id`, [subjectId, classId, req.session.organizationId]);
+    
             const assessments = assessmentsResult.rows;
-
+    
             await db.query('BEGIN');
-
-            const studentScores = {};
-
+    
+            // Store total category scores and subject scores for students
+            const studentCategoryScores = {};
+            const studentTotalScores = {};
+    
+            // Process each student's scores
             for (let studentId in scores) {
-                let totalScore = 0;
-                studentScores[studentId] = {}; 
-
+                // Reset total category scores and total subject scores for the student
+                studentCategoryScores[studentId] = {};
+                studentTotalScores[studentId] = 0;
+    
                 for (let assessmentId in scores[studentId]) {
                     let score = scores[studentId][assessmentId];
                     if (score === null || score === "") continue;
-
-                    const assessmentResult = await db.query(
-                        'SELECT max_score FROM assessments WHERE assessment_id = $1 AND subject_id = $2 AND organization_id = $3',
-                        [assessmentId, subjectId, req.session.organizationId]
-                    );
-
-                    if (assessmentResult.rows.length === 0) continue;
-
-                    totalScore += parseFloat(score);
-
-                    studentScores[studentId][assessmentId] = score; 
-
+    
+                    // Fetch the related assessment details
+                    const assessment = assessments.find(a => a.assessment_id == assessmentId);
+                    if (!assessment) continue;
+    
+                    const { category } = assessment;
+    
+                    // Sum scores by category
+                    if (!studentCategoryScores[studentId][category]) {
+                        studentCategoryScores[studentId][category] = 0;
+                    }
+                    studentCategoryScores[studentId][category] += parseFloat(score);
+    
+                    // Sum the total score for the student across all assessments
+                    studentTotalScores[studentId] += parseFloat(score);
+    
+                    // Insert or update the score in the assessment_results table
                     await db.query(`
-                        INSERT INTO assessment_results (student_id, assessment_id, score, subject_id, organization_id)
-                        VALUES ($1, $2, $3, $4, $5)
+                        INSERT INTO assessment_results (student_id, assessment_id, score, subject_id, organization_id, class_id, category)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7)
                         ON CONFLICT (student_id, assessment_id)
-                        DO UPDATE SET score = EXCLUDED.score
-                    `, [studentId, assessmentId, score, subjectId, req.session.organizationId]);
+                        DO UPDATE SET score = EXCLUDED.score, category = EXCLUDED.category`, 
+                        [studentId, assessmentId, score, subjectId, req.session.organizationId, classId, category]);
                 }
-
-                const totalPercentage = commonController.calculateTotalPercentage(studentScores[studentId], assessments);
+            }
+    
+            // Update total category score for each student in the assessment_results table
+            for (let studentId in studentCategoryScores) {
+                for (let category in studentCategoryScores[studentId]) {
+                    const totalCategoryScore = studentCategoryScores[studentId][category];
+    
+                    // Update the total_category_score for each category in the assessment_results table
+                    await db.query(`
+                        UPDATE assessment_results
+                        SET total_category_score = $1
+                        WHERE student_id = $2 AND subject_id = $3 AND class_id = $4 AND category = $5 AND organization_id = $6`,
+                        [totalCategoryScore, studentId, subjectId, classId, category, req.session.organizationId]);
+                }
+            }
+    
+            // Now update the total subject score, percentage, and grade for each student
+            for (let studentId in studentTotalScores) {
+                const totalScore = studentTotalScores[studentId];
+    
+                // Calculate the total percentage based on the weight of the assessments
+                const totalPercentage = commonController.calculateTotalPercentage(scores[studentId], assessments);
                 const grade = commonController.calculateGrade(totalPercentage);
-
+    
                 const validTotalPercentage = totalPercentage !== "-" ? totalPercentage : null;
                 const validGrade = grade !== "-" ? grade : null;
-
+    
+                // Update total subject score, percentage, and grade
                 await db.query(`
                     UPDATE assessment_results
                     SET total_subject_score = $1, total_percentage = $2, grade = $3
-                    WHERE student_id = $4 AND subject_id = $5 AND organization_id = $6
-                `, [totalScore, validTotalPercentage, validGrade, studentId, subjectId, req.session.organizationId]);
+                    WHERE student_id = $4 AND subject_id = $5 AND organization_id = $6`,
+                    [totalScore, validTotalPercentage, validGrade, studentId, subjectId, req.session.organizationId]);
+    
+                // Calculate total category score to update student_positions
+                const totalCategoryScore = Object.values(studentCategoryScores[studentId]).reduce((sum, score) => sum + score, 0);
+    
+                // Insert or update in the student_positions table with class_id
+                await db.query(`
+                    INSERT INTO student_positions (student_id, subject_id, organization_id, total_subject_score, total_category_score, class_id, position)
+                    VALUES ($1, $2, $3, $4, $5, $6, 0) -- Position will be updated separately
+                    ON CONFLICT (student_id, subject_id)
+                    DO UPDATE SET total_subject_score = EXCLUDED.total_subject_score,
+                                  total_category_score = EXCLUDED.total_category_score,
+                                  class_id = EXCLUDED.class_id
+                `, [studentId, subjectId, req.session.organizationId, totalScore, totalCategoryScore, classId]);
             }
-
-            // Update positions based on total scores
+    
+            // Update positions based on total subject scores
             await commonController.updateStudentPositions(db, subjectId, req.session.organizationId);
-
+    
             await db.query('COMMIT');
-
+    
             req.flash('success', 'Scores saved successfully.');
             res.status(200).json({ success: true, message: 'Scores saved successfully.' });
         } catch (error) {
@@ -1260,7 +1303,8 @@ const commonController = {
         }
     },
 
-    updateStudentPositions: async function (db, subjectId, organizationId) {
+
+        updateStudentPositions: async function (db, subjectId, organizationId) {
         const updateQuery = `
         WITH RankedScores AS (
             SELECT

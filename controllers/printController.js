@@ -74,18 +74,35 @@ const printController = (db) => ({
                 return i + "th";
             };
     
+            // Fetch class details
             const classResult = await db.query('SELECT * FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, organizationId]);
             const classData = classResult.rows[0];
             if (!classData) {
                 return res.status(404).send('Class not found for the given class ID and organization ID.');
             }
     
+            // Fetch organization details
             const organizationResult = await db.query('SELECT organization_name, organization_address, logo_path FROM organizations WHERE organization_id = $1', [organizationId]);
             const organization = organizationResult.rows[0];
             if (!organization) {
                 return res.status(404).send('Organization not found.');
             }
     
+            // Fetch status settings
+            const statusSettingsResult = await db.query(`
+                SELECT cut_off_point, promoted_class, repeated_class, school_reopen_date, activate_promotion
+                FROM status_settings
+                WHERE organization_id = $1 LIMIT 1
+            `, [organizationId]);
+            const statusSettings = statusSettingsResult.rows[0];
+    
+            const cutOffPoint = statusSettings.cut_off_point || 0;
+            const promotedClass = statusSettings.promoted_class || 'N/A';
+            const repeatedClass = statusSettings.repeated_class || 'N/A';
+            const activatePromotion = statusSettings.activate_promotion;
+            const schoolReopenDate = statusSettings.school_reopen_date ? new Date(statusSettings.school_reopen_date).toLocaleDateString() : 'TBA';
+    
+            // Fetch students and their subjects
             const studentsResult = await db.query(`
                 SELECT s.student_id, s.first_name, s.last_name, s.image_url, c.class_name
                 FROM students s
@@ -104,25 +121,40 @@ const printController = (db) => ({
             const teacherRemarksResult = await db.query('SELECT id, remark FROM teacher_remarks WHERE organization_id = $1', [organizationId]);
             const teacherRemarks = teacherRemarksResult.rows;
     
-            const statusSettingsResult = await db.query('SELECT school_reopen_date FROM status_settings WHERE organization_id = $1 LIMIT 1', [organizationId]);
-            const statusSettings = statusSettingsResult.rows[0];
-            const schoolReopenDate = statusSettings ? statusSettings.school_reopen_date : null;
-    
-            // Fetch the signature image path from the report_settings table
+            // Fetch signature
             const reportSettingsResult = await db.query('SELECT signature_image_path FROM report_settings WHERE organization_id = $1', [organizationId]);
             const signatureImagePath = reportSettingsResult.rows[0]?.signature_image_path;
             const signatureImageUrl = signatureImagePath ? await getFromS3(signatureImagePath) : null;
     
-            // Process each student and fetch their scores
+            // Process each student
+            let studentScores = [];
+    
             for (const student of students) {
-                student.subjects = [];  // Initialize an empty array for subjects
+                student.subjects = [];
+                let totalPercentageSum = 0;
+                let totalScoreSum = 0;
+                let subjectCount = 0;
     
                 for (const subject of allSubjects) {
+                    // Fetch Class Score, Exams Score, and Other Score from assessment_results table
+                    const categoryScoresResult = await db.query(`
+                        SELECT 
+                            COALESCE(SUM(CASE WHEN ar.category = 'Class Assessment' THEN ar.total_category_score ELSE 0 END), 0) AS classAssessmentScore,
+                            COALESCE(SUM(CASE WHEN ar.category = 'Exams Assessment' THEN ar.total_category_score ELSE 0 END), 0) AS examsAssessmentScore,
+                            COALESCE(SUM(CASE WHEN ar.category = 'Other' THEN ar.total_category_score ELSE 0 END), 0) AS otherAssessmentScore
+                        FROM assessment_results ar
+                        WHERE ar.student_id = $1 AND ar.subject_id = $2 AND ar.class_id = $3 AND ar.organization_id = $4
+                    `, [student.student_id, subject.subject_id, classId, organizationId]);
+    
+                    const categoryScores = categoryScoresResult.rows[0] || {};
+    
+                    const classAssessmentScore = categoryScores.classAssessmentScore || '-';
+                    const examsAssessmentScore = categoryScores.examsAssessmentScore || '-';
+                    const otherAssessmentScore = categoryScores.otherAssessmentScore || '-';
+    
+                    // Fetch total score, percentage, grade, and position
                     const scoresResult = await db.query(`
                         SELECT 
-                            COALESCE(SUM(CASE WHEN ar.category = 'Class Assessment' THEN ar.score ELSE 0 END), 0) AS classAssessmentScore,
-                            COALESCE(SUM(CASE WHEN ar.category = 'Exams Assessment' THEN ar.score ELSE 0 END), 0) AS examsAssessmentScore,
-                            COALESCE(SUM(CASE WHEN ar.category = 'Other' THEN ar.score ELSE 0 END), 0) AS otherAssessmentScore,
                             COALESCE(SUM(ar.score), 0) AS totalScore,
                             ar.total_subject_score,
                             ar.total_percentage,
@@ -136,28 +168,61 @@ const printController = (db) => ({
                     `, [student.student_id, subject.subject_id, classId, organizationId]);
     
                     const subjectScores = scoresResult.rows[0] || {};
-    
-                    const totalScore = parseFloat(subjectScores.total_subject_score) || null;
+                    const totalScore = parseFloat(subjectScores.total_subject_score) || 0;
                     const totalPercentage = parseFloat(subjectScores.total_percentage) || null;
     
-                    // Fetch the score remark based on the total percentage
                     const scoreRemark = totalPercentage
                         ? await assignScoreRemark(totalPercentage, organizationId, db)
                         : 'No Remarks';
     
+                    if (totalPercentage) {
+                        totalPercentageSum += totalPercentage;
+                        subjectCount++;
+                    }
+    
+                    totalScoreSum += totalScore; // Sum total scores for the student
+    
                     student.subjects.push({
                         subject_name: subject.subject_name,
-                        classAssessmentScore: subjectScores.classAssessmentScore || '-',
-                        examsAssessmentScore: subjectScores.examsAssessmentScore || '-',
-                        otherAssessmentScore: subjectScores.otherAssessmentScore || '-',
-                        totalScore: totalScore !== null ? totalScore.toFixed(2) : '-',
+                        classAssessmentScore: classAssessmentScore !== '-' ? parseFloat(classAssessmentScore).toFixed(2) : '-',
+                        examsAssessmentScore: examsAssessmentScore !== '-' ? parseFloat(examsAssessmentScore).toFixed(2) : '-',
+                        otherAssessmentScore: otherAssessmentScore !== '-' ? parseFloat(otherAssessmentScore).toFixed(2) : '-',
+                        totalScore: totalScore.toFixed(2),
                         totalPercentage: totalPercentage !== null ? totalPercentage.toFixed(2) : '-',
                         grade: subjectScores.grade || '-',
                         position: subjectScores.position ? getOrdinalSuffix(subjectScores.position) : '-',
                         remarks: scoreRemark || 'No Remarks',
                     });
                 }
+    
+                student.overallPercentage = subjectCount > 0 ? (totalPercentageSum / subjectCount).toFixed(2) : '-';
+                student.totalScoreSum = totalScoreSum;
+    
+                // Determine promotion/repetition based on overall percentage and cutoff
+                if (student.overallPercentage >= cutOffPoint) {
+                    student.promotionStatus = 'Promoted';
+                    student.promotionClass = promotedClass;
+                } else {
+                    student.promotionStatus = 'Repeated';
+                    student.promotionClass = repeatedClass;
+                }
+    
+                studentScores.push({
+                    student_id: student.student_id,
+                    first_name: student.first_name,
+                    last_name: student.last_name,
+                    totalScoreSum: student.totalScoreSum
+                });
             }
+    
+            // Sort students by total score in descending order to determine positions
+            studentScores.sort((a, b) => b.totalScoreSum - a.totalScoreSum);
+    
+            // Assign positions
+            studentScores.forEach((studentScore, index) => {
+                const student = students.find(s => s.student_id === studentScore.student_id);
+                student.positionInClass = getOrdinalSuffix(index + 1); // Assign position
+            });
     
             const logoUrl = organization.logo_path ? await getFromS3(organization.logo_path) : null;
     
@@ -174,7 +239,10 @@ const printController = (db) => ({
                 term: term,
                 teacherRemarks: teacherRemarks,
                 classId: classId,
-                schoolReopenDate: schoolReopenDate
+                schoolReopenDate: schoolReopenDate,
+                promotedClass: promotedClass,
+                repeatedClass: repeatedClass,
+                activatePromotion: activatePromotion // Pass activate promotion to the view
             });
         } catch (error) {
             console.error('Error generating student report:', error);
@@ -182,39 +250,45 @@ const printController = (db) => ({
         }
     },
     
+    
+        
+    
     reportSettingsPage: async (req, res) => {
         const organizationId = req.session.organizationId;
-    
+
         try {
             // Fetch status settings
             const statusResult = await db.query('SELECT * FROM status_settings WHERE organization_id = $1 LIMIT 1', [organizationId]);
             const statusSettings = statusResult.rows[0] || {};
-    
+
+            // Fetch classes for the organization
+            const classesResult = await db.query('SELECT class_id, class_name FROM classes WHERE organization_id = $1', [organizationId]);
+            const classes = classesResult.rows || [];
+
             // Fetch teacher remarks
             const teacherRemarksResult = await db.query('SELECT * FROM teacher_remarks WHERE organization_id = $1', [organizationId]);
             const teacherRemarks = teacherRemarksResult.rows || [];
-    
+
             // Fetch score remarks
             const scoreRemarksResult = await db.query('SELECT * FROM score_remarks WHERE organization_id = $1', [organizationId]);
             const scoreRemarks = scoreRemarksResult.rows || [];
-    
+
             // Fetch existing signature image URL if available
             const reportSettingsResult = await db.query('SELECT signature_image_path FROM report_settings WHERE organization_id = $1', [organizationId]);
             const reportSettings = reportSettingsResult.rows[0];
             let signatureImageUrl = null;
-    
+
             if (reportSettings && reportSettings.signature_image_path) {
-                // Use the public URL construction method to generate the image URL
                 signatureImageUrl = await getFromS3(reportSettings.signature_image_path);
             }
-    
+
             res.render('print/reportSettings', {
                 title: 'Report Settings',
                 statusSettings,
                 teacherRemarks,
                 scoreRemarks,
-                signatureImageUrl, // Pass the signature URL to the view
-                // classId, // Ensure that classId is passed to the view
+                classes, // Pass the class data to the view
+                signatureImageUrl, 
                 success_msg: req.flash('success_msg'),
                 error_msg: req.flash('error_msg'),
             });
@@ -224,30 +298,63 @@ const printController = (db) => ({
         }
     },
 
-
-    savePromotionSettings: async (req, res) => {
-        const { cutOffPoint, promotedClass, repeatedClass, schoolReopenDate } = req.body;
+    
+    updateReportSettings: async (req, res) => {
+        const { classId } = req.query;
         const organizationId = req.session.organizationId;
-
+        const { schoolReopenDate, activatePromotion } = req.body;
+    
         try {
+            const activatePromotionStatus = activatePromotion === 'on'; // If checked, this will be 'on'
+    
             await db.query(`
-                INSERT INTO status_settings (organization_id, cut_off_point, promoted_class, repeated_class, school_reopen_date)
-                VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT (organization_id) DO UPDATE
-                SET cut_off_point = EXCLUDED.cut_off_point,
-                    promoted_class = EXCLUDED.promoted_class,
-                    repeated_class = EXCLUDED.repeated_class,
-                    school_reopen_date = EXCLUDED.school_reopen_date
-            `, [organizationId, cutOffPoint, promotedClass, repeatedClass, schoolReopenDate]);
-
-            req.flash('success_msg', 'Status settings saved successfully.');
-            res.redirect('/print/reportSettings');
+                UPDATE status_settings 
+                SET school_reopen_date = $1, activate_promotion = $2 
+                WHERE organization_id = $3 AND class_id = $4
+            `, [schoolReopenDate, activatePromotionStatus, organizationId, classId]);
+    
+            req.flash('success', 'Settings updated successfully');
+            res.redirect(`/print/reportSettings?classId=${classId}`);
         } catch (error) {
-            console.error('Error saving promotion settings:', error);
-            req.flash('error_msg', 'Failed to save status settings.');
-            res.redirect('/print/reportSettings');
+            console.error('Error updating report settings:', error);
+            req.flash('error', 'Failed to update settings.');
+            res.redirect(`/print/reportSettings?classId=${classId}`);
         }
     },
+    
+
+    savePromotionSettings: async (req, res) => {
+        const { cutOffPoint, promotedClass, repeatedClass, schoolReopenDate, activatePromotion } = req.body;
+        const organizationId = req.session.organizationId;
+    
+        try {
+            if (!organizationId) {
+                return res.status(400).send('Organization ID is not set in session.');
+            }
+    
+            // If schoolReopenDate is an empty string, set it to null
+            const reopenDate = schoolReopenDate === "" ? null : schoolReopenDate;
+    
+            // Insert or update the status settings in the database
+            await db.query(`
+                INSERT INTO status_settings (organization_id, cut_off_point, promoted_class, repeated_class, school_reopen_date, activate_promotion)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                ON CONFLICT (organization_id)
+                DO UPDATE SET 
+                    cut_off_point = EXCLUDED.cut_off_point,
+                    promoted_class = EXCLUDED.promoted_class,
+                    repeated_class = EXCLUDED.repeated_class,
+                    school_reopen_date = EXCLUDED.school_reopen_date,
+                    activate_promotion = EXCLUDED.activate_promotion
+            `, [organizationId, cutOffPoint, promotedClass, repeatedClass, reopenDate, activatePromotion === "on"]);
+    
+            res.redirect(`/print/reportSettings?classId=${req.query.classId}`);
+        } catch (error) {
+            console.error('Error saving promotion settings:', error);
+            res.status(500).send('Error saving promotion settings.');
+        }
+    },
+    
 
     saveTeacherRemarks: async (req, res) => {
         const { teacherRemarks } = req.body;

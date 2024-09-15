@@ -39,13 +39,25 @@
                     <label for="cutOffPoint">Cut Off Point:</label>
                     <input type="number" name="cutOffPoint" id="cutOffPoint" value="<%= statusSettings.cut_off_point || '' %>">
                 </div>
-                <div class="form-group">
-                    <label for="promotedClass">Promoted Class:</label>
-                    <input type="text" name="promotedClass" id="promotedClass" value="<%= statusSettings.promoted_class || '' %>">
-                </div>
-                <div class="form-group">
-                    <label for="repeatedClass">Repeated Class:</label>
-                    <input type="text" name="repeatedClass" id="repeatedClass" value="<%= statusSettings.repeated_class || '' %>">
+                <label for="promotedClass">Promoted Class:</label>
+                <select name="promotedClass">
+                    <% classes.forEach(classItem => { %>
+                        <option value="<%= classItem.class_name %>" <%= statusSettings.promoted_class === classItem.class_name ? 'selected' : '' %>>
+                            <%= classItem.class_name %>
+                        </option>
+                    <% }) %>
+                </select>
+            
+                <label for="repeatedClass">Repeated Class:</label>
+                <select name="repeatedClass">
+                    <% classes.forEach(classItem => { %>
+                        <option value="<%= classItem.class_name %>" <%= statusSettings.repeated_class === classItem.class_name ? 'selected' : '' %>>
+                            <%= classItem.class_name %>
+                        </option>
+                    <% }) %>
+                </select>                <div>
+                    <label for="activatePromotion">Activate Promotion:</label>
+                    <input type="checkbox" id="activatePromotion" name="activatePromotion" <% if (statusSettings.activate_promotion) { %>checked<% } %> />
                 </div>
                 <div class="form-group">
                     <label for="schoolReopenDate">School Reopen Date:</label>
