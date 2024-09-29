@@ -404,3 +404,19 @@ FOREIGN KEY (class_id) REFERENCES classes(class_id) ON DELETE CASCADE;
 ALTER TABLE student_positions 
 ADD COLUMN total_category_score NUMERIC(10, 2),
 ADD COLUMN class_id INTEGER;
+ALTER TABLE student_positions
+ADD COLUMN category VARCHAR(255);
+
+
+ALTER TABLE student_positions
+ADD CONSTRAINT unique_student_subject_category
+UNIQUE (student_id, subject_id, category);
+
+
+ALTER TABLE category_scores
+ADD CONSTRAINT unique_student_class_subject_category_org
+UNIQUE (student_id, class_id, subject_id, category, organization_id);
+
+ALTER TABLE category_scores
+DROP CONSTRAINT unique_student_class_category_org,
+ADD CONSTRAINT unique_student_class_category_org_subject UNIQUE (student_id, class_id, subject_id, category, organization_id);

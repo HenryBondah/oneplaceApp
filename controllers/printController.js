@@ -126,7 +126,6 @@ const printController = (db) => ({
             const signatureImagePath = reportSettingsResult.rows[0]?.signature_image_path;
             const signatureImageUrl = signatureImagePath ? await getFromS3(signatureImagePath) : null;
     
-            // Process each student
             let studentScores = [];
     
             for (const student of students) {
@@ -136,23 +135,25 @@ const printController = (db) => ({
                 let subjectCount = 0;
     
                 for (const subject of allSubjects) {
-                    // Fetch Class Score, Exams Score, and Other Score from assessment_results table
+                    // Fetch category scores from the category_scores table for each category
                     const categoryScoresResult = await db.query(`
                         SELECT 
-                            COALESCE(SUM(CASE WHEN ar.category = 'Class Assessment' THEN ar.total_category_score ELSE 0 END), 0) AS classAssessmentScore,
-                            COALESCE(SUM(CASE WHEN ar.category = 'Exams Assessment' THEN ar.total_category_score ELSE 0 END), 0) AS examsAssessmentScore,
-                            COALESCE(SUM(CASE WHEN ar.category = 'Other' THEN ar.total_category_score ELSE 0 END), 0) AS otherAssessmentScore
-                        FROM assessment_results ar
-                        WHERE ar.student_id = $1 AND ar.subject_id = $2 AND ar.class_id = $3 AND ar.organization_id = $4
+                            COALESCE(SUM(CASE WHEN cs.category = 'Class Assessment' THEN cs.total_score ELSE 0 END), 0) AS classAssessmentScore,
+                            COALESCE(SUM(CASE WHEN cs.category = 'Exams Assessment' THEN cs.total_score ELSE 0 END), 0) AS examsAssessmentScore,
+                            COALESCE(SUM(CASE WHEN cs.category = 'Other' THEN cs.total_score ELSE 0 END), 0) AS otherAssessmentScore
+                        FROM category_scores cs
+                        WHERE cs.student_id = $1 AND cs.subject_id = $2 AND cs.class_id = $3 AND cs.organization_id = $4
                     `, [student.student_id, subject.subject_id, classId, organizationId]);
     
                     const categoryScores = categoryScoresResult.rows[0] || {};
     
-                    const classAssessmentScore = categoryScores.classAssessmentScore || '-';
-                    const examsAssessmentScore = categoryScores.examsAssessmentScore || '-';
-                    const otherAssessmentScore = categoryScores.otherAssessmentScore || '-';
+                    const classAssessmentScore = categoryScores.classassessmentscore || '-';
+                    const examsAssessmentScore = categoryScores.examsassessmentscore || '-';
+                    const otherAssessmentScore = categoryScores.otherassessmentscore || '-';
     
-                    // Fetch total score, percentage, grade, and position
+                    // Log for debugging purposes
+                    console.log(`Category Scores for Student ID ${student.student_id}, Subject ID ${subject.subject_id}:`, categoryScores);
+    
                     const scoresResult = await db.query(`
                         SELECT 
                             COALESCE(SUM(ar.score), 0) AS totalScore,
@@ -180,7 +181,7 @@ const printController = (db) => ({
                         subjectCount++;
                     }
     
-                    totalScoreSum += totalScore; // Sum total scores for the student
+                    totalScoreSum += totalScore;
     
                     student.subjects.push({
                         subject_name: subject.subject_name,
@@ -198,7 +199,6 @@ const printController = (db) => ({
                 student.overallPercentage = subjectCount > 0 ? (totalPercentageSum / subjectCount).toFixed(2) : '-';
                 student.totalScoreSum = totalScoreSum;
     
-                // Determine promotion/repetition based on overall percentage and cutoff
                 if (student.overallPercentage >= cutOffPoint) {
                     student.promotionStatus = 'Promoted';
                     student.promotionClass = promotedClass;
@@ -215,13 +215,11 @@ const printController = (db) => ({
                 });
             }
     
-            // Sort students by total score in descending order to determine positions
             studentScores.sort((a, b) => b.totalScoreSum - a.totalScoreSum);
     
-            // Assign positions
             studentScores.forEach((studentScore, index) => {
                 const student = students.find(s => s.student_id === studentScore.student_id);
-                student.positionInClass = getOrdinalSuffix(index + 1); // Assign position
+                student.positionInClass = getOrdinalSuffix(index + 1);
             });
     
             const logoUrl = organization.logo_path ? await getFromS3(organization.logo_path) : null;
@@ -242,13 +240,17 @@ const printController = (db) => ({
                 schoolReopenDate: schoolReopenDate,
                 promotedClass: promotedClass,
                 repeatedClass: repeatedClass,
-                activatePromotion: activatePromotion // Pass activate promotion to the view
+                activatePromotion: activatePromotion
             });
         } catch (error) {
             console.error('Error generating student report:', error);
             res.status(500).send('Failed to generate student report.');
         }
     },
+    
+    
+    
+    
     
     
         

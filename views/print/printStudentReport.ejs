@@ -70,7 +70,6 @@
         }
         .remarks {
             width: 48%;
-            
         }
         .signature-info {
             position: relative;
@@ -81,25 +80,22 @@
         }
 
         .remarks-container {
-    position: relative;
-    top: -10px; /* Move the Teacher's Remarks section up by 10px */
-}
+            position: relative;
+            top: -10px;
+        }
 
-        .signature-info img{
+        .signature-info img {
             position: absolute;
             top: -30px;
             right: 10px;
         }
-        
-        /* Style for the select dropdown */
+
         .remarks select {
             width: 100%;
             border: none;
             background: transparent;
             font-size: 12px;
             appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
             text-overflow: wrap;
             white-space: normal;
             word-wrap: break-word;
@@ -107,15 +103,14 @@
             left: 45px;
             position: relative;
         }
-        
-        /* Specific style to avoid cutting text in the dropdown */
+
         .remarks select option {
             white-space: normal;
             padding: 10px;
             background-color: #fff;
             border: 1px solid #ddd;
         }
-        
+
         .btn {
             display: inline-block;
             padding: 8px 12px;
@@ -126,106 +121,57 @@
             border-radius: 4px;
             text-decoration: none;
             cursor: pointer;
-            transition: background-color 0.3s ease;
         }
+
         .btn-primary:hover {
             background-color: #0056b3;
         }
 
+        .promotion-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            text-align: center;
+        }
 
-/* Center the content in the table */
-.promotion-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-    text-align: center; /* Center text in the table */
-}
+        .promotion-table th, 
+        .promotion-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+            font-size: 12px;
+        }
 
-.promotion-table th, 
-.promotion-table td {
-    border: 1px solid #ddd; /* Ensure table borders are visible */
-    padding: 8px; /* Add padding for better spacing */
-    vertical-align: middle; /* Vertically center the content */
-    text-align: center; /* Center text horizontally */
-    font-size: 12px; /* Keep font size consistent */
-}
+        .promotion-table select {
+            width: 100px;
+            padding: 2px;
+            font-size: 12px;
+            margin: 0 auto;
+            display: block;
+            border: none;
+            background: transparent;
+            appearance: none;
+        }
 
-/* Style for the promotion dropdown (remove border) */
-.promotion-table select {
-    width: 100px; /* Set a fixed width for the dropdown */
-    padding: 2px;
-    font-size: 12px;
-    margin: 0 auto; /* Center the dropdown */
-    display: block; /* Ensure the dropdown is treated as a block element */
-    border: none; /* Remove border from the dropdown */
-    background: transparent; /* Set the background to transparent */
-    appearance: none; /* Remove the default dropdown styling */
-    -webkit-appearance: none;
-    -moz-appearance: none;
-}
+        .attendance-info {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
 
-/* Ensure the table is centered in the div */
-.attendance-info {
-    display: flex;
-    justify-content: center; /* Horizontally center the table */
-    margin-top: 10px;
-}
+        .promotion-table td {
+            white-space: nowrap;
+        }
 
-/* Ensure that cells are not overflowing and breaking */
-.promotion-table td {
-    white-space: nowrap; /* Prevent text from wrapping unnecessarily */
-}
-
-/* Ensure the table is centered in the div */
-.attendance-info {
-    display: flex;
-    justify-content: center; /* Horizontally center the table */
-    margin-top: 10px;
-}
-
-/* Ensure that cells are not overflowing and breaking */
-.promotion-table td {
-    white-space: nowrap; /* Prevent text from wrapping unnecessarily */
-}
-/* Adjust for mobile or smaller screens if needed */
-@media (max-width: 768px) {
-    .promotion-table td, 
-    .promotion-table th {
-        font-size: 12px; /* Reduce font size for smaller screens */
-    }
-}
-
-/* Adjust for print layout */
-@media print {
-    @page {
-        size: A4 portrait;
-        margin: 20mm;
-    }
-
-    .actions, .no-print {
-        display: none;
-    }
-
-    .student-report {
-        max-width: 100%;
-        margin: 0 auto;
-        padding: 20px;
-        box-sizing: border-box;
-        page-break-after: always;
-    }
-    
-    .header img.logo,
-    .header img.student-image {
-        width: 50px;
-        height: 50px;
-        object-fit: cover;
-        border-radius: 8px;
-    }
-
-    table {
-        width: 100%;
-    }
-}
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 20mm;
+            }
+            .actions, .no-print {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -296,7 +242,6 @@
                             <% student.subjects.forEach(subject => { %>
                                 <tr>
                                     <td><%= subject.subject_name %></td>
-                                    <!-- Ensure the Class Score, Exams Score, and Other Score are fetched and displayed correctly -->
                                     <td><%= subject.classAssessmentScore !== '-' ? parseFloat(subject.classAssessmentScore).toFixed(2) : '-' %></td>
                                     <td><%= subject.examsAssessmentScore !== '-' ? parseFloat(subject.examsAssessmentScore).toFixed(2) : '-' %></td>
                                     <td><%= subject.otherAssessmentScore !== '-' ? parseFloat(subject.otherAssessmentScore).toFixed(2) : '-' %></td>
@@ -307,12 +252,11 @@
                                     <td><%= subject.remarks || '-' %></td>
                                 </tr>
                             <% }) %>
-                        </tbody>
 
+                        </tbody>
                     </table>
                 </div>
                 <br>
-                <!-- New Table for Attendance, Position, and Promotion Status -->
                 <div class="attendance-info">
                     <table class="promotion-table">
                         <tr>
@@ -324,7 +268,7 @@
                             <td>20/50</td>
                         </tr>
                 
-                        <% if (activatePromotion) { %> <!-- Show only if promotion is activated -->
+                        <% if (activatePromotion) { %>
                         <tr>
                             <td>
                                 <select name="promotionStatus-<%= student.student_id %>" id="promotionStatus-<%= student.student_id %>" onchange="updateClass('<%= student.student_id %>')">
@@ -383,18 +327,14 @@
         }
 
         function updateClass(studentId) {
-        // Get the current promotion status selected
         const statusSelect = document.getElementById('promotionStatus-' + studentId);
         const selectedStatus = statusSelect.value;
 
-        // Get the elements where the class is displayed
         const classCell = document.getElementById('promotionClass-' + studentId);
 
-        // Define the promoted and repeated class values (these should be retrieved from your backend settings)
         const promotedClass = '<%= promotedClass %>';
         const repeatedClass = '<%= repeatedClass %>';
 
-        // Update the class based on the selected promotion status
         if (selectedStatus === 'Promoted') {
             classCell.innerHTML = promotedClass;
         } else if (selectedStatus === 'Repeated') {
