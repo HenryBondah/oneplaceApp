@@ -28,7 +28,7 @@
     <% if (error_msg) { %>
         <div class="alert alert-danger"><%= error_msg %></div>
     <% } %>
-    <a href="/print/printStudentReport" class="back-btn">Back</a>
+    <a href="/print/printStudentReport?classId=<%= classId %>" class="back-btn">Back</a>
     <hr>
     <div class="container">
         <!-- Status Settings Form -->

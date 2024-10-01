@@ -152,7 +152,7 @@ const printController = (db) => ({
                     const otherAssessmentScore = categoryScores.otherassessmentscore || '-';
     
                     // Log for debugging purposes
-                    console.log(`Category Scores for Student ID ${student.student_id}, Subject ID ${subject.subject_id}:`, categoryScores);
+                    // console.log(`Category Scores for Student ID ${student.student_id}, Subject ID ${subject.subject_id}:`, categoryScores);
     
                     const scoresResult = await db.query(`
                         SELECT 
@@ -250,47 +250,44 @@ const printController = (db) => ({
     
     
     
-    
-    
-    
+
         
     
     reportSettingsPage: async (req, res) => {
+        const { classId } = req.query;  // Make sure classId is retrieved from query
         const organizationId = req.session.organizationId;
-
+    
         try {
-            // Fetch status settings
+            // Fetch status settings, teacher remarks, etc.
             const statusResult = await db.query('SELECT * FROM status_settings WHERE organization_id = $1 LIMIT 1', [organizationId]);
             const statusSettings = statusResult.rows[0] || {};
-
-            // Fetch classes for the organization
+    
             const classesResult = await db.query('SELECT class_id, class_name FROM classes WHERE organization_id = $1', [organizationId]);
             const classes = classesResult.rows || [];
-
-            // Fetch teacher remarks
+    
             const teacherRemarksResult = await db.query('SELECT * FROM teacher_remarks WHERE organization_id = $1', [organizationId]);
             const teacherRemarks = teacherRemarksResult.rows || [];
-
-            // Fetch score remarks
+    
             const scoreRemarksResult = await db.query('SELECT * FROM score_remarks WHERE organization_id = $1', [organizationId]);
             const scoreRemarks = scoreRemarksResult.rows || [];
-
-            // Fetch existing signature image URL if available
+    
             const reportSettingsResult = await db.query('SELECT signature_image_path FROM report_settings WHERE organization_id = $1', [organizationId]);
             const reportSettings = reportSettingsResult.rows[0];
             let signatureImageUrl = null;
-
+    
             if (reportSettings && reportSettings.signature_image_path) {
                 signatureImageUrl = await getFromS3(reportSettings.signature_image_path);
             }
-
+    
+            // Pass classId to the view along with other data
             res.render('print/reportSettings', {
                 title: 'Report Settings',
                 statusSettings,
                 teacherRemarks,
                 scoreRemarks,
-                classes, // Pass the class data to the view
-                signatureImageUrl, 
+                classes,
+                signatureImageUrl,
+                classId,  // Pass the classId here
                 success_msg: req.flash('success_msg'),
                 error_msg: req.flash('error_msg'),
             });
@@ -299,6 +296,7 @@ const printController = (db) => ({
             res.status(500).send('Failed to load report settings page.');
         }
     },
+    
 
     
     updateReportSettings: async (req, res) => {
