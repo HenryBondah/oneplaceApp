@@ -4,15 +4,11 @@
     <meta charset="UTF-8">
     <title>Student Report</title>
     <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            background-color: #f9f9f9;
-        }
         .actions {
             text-align: center;
             margin-bottom: 20px;
         }
+
         .student-report {
             border: 1px solid #ccc;
             padding: 20px;
@@ -21,67 +17,63 @@
             max-width: 800px;
             margin: 20px auto;
             box-sizing: border-box;
-            page-break-after: always;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            page-break-after: always; /* Ensure each report is on its own page */
         }
+
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            text-align: center;
         }
+
         .header img.logo,
         .header img.student-image {
-            width: 75px;
-            height: 75px;
+            width: 60px;
+            height: 60px;
             object-fit: cover;
             border-radius: 8px;
         }
-        .header h1, .header h2 {
+
+
+        .header h2, .header h3 {
             margin: 0;
             text-align: center;
-            flex-grow: 1;
+            white-space: nowrap;
         }
-        .info, .attendance-info {
-            width: 90%;
-            margin: 0 auto;
-            text-align: center;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
+
         th, td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 5px;
             text-align: left;
-            font-size: 12px;
+            font-size: 11px;
         }
+
         th {
             background-color: #f2f2f2;
         }
-        .remarks, .signature-info {
+
+        .remarks {
             display: flex;
             justify-content: space-between;
             margin-top: 20px;
-        }
-        .remarks {
             width: 48%;
+            word-wrap: break-word;
         }
+
         .signature-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
             position: relative;
             left: 100%;
             top: 10px;
             width: 48%;
             text-align: right;
-        }
-
-        .remarks-container {
-            position: relative;
-            top: -10px;
         }
 
         .signature-info img {
@@ -90,48 +82,23 @@
             right: 10px;
         }
 
+        .remarks-container {
+            position: relative;
+            top: -10px;
+        }
+
         .remarks select {
-            width: 100%;
+            width: 130%;
             border: none;
             background: transparent;
             font-size: 12px;
             appearance: none;
-            text-overflow: wrap;
-            white-space: normal;
-            word-wrap: break-word;
-            line-height: 1.5;
-            left: 45px;
+            white-space: normal;  /* Allow text wrapping */
+            word-wrap: break-word;  /* Break long words */
+            line-height: 1.5;  /* Adjust line height for readability */
+            padding: 4px 0;
+            left: 10px;
             position: relative;
-        }
-
-        .remarks select option {
-            white-space: normal;
-            padding: 10px;
-            background-color: #fff;
-            border: 1px solid #ddd;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 8px 12px;
-            font-size: 12px;
-            color: #fff;
-            background-color: #007BFF;
-            border: none;
-            border-radius: 4px;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .btn-primary:hover {
-            background-color: #0056b3;
-        }
-
-        .promotion-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            text-align: center;
         }
 
         .promotion-table th, 
@@ -153,33 +120,34 @@
             appearance: none;
         }
 
-        .attendance-info {
-            display: flex;
-            justify-content: center;
-            margin-top: 10px;
-        }
-
-        .promotion-table td {
-            white-space: nowrap;
-        }
-
         @media print {
             @page {
                 size: A4 portrait;
                 margin: 20mm;
             }
-            .actions, .no-print {
-                display: none;
+
+            body * {
+                visibility: hidden; /* Hide everything during print */
+            }
+
+            .student-report, .student-report * {
+                visibility: visible; /* Show only report content */
+            }
+
+            .student-report {
+                width: 100%; /* Maximize width usage for the report */
+                margin-top: 0; /* Remove any extra margins */
+                padding: 10mm; /* Add some padding to ensure content doesn't touch the edges */
+                page-break-after: always; /* Each report prints on a new page */
+            }
+
+            .actions {
+                display: none; /* Hide the print buttons */
             }
         }
     </style>
 </head>
 <body>
-    <div class="actions no-print">
-        <button class="btn btn-primary" onclick="printAllReports()">Print All Reports</button>
-        <a href="/print/reportSettings?classId=<%= classId %>" class="btn btn-primary">Report Settings</a>
-    </div>
-    <hr>
     <% if (students.length === 0) { %>
         <p>No student data available</p>
     <% } else { %>
@@ -189,9 +157,9 @@
                     <% if (session.logo) { %>
                         <img src="<%= session.logo %>" alt="Organization Logo" class="logo" />
                     <% } %>
-                    <div>
-                        <h1><%= orgName %></h1>
-                        <h2><%= orgAddress %></h2>
+                    <div class="school-info">
+                        <h2><%= orgName %></h2>
+                        <h3><%= orgAddress %></h3>
                     </div>
                     <% if (student.image_url && student.image_url !== 'profilePlaceholder.png') { %>
                         <img src="<%= student.image_url %>?v=<%= new Date().getTime() %>" alt="Student Image" class="student-image">
@@ -199,7 +167,7 @@
                         <img src="/images/profilePlaceholder.png" alt="Placeholder Image" class="student-image">
                     <% } %>
                 </div>
-                <h2 style="text-align: center;">Student Report</h2>
+                <!-- <h2 style="text-align: center;">Student Report</h2> -->
                 <div class="info">
                     <table>
                         <tr>
@@ -252,7 +220,6 @@
                                     <td><%= subject.remarks || '-' %></td>
                                 </tr>
                             <% }) %>
-
                         </tbody>
                     </table>
                 </div>
@@ -267,7 +234,6 @@
                             <td>Attendance:</td>
                             <td>20/50</td>
                         </tr>
-                
                         <% if (activatePromotion) { %>
                         <tr>
                             <td>
@@ -281,13 +247,12 @@
                         <% } %>
                     </table>
                 </div>
-                                 
                 <br>
                 <div class="remarks">
                     <div class="remarks-container">
                         <select id="teacherRemarks-<%= index %>" name="teacherRemarks-<%= index %>">
                             <% teacherRemarks.forEach(function(remark) { %>
-                                <option value="<%= remark.remark %>" <%= remark.remark === student.teacherRemarks ? 'selected' : '' %>><%= remark.remark %></option>
+                                <option value="<%= remark.remark %>" <%= remark.remark === student.teacherRemarks ? 'selected' : '' %>><%= remark.remark %></option> 
                             <% }); %>
                         </select>
                         <h3>Teacher's Remarks</h3>
@@ -301,46 +266,41 @@
                             <p>No signature available.</p>
                         <% } %>
                     </div>
+                   
                 </div>
                 <div class="print no-print">
-                    <button class="btn btn-primary" onclick="printReport(<%= index %>)">Print This Report</button>
+                    <button class="btn btn-primary" onclick="window.print()">Print Report</button>
                 </div>
             </div>
         <% }); %>
     <% } %>
 
     <script>
-        function printReport(index) {
-            const printContents = document.getElementById('report-' + index).outerHTML;
-            const originalContents = document.body.innerHTML;
-            document.body.innerHTML = printContents;
-            window.print();
-            document.body.innerHTML = originalContents;
-        }
-
-        function printAllReports() {
-            const printContents = Array.from(document.querySelectorAll('.student-report')).map(report => report.outerHTML).join('');
-            const originalContents = document.body.innerHTML;
-            document.body.innerHTML = printContents;
-            window.print();
-            document.body.innerHTML = originalContents;
-        }
-
         function updateClass(studentId) {
-        const statusSelect = document.getElementById('promotionStatus-' + studentId);
-        const selectedStatus = statusSelect.value;
+            const statusSelect = document.getElementById('promotionStatus-' + studentId);
+            const selectedStatus = statusSelect.value;
+            const classCell = document.getElementById('promotionClass-' + studentId);
 
-        const classCell = document.getElementById('promotionClass-' + studentId);
+            const promotedClass = '<%= promotedClass %>';
+            const repeatedClass = '<%= repeatedClass %>';
 
-        const promotedClass = '<%= promotedClass %>';
-        const repeatedClass = '<%= repeatedClass %>';
-
-        if (selectedStatus === 'Promoted') {
-            classCell.innerHTML = promotedClass;
-        } else if (selectedStatus === 'Repeated') {
-            classCell.innerHTML = repeatedClass;
+            if (selectedStatus === 'Promoted') {
+                classCell.innerHTML = promotedClass;
+            } else if (selectedStatus === 'Repeated') {
+                classCell.innerHTML = repeatedClass;
+            }
         }
-    }
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
