@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Settings</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { width: 100%; display: flex; justify-content: space-between; gap: 20px; padding: 20px; }
+        h2 { color: #333; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; }
+        .form-group input, .form-group textarea { width: 100%; padding: 8px; margin-top: 5px; }
+        .btn { padding: 8px 16px; background-color: #007BFF; color: white; border: none; cursor: pointer; }
+        .btn:hover { background-color: #0056b3; }
+        .remarks-list div { display: flex; justify-content: space-between; align-items: center; padding: 8px; background-color: #f9f9f9; border: 1px solid #ddd; margin-bottom: 8px; }
+        .remarks-list a { color: red; text-decoration: none; }
+        .remarks-list a:hover { text-decoration: underline; }
+        .form-section { flex: 1; }
+        .signature-section { margin-top: 40px; }
+        img { max-width: 100px; }
+    </style>
+</head>
+<body>
+    <% if (success_msg) { %>
+        <div class="alert alert-success"><%= success_msg %></div>
+    <% } %>
+    <% if (error_msg) { %>
+        <div class="alert alert-danger"><%= error_msg %></div>
+    <% } %>
+    <a href="/print/printStudentReport?classId=<%= classId %>" class="back-btn">Back</a>
+    <hr>
+    <div class="container">
+        <!-- Status Settings Form -->
+        <div class="form-section">
+            <form action="/print/savePromotionSettings" method="POST">
+                <h2>Status Settings</h2>
+                <div class="form-group">
+                    <label for="cutOffPoint">Cut Off Point:</label>
+                    <input type="number" name="cutOffPoint" id="cutOffPoint" value="<%= statusSettings.cut_off_point || '' %>">
+                </div>
+                <label for="promotedClass">Promoted Class:</label>
+                <select name="promotedClass">
+                    <% classes.forEach(classItem => { %>
+                        <option value="<%= classItem.class_name %>" <%= statusSettings.promoted_class === classItem.class_name ? 'selected' : '' %>>
+                            <%= classItem.class_name %>
+                        </option>
+                    <% }) %>
+                </select>
+            
+                <label for="repeatedClass">Repeated Class:</label>
+                <select name="repeatedClass">
+                    <% classes.forEach(classItem => { %>
+                        <option value="<%= classItem.class_name %>" <%= statusSettings.repeated_class === classItem.class_name ? 'selected' : '' %>>
+                            <%= classItem.class_name %>
+                        </option>
+                    <% }) %>
+                </select>                <div>
+                    <label for="activatePromotion">Activate Promotion:</label>
+                    <input type="checkbox" id="activatePromotion" name="activatePromotion" <% if (statusSettings.activate_promotion) { %>checked<% } %> />
+                </div>
+                <div class="form-group">
+                    <label for="schoolReopenDate">School Reopen Date:</label>
+                    <input type="date" name="schoolReopenDate" id="schoolReopenDate" value="<%= statusSettings.school_reopen_date || '' %>">
+                </div>
+                <% if (statusSettings.school_reopen_date) { %>
+                    <p><strong>Saved Date:</strong> <%= new Date(statusSettings.school_reopen_date).toLocaleDateString() %></p>
+                <% } %>
+                <button type="submit" class="btn">Save Status Settings</button>
+            </form>
+        </div>
+
+        <!-- Teacher's Remarks Form -->
+        <div class="form-section">
+            <form action="/print/saveTeacherRemarks" method="POST">
+                <h2>Teacher's Remarks</h2>
+                <div class="form-group">
+                    <textarea name="teacherRemarks" id="teacherRemarks"></textarea>
+                </div>
+                <button type="submit" class="btn">Save Teacher's Remarks</button>
+                <br><hr>
+                <div class="remarks-list">
+                    <% teacherRemarks.forEach((remark) => { %>
+                        <div>
+                            <span><%= remark.remark %></span>
+                            <a href="/print/deleteTeacherRemark/<%= remark.id %>">Delete</a>
+                        </div>
+                    <% }); %>
+                </div>
+            </form>
+        </div>
+
+        <!-- Score Remarks Form -->
+        <div class="form-section">
+            <form action="/print/saveScoreRemarks" method="POST">
+                <h2>Score Remarks</h2>
+                
+                <div class="form-group">
+                    <label for="remark">Remark:</label>
+                    <input type="text" name="remark" id="remark" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="from_percentage">From Percentage:</label>
+                    <input type="number" name="from_percentage" id="from_percentage" required min="-100" max="200">
+                </div>
+
+                <div class="form-group">
+                    <label for="to_percentage">To Percentage:</label>
+                    <input type="number" name="to_percentage" id="to_percentage" required min="-100" max="200">
+                </div>
+
+                <button type="submit" class="btn">Save Score Remark</button>
+                <br><hr>
+                
+                <div class="remarks-list">
+                    <% scoreRemarks.forEach((remark) => { %>
+                        <div>
+                            <span><%= remark.remark %> (From: <%= remark.from_percentage %>% To: <%= remark.to_percentage %>%)</span>
+                            <a href="/print/deleteScoreRemark/<%= remark.id %>">Delete</a>
+                        </div>
+                    <% }); %>
+                </div>
+            </form>
+        </div>
+
+
+
+<!-- Signature Image Section -->
+<!-- Signature Image Section -->
+<div class="form-section signature-section">
+    <form action="/print/uploadSignatureImage" method="POST" enctype="multipart/form-data">
+        <h2>Signature Image</h2>
+        <% if (signatureImageUrl) { %>
+            <div>
+                <img src="<%= signatureImageUrl %>" alt="Current Signature" style="max-width: 100px; display: block; margin-bottom: 10px;">
+                <!-- Add confirmation before deletion -->
+                <a href="/print/deleteSignatureImage" class="btn btn-danger" id="delete-image-btn">Delete Signature Image</a>
+            </div>
+        <% } else { %>
+            <p>No signature uploaded.</p>
+        <% } %>
+        
+        <div class="form-group">
+            <input type="file" name="signatureImage" accept="image/*">
+        </div>
+
+        <% if (signatureImageUrl) { %>
+            <button type="submit" class="btn" onclick="return confirm('This will replace the current signature image. Are you sure?');">Replace Signature Image</button>
+        <% } else { %>
+            <button type="submit" class="btn">Upload Signature Image</button>
+        <% } %>
+    </form>
+</div>
+        
+    </div>
+    <script>
+        document.getElementById('signatureImageInput').addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const previewContainer = document.getElementById('signature-preview');
+                    const currentImage = document.getElementById('current-signature-image');
+    
+                    if (currentImage) {
+                        currentImage.src = e.target.result; // Update current image source
+                    } else {
+                        // Create and insert the new image element if it doesn't exist
+                        const newImage = document.createElement('img');
+                        newImage.src = e.target.result;
+                        newImage.id = 'current-signature-image';
+                        newImage.style.maxWidth = '100px';
+                        newImage.style.display = 'block';
+                        newImage.style.marginBottom = '10px';
+    
+                        previewContainer.innerHTML = ''; // Clear existing content
+                        previewContainer.appendChild(newImage);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('delete-image-btn').addEventListener('click', function (event) {
+        const confirmation = confirm('This will permanently delete the image from S3. Are you sure?');
+        if (!confirmation) {
+            event.preventDefault(); // Prevent deletion if user cancels
+        }
+    });
+    </script>
+</body>
+</html>
