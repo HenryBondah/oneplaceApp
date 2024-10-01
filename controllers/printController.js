@@ -248,11 +248,7 @@ const printController = (db) => ({
         }
     },
     
-    
-    
 
-        
-    
     reportSettingsPage: async (req, res) => {
         const { classId } = req.query;  // Make sure classId is retrieved from query
         const organizationId = req.session.organizationId;
@@ -296,7 +292,6 @@ const printController = (db) => ({
             res.status(500).send('Failed to load report settings page.');
         }
     },
-    
 
     
     updateReportSettings: async (req, res) => {
