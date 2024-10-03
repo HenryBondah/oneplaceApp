@@ -6,6 +6,8 @@ const { upload } = require('../middleware/s3Upload');
 
 module.exports = (db) => {
     router.get('/orgDashboard', isAuthenticated, (req, res) => commonController.orgDashboard(req, res, db));
+// Route for when a specific school year and term are selected
+router.get('/orgDashboard/:schoolYearId/:termId', isAuthenticated, (req, res) => commonController.orgDashboardRestricted(req, res, db));
     router.get('/publicDashboardContent', (req, res) => commonController.publicDashboardContent(req, res, db));
     router.get('/addStudent', isAuthenticated, (req, res) => commonController.addStudentGet(req, res, db));
     router.post('/addStudent', upload.single('studentImage'), isAuthenticated, (req, res) => commonController.addStudentPost(req, res, db));

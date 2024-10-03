@@ -58,24 +58,27 @@ const assignScoreRemark = async (percentage, organizationId, db) => {
 
 const printController = (db) => ({
     printStudentReport: async (req, res) => {
-        const { classId } = req.query;
+        const { classId, termId } = req.query;
         const organizationId = req.session.organizationId;
     
-        try {
-            if (!organizationId) {
-                return res.status(400).send('Organization ID is not set in session.');
-            }
+        if (!organizationId) {
+            return res.status(400).send('Organization ID is not set in session.');
+        }
     
-            const getOrdinalSuffix = (i) => {
-                const j = i % 10, k = i % 100;
-                if (j === 1 && k !== 11) return i + "st";
-                if (j === 2 && k !== 12) return i + "nd";
-                if (j === 3 && k !== 13) return i + "rd";
-                return i + "th";
-            };
+        if (!classId || isNaN(classId)) {
+            return res.status(400).send('Invalid or missing classId.');
+        }
+    
+        if (!termId || isNaN(termId)) {
+            return res.status(400).send('Invalid or missing termId.');
+        }
+    
+        try {
+            const parsedClassId = parseInt(classId, 10);
+            const parsedTermId = parseInt(termId, 10);
     
             // Fetch class details
-            const classResult = await db.query('SELECT * FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, organizationId]);
+            const classResult = await db.query('SELECT * FROM classes WHERE class_id = $1 AND organization_id = $2', [parsedClassId, organizationId]);
             const classData = classResult.rows[0];
             if (!classData) {
                 return res.status(404).send('Class not found for the given class ID and organization ID.');
@@ -92,30 +95,31 @@ const printController = (db) => ({
             const statusSettingsResult = await db.query(`
                 SELECT cut_off_point, promoted_class, repeated_class, school_reopen_date, activate_promotion
                 FROM status_settings
-                WHERE organization_id = $1 LIMIT 1
-            `, [organizationId]);
+                WHERE organization_id = $1 AND class_id = $2 LIMIT 1
+            `, [organizationId, parsedClassId]);
             const statusSettings = statusSettingsResult.rows[0];
     
-            const cutOffPoint = statusSettings.cut_off_point || 0;
-            const promotedClass = statusSettings.promoted_class || 'N/A';
-            const repeatedClass = statusSettings.repeated_class || 'N/A';
-            const activatePromotion = statusSettings.activate_promotion;
-            const schoolReopenDate = statusSettings.school_reopen_date ? new Date(statusSettings.school_reopen_date).toLocaleDateString() : 'TBA';
+            // Fetch term details
+            const termResult = await db.query('SELECT * FROM terms WHERE term_id = $1 AND organization_id = $2', [parsedTermId, organizationId]);
+            const term = termResult.rows[0];
+            if (!term) {
+                return res.status(404).send('Term not found for the given term ID.');
+            }
     
-            // Fetch students and their subjects
+            // Fetch students and their subjects for the given term
             const studentsResult = await db.query(`
                 SELECT s.student_id, s.first_name, s.last_name, s.image_url, c.class_name
                 FROM students s
                 JOIN classes c ON s.class_id = c.class_id
                 WHERE s.class_id = $1 AND s.organization_id = $2
-            `, [classId, organizationId]);
+            `, [parsedClassId, organizationId]);
             const students = studentsResult.rows;
     
             const subjectsResult = await db.query(`
                 SELECT subject_id, subject_name
                 FROM subjects
                 WHERE class_id = $1 AND organization_id = $2
-            `, [classId, organizationId]);
+            `, [parsedClassId, organizationId]);
             const allSubjects = subjectsResult.rows;
     
             const teacherRemarksResult = await db.query('SELECT id, remark FROM teacher_remarks WHERE organization_id = $1', [organizationId]);
@@ -142,17 +146,14 @@ const printController = (db) => ({
                             COALESCE(SUM(CASE WHEN cs.category = 'Exams Assessment' THEN cs.total_score ELSE 0 END), 0) AS examsAssessmentScore,
                             COALESCE(SUM(CASE WHEN cs.category = 'Other' THEN cs.total_score ELSE 0 END), 0) AS otherAssessmentScore
                         FROM category_scores cs
-                        WHERE cs.student_id = $1 AND cs.subject_id = $2 AND cs.class_id = $3 AND cs.organization_id = $4
-                    `, [student.student_id, subject.subject_id, classId, organizationId]);
+                        WHERE cs.student_id = $1 AND cs.subject_id = $2 AND cs.class_id = $3 AND cs.organization_id = $4 AND cs.term_id = $5
+                    `, [student.student_id, subject.subject_id, parsedClassId, organizationId, parsedTermId]);
     
                     const categoryScores = categoryScoresResult.rows[0] || {};
     
                     const classAssessmentScore = categoryScores.classassessmentscore || '-';
                     const examsAssessmentScore = categoryScores.examsassessmentscore || '-';
                     const otherAssessmentScore = categoryScores.otherassessmentscore || '-';
-    
-                    // Log for debugging purposes
-                    // console.log(`Category Scores for Student ID ${student.student_id}, Subject ID ${subject.subject_id}:`, categoryScores);
     
                     const scoresResult = await db.query(`
                         SELECT 
@@ -164,9 +165,9 @@ const printController = (db) => ({
                         FROM assessments a
                         LEFT JOIN assessment_results ar ON a.assessment_id = ar.assessment_id AND ar.student_id = $1
                         LEFT JOIN student_positions sp ON sp.student_id = ar.student_id AND sp.subject_id = a.subject_id
-                        WHERE a.subject_id = $2 AND a.class_id = $3 AND a.organization_id = $4
+                        WHERE a.subject_id = $2 AND a.class_id = $3 AND a.organization_id = $4 AND a.term_id = $5
                         GROUP BY ar.total_subject_score, ar.total_percentage, sp.position, ar.grade
-                    `, [student.student_id, subject.subject_id, classId, organizationId]);
+                    `, [student.student_id, subject.subject_id, parsedClassId, organizationId, parsedTermId]);
     
                     const subjectScores = scoresResult.rows[0] || {};
                     const totalScore = parseFloat(subjectScores.total_subject_score) || 0;
@@ -199,12 +200,12 @@ const printController = (db) => ({
                 student.overallPercentage = subjectCount > 0 ? (totalPercentageSum / subjectCount).toFixed(2) : '-';
                 student.totalScoreSum = totalScoreSum;
     
-                if (student.overallPercentage >= cutOffPoint) {
+                if (student.overallPercentage >= statusSettings.cut_off_point) {
                     student.promotionStatus = 'Promoted';
-                    student.promotionClass = promotedClass;
+                    student.promotionClass = statusSettings.promoted_class;
                 } else {
                     student.promotionStatus = 'Repeated';
-                    student.promotionClass = repeatedClass;
+                    student.promotionClass = statusSettings.repeated_class;
                 }
     
                 studentScores.push({
@@ -224,9 +225,6 @@ const printController = (db) => ({
     
             const logoUrl = organization.logo_path ? await getFromS3(organization.logo_path) : null;
     
-            const termResult = await db.query('SELECT * FROM terms WHERE organization_id = $1 AND current = true LIMIT 1', [organizationId]);
-            const term = termResult.rows[0] || null;
-    
             res.render('print/printStudentReport', {
                 title: 'Student Final Report',
                 students: students,
@@ -236,46 +234,91 @@ const printController = (db) => ({
                 signatureImageUrl: signatureImageUrl,
                 term: term,
                 teacherRemarks: teacherRemarks,
-                classId: classId,
-                schoolReopenDate: schoolReopenDate,
-                promotedClass: promotedClass,
-                repeatedClass: repeatedClass,
-                activatePromotion: activatePromotion
+                classId: parsedClassId,
+                termId: parsedTermId,
+                schoolReopenDate: statusSettings.school_reopen_date ? new Date(statusSettings.school_reopen_date).toLocaleDateString() : 'TBA',
+                promotedClass: statusSettings.promoted_class,
+                repeatedClass: statusSettings.repeated_class,
+                activatePromotion: statusSettings.activate_promotion
             });
         } catch (error) {
             console.error('Error generating student report:', error);
             res.status(500).send('Failed to generate student report.');
         }
     },
+            
+    
     
 
+        
     reportSettingsPage: async (req, res) => {
-        const { classId } = req.query;  // Make sure classId is retrieved from query
+        const { classId, termId } = req.query;  // Get classId and termId from query parameters
         const organizationId = req.session.organizationId;
     
+        // Validate that classId and termId are provided and are integers
+        if (!classId || isNaN(classId)) {
+            return res.status(400).send('Invalid or missing classId.');
+        }
+    
+        if (!termId || isNaN(termId)) {
+            return res.status(400).send('Invalid or missing termId.');
+        }
+    
+        if (!organizationId) {
+            return res.status(400).send('Organization ID is not set in session.');
+        }
+    
         try {
-            // Fetch status settings, teacher remarks, etc.
-            const statusResult = await db.query('SELECT * FROM status_settings WHERE organization_id = $1 LIMIT 1', [organizationId]);
+            const parsedClassId = parseInt(classId, 10);
+            const parsedTermId = parseInt(termId, 10);
+    
+            // Fetch status settings for the specific class and organization
+            const statusResult = await db.query(`
+                SELECT * 
+                FROM status_settings 
+                WHERE organization_id = $1 AND class_id = $2 LIMIT 1
+            `, [organizationId, parsedClassId]);
             const statusSettings = statusResult.rows[0] || {};
     
-            const classesResult = await db.query('SELECT class_id, class_name FROM classes WHERE organization_id = $1', [organizationId]);
+            // Fetch all the classes for the organization
+            const classesResult = await db.query(`
+                SELECT class_id, class_name 
+                FROM classes 
+                WHERE organization_id = $1
+            `, [organizationId]);
             const classes = classesResult.rows || [];
     
-            const teacherRemarksResult = await db.query('SELECT * FROM teacher_remarks WHERE organization_id = $1', [organizationId]);
+            // Fetch teacher remarks for the organization
+            const teacherRemarksResult = await db.query(`
+                SELECT * 
+                FROM teacher_remarks 
+                WHERE organization_id = $1
+            `, [organizationId]);
             const teacherRemarks = teacherRemarksResult.rows || [];
     
-            const scoreRemarksResult = await db.query('SELECT * FROM score_remarks WHERE organization_id = $1', [organizationId]);
+            // Fetch score remarks for the organization
+            const scoreRemarksResult = await db.query(`
+                SELECT * 
+                FROM score_remarks 
+                WHERE organization_id = $1
+            `, [organizationId]);
             const scoreRemarks = scoreRemarksResult.rows || [];
     
-            const reportSettingsResult = await db.query('SELECT signature_image_path FROM report_settings WHERE organization_id = $1', [organizationId]);
+            // Fetch signature image path from report settings
+            const reportSettingsResult = await db.query(`
+                SELECT signature_image_path 
+                FROM report_settings 
+                WHERE organization_id = $1
+            `, [organizationId]);
             const reportSettings = reportSettingsResult.rows[0];
             let signatureImageUrl = null;
     
+            // If a signature image exists, fetch it from S3
             if (reportSettings && reportSettings.signature_image_path) {
                 signatureImageUrl = await getFromS3(reportSettings.signature_image_path);
             }
     
-            // Pass classId to the view along with other data
+            // Render the report settings page with the fetched data
             res.render('print/reportSettings', {
                 title: 'Report Settings',
                 statusSettings,
@@ -283,7 +326,8 @@ const printController = (db) => ({
                 scoreRemarks,
                 classes,
                 signatureImageUrl,
-                classId,  // Pass the classId here
+                classId: parsedClassId,  // Pass the parsed classId to the view
+                termId: parsedTermId,    // Pass the parsed termId to the view
                 success_msg: req.flash('success_msg'),
                 error_msg: req.flash('error_msg'),
             });
@@ -292,6 +336,8 @@ const printController = (db) => ({
             res.status(500).send('Failed to load report settings page.');
         }
     },
+            
+    
 
     
     updateReportSettings: async (req, res) => {
@@ -321,6 +367,7 @@ const printController = (db) => ({
     savePromotionSettings: async (req, res) => {
         const { cutOffPoint, promotedClass, repeatedClass, schoolReopenDate, activatePromotion } = req.body;
         const organizationId = req.session.organizationId;
+        const { classId } = req.query;  // Get the classId from the query parameters
     
         try {
             if (!organizationId) {
@@ -330,25 +377,26 @@ const printController = (db) => ({
             // If schoolReopenDate is an empty string, set it to null
             const reopenDate = schoolReopenDate === "" ? null : schoolReopenDate;
     
-            // Insert or update the status settings in the database
+            // Insert or update the status settings for the specific class
             await db.query(`
-                INSERT INTO status_settings (organization_id, cut_off_point, promoted_class, repeated_class, school_reopen_date, activate_promotion)
-                VALUES ($1, $2, $3, $4, $5, $6)
-                ON CONFLICT (organization_id)
+                INSERT INTO status_settings (organization_id, class_id, cut_off_point, promoted_class, repeated_class, school_reopen_date, activate_promotion)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                ON CONFLICT (organization_id, class_id)
                 DO UPDATE SET 
                     cut_off_point = EXCLUDED.cut_off_point,
                     promoted_class = EXCLUDED.promoted_class,
                     repeated_class = EXCLUDED.repeated_class,
                     school_reopen_date = EXCLUDED.school_reopen_date,
                     activate_promotion = EXCLUDED.activate_promotion
-            `, [organizationId, cutOffPoint, promotedClass, repeatedClass, reopenDate, activatePromotion === "on"]);
+            `, [organizationId, classId, cutOffPoint, promotedClass, repeatedClass, reopenDate, activatePromotion === "on"]);
     
-            res.redirect(`/print/reportSettings?classId=${req.query.classId}`);
+            res.redirect(`/print/reportSettings?classId=${classId}`);
         } catch (error) {
             console.error('Error saving promotion settings:', error);
             res.status(500).send('Error saving promotion settings.');
         }
     },
+    
     
 
     saveTeacherRemarks: async (req, res) => {

@@ -174,7 +174,8 @@ const commonController = {
     orgDashboard: async (req, res, db) => {
         try {
             const organizationId = req.session.organizationId;
-
+            
+            // Fetch the current school year and term
             const schoolYearResult = await db.query(`
                 SELECT sy.id as school_year_id, sy.year_label, t.term_id, t.term_name, t.start_date, t.end_date, t.current
                 FROM school_years sy
@@ -182,9 +183,10 @@ const commonController = {
                 WHERE sy.organization_id = $1 AND sy.current = TRUE
                 ORDER BY t.start_date
             `, [organizationId]);
-
+    
             let schoolYear = null;
             let currentTerm = null;
+    
             if (schoolYearResult.rows.length > 0) {
                 schoolYear = {
                     id: schoolYearResult.rows[0].school_year_id,
@@ -197,18 +199,82 @@ const commonController = {
                         current: row.current
                     }))
                 };
-
+    
+                // Find the current term if set
                 currentTerm = schoolYearResult.rows.find(row => row.current);
             }
+    
+            if (schoolYear && currentTerm) {
+                // Redirect to restricted route with school year and term in URL
+                const redirectUrl = `/common/orgDashboard/${schoolYear.id}/${currentTerm.term_id}`;
+                res.redirect(redirectUrl);
+            } else {
+                // Render the default orgDashboard when no school year/term is set
+                res.render('common/orgDashboard', {
+                    title: 'Organization Dashboard',
+                    schoolYear,
+                    currentTerm,
+                    classes: [],
+                    events: [],
+                    announcements: [],
+                    organizationId,
+                    messages: req.flash()
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching dashboard data:', error);
+            req.flash('error', 'Failed to load dashboard data.');
+            res.redirect('/');
+        }
+    },
+    
 
+    orgDashboardRestricted: async (req, res, db) => {
+        try {
+            const organizationId = req.session.organizationId;
+            const { schoolYearId, termId } = req.params;
+    
+            // Fetch data based on the provided school year and term
+            const schoolYearResult = await db.query(`
+                SELECT sy.id as school_year_id, sy.year_label, t.term_id, t.term_name, t.start_date, t.end_date, t.current
+                FROM school_years sy
+                LEFT JOIN terms t ON sy.id = t.school_year_id
+                WHERE sy.id = $1 AND t.term_id = $2 AND sy.organization_id = $3
+            `, [schoolYearId, termId, organizationId]);
+    
+            let schoolYear = null;
+            let currentTerm = null;
+    
+            if (schoolYearResult.rows.length > 0) {
+                schoolYear = {
+                    id: schoolYearResult.rows[0].school_year_id,
+                    year_label: schoolYearResult.rows[0].year_label,
+                    terms: schoolYearResult.rows.map(row => ({
+                        term_id: row.term_id,
+                        term_name: row.term_name,
+                        start_date: row.start_date,
+                        end_date: row.end_date,
+                        current: row.current
+                    }))
+                };
+    
+                // Find the current term
+                currentTerm = schoolYearResult.rows.find(row => row.term_id == termId);
+            }
+    
+            if (!schoolYear || !currentTerm) {
+                req.flash('error', 'Invalid school year or term.');
+                return res.redirect('/common/orgDashboard');
+            }
+    
+            // Load restricted data for this specific school year and term
             const classes = await getClassesWithEmployees(db, organizationId);
-
             const eventsResult = await db.query('SELECT * FROM school_events WHERE organization_id = $1 ORDER BY event_date', [organizationId]);
-            const events = eventsResult.rows.filter(event => event.visibility === 'org' || event.visibility === 'both');
-
+            const events = eventsResult.rows.filter(event => event.school_year_id == schoolYearId);
+    
             const announcementsResult = await db.query('SELECT * FROM announcements WHERE organization_id = $1 ORDER BY announcement_id DESC', [organizationId]);
-            const announcements = announcementsResult.rows.filter(announcement => announcement.visibility === 'org' || announcement.visibility === 'both');
-
+            const announcements = announcementsResult.rows.filter(announcement => announcement.school_year_id == schoolYearId);
+    
             res.render('common/orgDashboard', {
                 title: 'Organization Dashboard',
                 schoolYear,
@@ -219,13 +285,15 @@ const commonController = {
                 organizationId,
                 messages: req.flash()
             });
+    
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
             req.flash('error', 'Failed to load dashboard data.');
             res.redirect('/');
         }
     },
-
+    
+    
     publicDashboardContent: async (req, res,db) => {
         try {
             const organizationId = parseInt(req.query.organizationId, 10);
@@ -1598,8 +1666,8 @@ calculateGrade: (totalPercentage) => {
         const organizationId = req.session.organizationId;
     
         try {
-            console.log('Starting test creation process...');
-            console.log(`Test Name: ${testName}, Test Weight: ${testWeight}, Max Score: ${maxScore}, Class ID: ${classId}, Subject ID: ${subjectId}, Category: ${category}`);
+            // console.log('Starting test creation process...');
+            // console.log(`Test Name: ${testName}, Test Weight: ${testWeight}, Max Score: ${maxScore}, Class ID: ${classId}, Subject ID: ${subjectId}, Category: ${category}`);
     
             // Insert new test without category ID
             await db.query(`
@@ -1608,7 +1676,7 @@ calculateGrade: (totalPercentage) => {
                 [testName, testWeight, maxScore, classId, subjectId, category, organizationId]
             );
     
-            console.log('Test creation process completed successfully.');
+            // console.log('Test creation process completed successfully.');
             req.flash('success', 'Test added successfully.');
             res.redirect(`/common/assessment?classId=${classId}&subjectId=${subjectId}`);
         } catch (error) {
@@ -1760,6 +1828,7 @@ calculateGrade: (totalPercentage) => {
                 for (const classId of term.selectedClasses) {
                     await db.query('INSERT INTO term_classes (term_id, class_id, organization_id) VALUES ($1, $2, $3)', [termId, classId, req.session.organizationId]);
                 }
+
             }
 
             res.json({ success: true });
@@ -1768,6 +1837,8 @@ calculateGrade: (totalPercentage) => {
             res.status(500).send('Error registering school year');
         }
     },
+
+    
     
     registerSchoolYearGet: async (req, res, db) => { // Add this method
         try {

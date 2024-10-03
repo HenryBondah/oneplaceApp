@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Events and Announcements</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Manage Events and Announcements</h1>
+
+        <h2>Organization: <%= organization.name %></h2>
+        <h3>School Year: <%= schoolYear.year_label %></h3>
+        <h3>Term: <%= term.term_name %> (From <%= term.start_date %> to <%= term.end_date %>)</h3>
+
+        <!-- List of Events -->
+        <h2>Events</h2>
+        <% if (events.length > 0) { %>
+            <ul>
+                <% events.forEach(event => { %>
+                    <li>
+                        <form action="/updateEvent/<%= event.id %>" method="POST">
+                            <input type="text" name="name" value="<%= event.name %>" required>
+                            <input type="date" name="event_date" value="<%= event.event_date %>" required>
+                            <textarea name="details" rows="3" required><%= event.details %></textarea>
+
+                            <label for="visibility">Visibility:</label>
+                            <select name="visibility" required>
+                                <option value="org" <%= event.visibility === 'org' ? 'selected' : '' %>>Organization Only</option>
+                                <option value="public" <%= event.visibility === 'public' ? 'selected' : '' %>>Public</option>
+                                <option value="both" <%= event.visibility === 'both' ? 'selected' : '' %>>Both</option>
+                            </select>
+
+                            <button type="submit">Update</button>
+                        </form>
+                        <form action="/deleteEvent/<%= event.id %>" method="POST" style="display:inline;">
+                            <button type="submit">Delete</button>
+                        </form>
+                    </li>
+                <% }); %>
+            </ul>
+        <% } else { %>
+            <p>No events found.</p>
+        <% } %>
+
+        <!-- List of Announcements -->
+        <h2>Announcements</h2>
+        <% if (announcements.length > 0) { %>
+            <ul>
+                <% announcements.forEach(announcement => { %>
+                    <li>
+                        <form action="/updateAnnouncement/<%= announcement.id %>" method="POST">
+                            <textarea name="message" rows="3" required><%= announcement.message %></textarea>
+
+                            <label for="visibility">Visibility:</label>
+                            <select name="visibility" required>
+                                <option value="org" <%= announcement.visibility === 'org' ? 'selected' : '' %>>Organization Only</option>
+                                <option value="public" <%= announcement.visibility === 'public' ? 'selected' : '' %>>Public</option>
+                                <option value="both" <%= announcement.visibility === 'both' ? 'selected' : '' %>>Both</option>
+                            </select>
+
+                            <button type="submit">Update</button>
+                        </form>
+                        <form action="/deleteAnnouncement/<%= announcement.id %>" method="POST" style="display:inline;">
+                            <button type="submit">Delete</button>
+                        </form>
+                    </li>
+                <% }); %>
+            </ul>
+        <% } else { %>
+            <p>No announcements found.</p>
+        <% } %>
+    </div>
+</body>
+</html>

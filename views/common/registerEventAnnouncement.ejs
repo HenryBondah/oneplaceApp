@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Event and Announcement</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Register Event and Announcement</h1>
+        
+        <h2>Organization: <%= organization.name %></h2>
+        <h3>School Year: <%= schoolYear.year_label %></h3>
+        <h3>Term: <%= term.term_name %> (From <%= term.start_date %> to <%= term.end_date %>)</h3>
+        
+        <!-- Event Registration Form -->
+        <h2>Register Event</h2>
+        <form action="/registerEvent/<%= organization.id %>/<%= schoolYear.id %>/<%= term.id %>" method="POST">
+            <label for="eventName">Event Name:</label>
+            <input type="text" id="eventName" name="eventName" required>
+
+            <label for="eventDate">Event Date:</label>
+            <input type="date" id="eventDate" name="eventDate" required>
+
+            <label for="eventDetails">Event Details:</label>
+            <textarea id="eventDetails" name="eventDetails" rows="5" required></textarea>
+
+            <label for="visibility">Visibility:</label>
+            <select id="visibility" name="visibility" required>
+                <option value="org">Organization Only</option>
+                <option value="public">Public</option>
+                <option value="both">Both</option>
+            </select>
+
+            <button type="submit">Register Event</button>
+        </form>
+
+        <!-- Announcement Registration Form -->
+        <h2>Register Announcement</h2>
+        <form action="/registerAnnouncement/<%= organization.id %>/<%= schoolYear.id %>/<%= term.id %>" method="POST">
+            <label for="announcement">Announcement:</label>
+            <textarea id="announcement" name="announcement" rows="5" required></textarea>
+
+            <label for="visibility">Visibility:</label>
+            <select id="visibility" name="visibility" required>
+                <option value="org">Organization Only</option>
+                <option value="public">Public</option>
+                <option value="both">Both</option>
+            </select>
+
+            <button type="submit">Register Announcement</button>
+        </form>
+    </div>
+</body>
+</html>

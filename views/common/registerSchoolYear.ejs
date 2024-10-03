@@ -1,3 +1,10 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/styles.css"> <!-- Update with your actual CSS file -->
 
     <style>
         .link-to-manage-records {
@@ -45,35 +52,12 @@
     <!-- Horizontal line separator -->
     <div class="separator"></div>
 
-    <h1>Event</h1>
-    <form action="/common/registerSchoolYearEvent" method="post">
-        <input type="text" name="eventName" placeholder="Event Name">
-        <input type="date" name="startDate">
-        <textarea name="eventDetails" placeholder="Event Details"></textarea>
-        <div>
-            <label for="visibility">Visibility:</label>
-            <select name="visibility" id="visibility">
-                <option value="org">Org Dashboard</option>
-                <option value="public">Public</option>
-                <option value="both" selected>Both</option>
-            </select>
-        </div>
-        <button type="submit">Add Event</button>
-    </form>
-
-    <h1>Announcement</h1>
-    <form action="/common/registerSchoolYearAnnouncement" method="post">
-        <textarea name="announcement" placeholder="Announcement Details"></textarea>
-        <div>
-            <label for="visibility">Visibility:</label>
-            <select name="visibility" id="visibility">
-                <option value="org">Org Dashboard</option>
-                <option value="public">Public</option>
-                <option value="both" selected>Both</option>
-            </select>
-        </div>
-        <button type="submit">Post Announcement</button>
-    </form>
+    <% if (messages.success) { %>
+        <div class="flash-message flash-success"><%= messages.success %></div>
+    <% } %>
+    <% if (messages.error) { %>
+        <div class="flash-message flash-error"><%= messages.error %></div>
+    <% } %>
 
     <h1>Register School Year</h1>
     <form id="registerSchoolYearForm" action="/common/registerSchoolYear" method="POST">
@@ -86,6 +70,7 @@
         <a href="#" onclick="addTerm()">Add Term / Semester</a>
         <button type="submit">Register Year and Terms</button>
     </form>
+
 
     <script>
         function addTerm() {
@@ -133,4 +118,28 @@
                     console.error('Error fetching classes:', error);
                 });
         }
+
+        // If the form submission is done via fetch (AJAX), handle the redirect in the JavaScript
+        document.getElementById('registerSchoolYearForm').addEventListener('submit', function (e) {
+            e.preventDefault(); // Prevent the default form submission
+
+            const formData = new FormData(this);
+
+            fetch('/common/registerSchoolYear', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url; // Redirect the user if redirected by the server
+                } else {
+                    console.log('Form submitted successfully, but no redirect.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
     </script>
+</body>
+</html>

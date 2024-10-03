@@ -10,7 +10,7 @@
         h2 { color: #333; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-weight: bold; }
-        .form-group input, .form-group textarea { width: 100%; padding: 8px; margin-top: 5px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 8px; margin-top: 5px; }
         .btn { padding: 8px 16px; background-color: #007BFF; color: white; border: none; cursor: pointer; }
         .btn:hover { background-color: #0056b3; }
         .remarks-list div { display: flex; justify-content: space-between; align-items: center; padding: 8px; background-color: #f9f9f9; border: 1px solid #ddd; margin-bottom: 8px; }
@@ -31,44 +31,61 @@
     <a href="/print/printStudentReport?classId=<%= classId %>" class="back-btn">Back</a>
     <hr>
     <div class="container">
-        <!-- Status Settings Form -->
-        <div class="form-section">
-            <form action="/print/savePromotionSettings" method="POST">
-                <h2>Status Settings</h2>
-                <div class="form-group">
-                    <label for="cutOffPoint">Cut Off Point:</label>
-                    <input type="number" name="cutOffPoint" id="cutOffPoint" value="<%= statusSettings.cut_off_point || '' %>">
-                </div>
-                <label for="promotedClass">Promoted Class:</label>
-                <select name="promotedClass">
-                    <% classes.forEach(classItem => { %>
-                        <option value="<%= classItem.class_name %>" <%= statusSettings.promoted_class === classItem.class_name ? 'selected' : '' %>>
-                            <%= classItem.class_name %>
-                        </option>
-                    <% }) %>
-                </select>
-            
-                <label for="repeatedClass">Repeated Class:</label>
-                <select name="repeatedClass">
-                    <% classes.forEach(classItem => { %>
-                        <option value="<%= classItem.class_name %>" <%= statusSettings.repeated_class === classItem.class_name ? 'selected' : '' %>>
-                            <%= classItem.class_name %>
-                        </option>
-                    <% }) %>
-                </select>                <div>
-                    <label for="activatePromotion">Activate Promotion:</label>
-                    <input type="checkbox" id="activatePromotion" name="activatePromotion" <% if (statusSettings.activate_promotion) { %>checked<% } %> />
-                </div>
-                <div class="form-group">
-                    <label for="schoolReopenDate">School Reopen Date:</label>
-                    <input type="date" name="schoolReopenDate" id="schoolReopenDate" value="<%= statusSettings.school_reopen_date || '' %>">
-                </div>
-                <% if (statusSettings.school_reopen_date) { %>
-                    <p><strong>Saved Date:</strong> <%= new Date(statusSettings.school_reopen_date).toLocaleDateString() %></p>
-                <% } %>
-                <button type="submit" class="btn">Save Status Settings</button>
-            </form>
+
+ <!-- Status Settings Form -->
+ <div class="form-section">
+    <form action="/print/savePromotionSettings" method="POST">
+        <h2>Status Settings</h2>
+        <div class="form-group">
+            <label for="cutOffPoint">Cut Off Point:</label>
+            <input type="number" name="cutOffPoint" id="cutOffPoint" value="<%= statusSettings.cut_off_point || '' %>">
         </div>
+        <label for="promotedClass">Promoted Class:</label>
+        <select name="promotedClass">
+            <% classes.forEach(classItem => { %>
+                <option value="<%= classItem.class_name %>" <%= statusSettings.promoted_class === classItem.class_name ? 'selected' : '' %>>
+                    <%= classItem.class_name %>
+                </option>
+            <% }) %>
+        </select>
+    
+        <label for="repeatedClass">Repeated Class:</label>
+        <select name="repeatedClass">
+            <% classes.forEach(classItem => { %>
+                <option value="<%= classItem.class_name %>" <%= statusSettings.repeated_class === classItem.class_name ? 'selected' : '' %>>
+                    <%= classItem.class_name %>
+                </option>
+            <% }) %>
+        </select>                <div>
+            <label for="activatePromotion">Activate Promotion:</label>
+            <input type="checkbox" id="activatePromotion" name="activatePromotion" <% if (statusSettings.activate_promotion) { %>checked<% } %> />
+        </div>
+        <div class="form-group">
+            <label for="schoolReopenDate">School Reopen Date:</label>
+            <input type="date" name="schoolReopenDate" id="schoolReopenDate" value="<%= statusSettings.school_reopen_date || '' %>">
+        </div>
+        <% if (statusSettings.school_reopen_date) { %>
+            <p><strong>Saved Date:</strong> <%= new Date(statusSettings.school_reopen_date).toLocaleDateString() %></p>
+        <% } %>
+        <button type="submit" class="btn">Save Status Settings</button>
+
+          <!-- Apply to classes -->
+          <div class="form-group">
+            <label for="applyToClasses">Apply Status Settings To:</label>
+            <div>
+                <input type="checkbox" name="applyAllClasses" id="applyAllClasses"> All Classes
+            </div>
+            <% classes.forEach(classItem => { %>
+                <div>
+                    <input type="checkbox" name="selectedStatusClasses" value="<%= classItem.class_id %>">
+                    <label for="class-<%= classItem.class_id %>"><%= classItem.class_name %></label>
+                </div>
+            <% }) %>
+        </div>
+
+    </form>
+</div>
+                 
 
         <!-- Teacher's Remarks Form -->
         <div class="form-section">
@@ -77,6 +94,9 @@
                 <div class="form-group">
                     <textarea name="teacherRemarks" id="teacherRemarks"></textarea>
                 </div>
+
+              
+
                 <button type="submit" class="btn">Save Teacher's Remarks</button>
                 <br><hr>
                 <div class="remarks-list">
@@ -86,6 +106,20 @@
                             <a href="/print/deleteTeacherRemark/<%= remark.id %>">Delete</a>
                         </div>
                     <% }); %>
+                </div>
+                <hr>
+                  <!-- Apply to classes -->
+                  <div class="form-group">
+                    <label for="applyToClasses">Apply Teacher's Remarks To:</label>
+                    <div>
+                        <input type="checkbox" name="applyAllClasses" id="applyAllClasses"> All Classes
+                    </div>
+                    <% classes.forEach(classItem => { %>
+                        <div>
+                            <input type="checkbox" name="selectedTeacherRemarksClasses" value="<%= classItem.class_id %>">
+                            <label for="class-<%= classItem.class_id %>"><%= classItem.class_name %></label>
+                        </div>
+                    <% }) %>
                 </div>
             </form>
         </div>
@@ -110,9 +144,10 @@
                     <input type="number" name="to_percentage" id="to_percentage" required min="-100" max="200">
                 </div>
 
+              
+
                 <button type="submit" class="btn">Save Score Remark</button>
                 <br><hr>
-                
                 <div class="remarks-list">
                     <% scoreRemarks.forEach((remark) => { %>
                         <div>
@@ -121,39 +156,67 @@
                         </div>
                     <% }); %>
                 </div>
+                <hr>
+                  <!-- Apply to classes -->
+                  <div class="form-group">
+                    <label for="applyToClasses">Apply Score Remarks To:</label>
+                    <div>
+                        <input type="checkbox" name="applyAllClasses" id="applyAllClasses"> All Classes
+                    </div>
+                    <% classes.forEach(classItem => { %>
+                        <div>
+                            <input type="checkbox" name="selectedScoreRemarksClasses" value="<%= classItem.class_id %>">
+                            <label for="class-<%= classItem.class_id %>"><%= classItem.class_name %></label>
+                        </div>
+                    <% }) %>
+                </div>
             </form>
         </div>
 
+        <!-- Signature Image Section -->
+        <div class="form-section signature-section">
+            <form action="/print/uploadSignatureImage" method="POST" enctype="multipart/form-data">
+                <h2>Signature Image</h2>
+                <% if (signatureImageUrl) { %>
+                    <div>
+                        <img src="<%= signatureImageUrl %>" alt="Current Signature" style="max-width: 100px; display: block; margin-bottom: 10px;">
+                        <!-- Add confirmation before deletion -->
+                        <a href="/print/deleteSignatureImage" class="btn btn-danger" id="delete-image-btn">Delete Signature Image</a>
+                    </div>
+                <% } else { %>
+                    <p>No signature uploaded.</p>
+                <% } %>
+                
+                <div class="form-group">
+                    <input type="file" name="signatureImage" accept="image/*">
+                </div>
 
+               
 
-<!-- Signature Image Section -->
-<!-- Signature Image Section -->
-<div class="form-section signature-section">
-    <form action="/print/uploadSignatureImage" method="POST" enctype="multipart/form-data">
-        <h2>Signature Image</h2>
-        <% if (signatureImageUrl) { %>
-            <div>
-                <img src="<%= signatureImageUrl %>" alt="Current Signature" style="max-width: 100px; display: block; margin-bottom: 10px;">
-                <!-- Add confirmation before deletion -->
-                <a href="/print/deleteSignatureImage" class="btn btn-danger" id="delete-image-btn">Delete Signature Image</a>
-            </div>
-        <% } else { %>
-            <p>No signature uploaded.</p>
-        <% } %>
-        
-        <div class="form-group">
-            <input type="file" name="signatureImage" accept="image/*">
+                <% if (signatureImageUrl) { %>
+                    <button type="submit" class="btn" onclick="return confirm('This will replace the current signature image. Are you sure?');">Replace Signature Image</button>
+                <% } else { %>
+                    <button type="submit" class="btn">Upload Signature Image</button>
+                <% } %>
+
+                <hr>
+                 <!-- Apply to classes -->
+                 <div class="form-group">
+                    <label for="applyToClasses">Apply Signature Image To:</label>
+                    <div>
+                        <input type="checkbox" name="applyAllClasses" id="applyAllClasses"> All Classes
+                    </div>
+                    <% classes.forEach(classItem => { %>
+                        <div>
+                            <input type="checkbox" name="selectedSignatureClasses" value="<%= classItem.class_id %>">
+                            <label for="class-<%= classItem.class_id %>"><%= classItem.class_name %></label>
+                        </div>
+                    <% }) %>
+                </div>
+            </form>
         </div>
-
-        <% if (signatureImageUrl) { %>
-            <button type="submit" class="btn" onclick="return confirm('This will replace the current signature image. Are you sure?');">Replace Signature Image</button>
-        <% } else { %>
-            <button type="submit" class="btn">Upload Signature Image</button>
-        <% } %>
-    </form>
-</div>
-        
     </div>
+
     <script>
         document.getElementById('signatureImageInput').addEventListener('change', function (event) {
             const file = event.target.files[0];
@@ -162,7 +225,7 @@
                 reader.onload = function (e) {
                     const previewContainer = document.getElementById('signature-preview');
                     const currentImage = document.getElementById('current-signature-image');
-    
+
                     if (currentImage) {
                         currentImage.src = e.target.result; // Update current image source
                     } else {
@@ -173,7 +236,7 @@
                         newImage.style.maxWidth = '100px';
                         newImage.style.display = 'block';
                         newImage.style.marginBottom = '10px';
-    
+
                         previewContainer.innerHTML = ''; // Clear existing content
                         previewContainer.appendChild(newImage);
                     }
@@ -183,11 +246,13 @@
         });
 
         document.getElementById('delete-image-btn').addEventListener('click', function (event) {
-        const confirmation = confirm('This will permanently delete the image from S3. Are you sure?');
-        if (!confirmation) {
-            event.preventDefault(); // Prevent deletion if user cancels
-        }
-    });
+            const confirmation = confirm('This will permanently delete the image from S3. Are you sure?');
+            if (!confirmation) {
+                event.preventDefault(); // Prevent deletion if user cancels
+            }
+        });
+
+        
     </script>
 </body>
 </html>

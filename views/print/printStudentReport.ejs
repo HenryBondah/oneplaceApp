@@ -9,7 +9,32 @@
             margin-bottom: 20px;
         }
 
+        /* Container for the report background with watermark */
+        .student-report-background {
+            position: relative;
+            width: 100%;
+        }
+
+        /* Watermark as a background for the report */
+        .student-report-background::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('<%= session.logo %>'); /* Organization logo as watermark */
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 300px 300px; /* Adjust watermark size */
+            opacity: 0.09; /* Make the watermark light */
+            z-index: 0; /* Ensure watermark is behind all content */
+            pointer-events: none; /* Make it non-interactive */
+        }
+
         .student-report {
+            position: relative;
+            z-index: 1; /* Ensure report content stays above watermark */
             border: 1px solid #ccc;
             padding: 20px;
             margin-bottom: 20px;
@@ -38,7 +63,6 @@
             object-fit: cover;
             border-radius: 8px;
         }
-
 
         .header h2, .header h3 {
             margin: 0;
@@ -130,8 +154,8 @@
                 visibility: hidden; /* Hide everything during print */
             }
 
-            .student-report, .student-report * {
-                visibility: visible; /* Show only report content */
+            .student-report-background, .student-report-background * {
+                visibility: visible; /* Show the background and report content */
             }
 
             .student-report {
@@ -148,128 +172,140 @@
     </style>
 </head>
 <body>
+    <div class="actions no-print">
+        <button class="btn btn-primary" onclick="window.print()">Print Report</button>
+        <a href="/print/reportSettings?classId=<%= classId %>" class="btn btn-primary">Report Settings</a>
+    </div>
+    
+    
     <% if (students.length === 0) { %>
         <p>No student data available</p>
     <% } else { %>
         <% students.forEach((student, index) => { %>
-            <div class="student-report" id="report-<%= index %>">
-                <div class="header">
-                    <% if (session.logo) { %>
-                        <img src="<%= session.logo %>" alt="Organization Logo" class="logo" />
-                    <% } %>
-                    <div class="school-info">
-                        <h2><%= orgName %></h2>
-                        <h3><%= orgAddress %></h3>
-                    </div>
-                    <% if (student.image_url && student.image_url !== 'profilePlaceholder.png') { %>
-                        <img src="<%= student.image_url %>?v=<%= new Date().getTime() %>" alt="Student Image" class="student-image">
-                    <% } else { %>
-                        <img src="/images/profilePlaceholder.png" alt="Placeholder Image" class="student-image">
-                    <% } %>
-                </div>
-                <!-- <h2 style="text-align: center;">Student Report</h2> -->
-                <div class="info">
-                    <table>
-                        <tr>
-                            <td>Student Name:</td>
-                            <td><%= student.first_name %> <%= student.last_name %></td>
-                            <td>Term:</td>
-                            <td><%= term ? term.term_name : 'No term available' %></td>
-                        </tr>
-                        <tr>
-                            <td>Student No:</td>
-                            <td><%= student.student_id %></td>
-                            <td>Academic Year:</td>
-                            <td>2023-2024</td>
-                        </tr>
-                        <tr>
-                            <td>Class:</td>
-                            <td><%= student.class_name %></td>
-                            <td>School Reopens:</td>
-                            <td><%= schoolReopenDate ? new Date(schoolReopenDate).toLocaleDateString() : 'TBA' %></td>
-                        </tr>
-                    </table>
-                </div>
-                <br>
-                <div class="subjects">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Subject</th>
-                                <th>Class Score</th>
-                                <th>Exams Score</th>
-                                <th>Other Score</th>
-                                <th>Total Score</th>
-                                <th>Total Percentage</th>
-                                <th>Grade</th>
-                                <th>Position</th>
-                                <th>Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <% student.subjects.forEach(subject => { %>
-                                <tr>
-                                    <td><%= subject.subject_name %></td>
-                                    <td><%= subject.classAssessmentScore !== '-' ? parseFloat(subject.classAssessmentScore).toFixed(2) : '-' %></td>
-                                    <td><%= subject.examsAssessmentScore !== '-' ? parseFloat(subject.examsAssessmentScore).toFixed(2) : '-' %></td>
-                                    <td><%= subject.otherAssessmentScore !== '-' ? parseFloat(subject.otherAssessmentScore).toFixed(2) : '-' %></td>
-                                    <td><%= subject.totalScore !== '-' ? parseFloat(subject.totalScore).toFixed(2) : '-' %></td>
-                                    <td><%= subject.totalPercentage !== '-' ? parseFloat(subject.totalPercentage).toFixed(2) : '-' %> %</td>
-                                    <td><%= subject.grade %></td>
-                                    <td><%= subject.position !== '-' ? subject.position : '-' %></td>
-                                    <td><%= subject.remarks || '-' %></td>
-                                </tr>
-                            <% }) %>
-                        </tbody>
-                    </table>
-                </div>
-                <br>
-                <div class="attendance-info">
-                    <table class="promotion-table">
-                        <tr>
-                            <td>Position in Class:</td>
-                            <td><%= student.positionInClass %></td>
-                            <td>Overall Percentage:</td>
-                            <td><%= student.overallPercentage %> %</td>
-                            <td>Attendance:</td>
-                            <td>20/50</td>
-                        </tr>
-                        <% if (activatePromotion) { %>
-                        <tr>
-                            <td>
-                                <select name="promotionStatus-<%= student.student_id %>" id="promotionStatus-<%= student.student_id %>" onchange="updateClass('<%= student.student_id %>')">
-                                    <option value="Promoted" <%= student.promotionStatus === 'Promoted' ? 'selected' : '' %>>Promoted To:</option>
-                                    <option value="Repeated" <%= student.promotionStatus === 'Repeated' ? 'selected' : '' %>>Repeated In:</option>
-                                </select>
-                            </td>
-                            <td id="promotionClass-<%= student.student_id %>"><%= student.promotionClass %></td>
-                        </tr>
+            <!-- <div class="student-report-background"> -->
+                <div class="student-report" id="report-<%= index %>">
+                    <div class="student-report-background">
+
+                    <div class="header">
+                        <% if (session.logo) { %>
+                            <img src="<%= session.logo %>" alt="Organization Logo" class="logo" />
                         <% } %>
-                    </table>
-                </div>
-                <br>
-                <div class="remarks">
-                    <div class="remarks-container">
-                        <select id="teacherRemarks-<%= index %>" name="teacherRemarks-<%= index %>">
-                            <% teacherRemarks.forEach(function(remark) { %>
-                                <option value="<%= remark.remark %>" <%= remark.remark === student.teacherRemarks ? 'selected' : '' %>><%= remark.remark %></option> 
-                            <% }); %>
-                        </select>
-                        <h3>Teacher's Remarks</h3>
-                    </div>
-                
-                    <div class="signature-info">
-                        <h3>Signature</h3>
-                        <% if (signatureImageUrl) { %>
-                            <img src="<%= signatureImageUrl %>" alt="Signature Image" style="max-width: 100px; display: block; margin-bottom: 10px;">
+                        <div class="school-info">
+                            <h2><%= orgName %></h2>
+                            <h3><%= orgAddress %></h3>
+                        </div>
+                        <% if (student.image_url && student.image_url !== 'profilePlaceholder.png') { %>
+                            <img src="<%= student.image_url %>?v=<%= new Date().getTime() %>" alt="Student Image" class="student-image">
                         <% } else { %>
-                            <p>No signature available.</p>
+                            <img src="/images/profilePlaceholder.png" alt="Placeholder Image" class="student-image">
                         <% } %>
                     </div>
-                   
-                </div>
-                <div class="print no-print">
-                    <button class="btn btn-primary" onclick="window.print()">Print Report</button>
+                    
+                    <div class="info">
+                        <table>
+                            <tr>
+                                <td>Student Name:</td>
+                                <td><%= student.first_name %> <%= student.last_name %></td>
+                                <td>Term:</td>
+                                <td><%= term ? term.term_name : 'No term available' %></td>
+                            </tr>
+                            <tr>
+                                <td>Student ID:</td>
+                                <td><%= student.student_id %></td>
+                                <td>Academic Year:</td>
+                                <td>2023-2024</td>
+                            </tr>
+                            <tr>
+                                <td>Class:</td>
+                                <td><%= student.class_name %></td>
+                                <td>School Reopens:</td>
+                                <td><%= schoolReopenDate ? new Date(schoolReopenDate).toLocaleDateString() : 'TBA' %></td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <br>
+                    
+                    <div class="subjects">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Class Score</th>
+                                    <th>Exams Score</th>
+                                    <th>Other Score</th>
+                                    <th>Total Score</th>
+                                    <th>Total Percentage</th>
+                                    <th>Grade</th>
+                                    <th>Position</th>
+                                    <th>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% student.subjects.forEach(subject => { %>
+                                    <tr>
+                                        <td><%= subject.subject_name %></td>
+                                        <td><%= subject.classAssessmentScore !== '-' ? parseFloat(subject.classAssessmentScore).toFixed(2) : '-' %></td>
+                                        <td><%= subject.examsAssessmentScore !== '-' ? parseFloat(subject.examsAssessmentScore).toFixed(2) : '-' %></td>
+                                        <td><%= subject.otherAssessmentScore !== '-' ? parseFloat(subject.otherAssessmentScore).toFixed(2) : '-' %></td>
+                                        <td><%= subject.totalScore !== '-' ? parseFloat(subject.totalScore).toFixed(2) : '-' %></td>
+                                        <td><%= subject.totalPercentage !== '-' ? parseFloat(subject.totalPercentage).toFixed(2) : '-' %> %</td>
+                                        <td><%= subject.grade %></td>
+                                        <td><%= subject.position !== '-' ? subject.position : '-' %></td>
+                                        <td><%= subject.remarks || '-' %></td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <br>
+                    
+                    <div class="attendance-info">
+                        <table class="promotion-table">
+                            <tr>
+                                <td>Position in Class:</td>
+                                <td><%= student.positionInClass %></td>
+                                <td>Overall Percentage:</td>
+                                <td><%= student.overallPercentage %> %</td>
+                                <td>Attendance:</td>
+                                <td>20/50</td>
+                            </tr>
+                            <% if (activatePromotion) { %>
+                                <tr>
+                                    <td>
+                                        <select name="promotionStatus-<%= student.student_id %>" id="promotionStatus-<%= student.student_id %>" onchange="updateClass('<%= student.student_id %>')">
+                                            <option value="Promoted" <%= student.promotionStatus === 'Promoted' ? 'selected' : '' %>>Promoted To:</option>
+                                            <option value="Repeated" <%= student.promotionStatus === 'Repeated' ? 'selected' : '' %>>Repeated In:</option>
+                                        </select>
+                                    </td>
+                                    <td id="promotionClass-<%= student.student_id %>"><%= student.promotionClass %></td>
+                                </tr>
+                            <% } %>
+                        </table>
+                    </div>
+                    
+                    <br>
+                    
+                    <div class="remarks">
+                        <div class="remarks-container">
+                            <select id="teacherRemarks-<%= index %>" name="teacherRemarks-<%= index %>">
+                                <% teacherRemarks.forEach(function(remark) { %>
+                                    <option value="<%= remark.remark %>" <%= remark.remark === student.teacherRemarks ? 'selected' : '' %>><%= remark.remark %></option>
+                                <% }); %>
+                            </select>
+                            <h3>Teacher's Remarks</h3>
+                        </div>
+                        
+                        <div class="signature-info">
+                            <h3>Signature</h3>
+                            <% if (signatureImageUrl) { %>
+                                <img src="<%= signatureImageUrl %>" alt="Signature Image" style="max-width: 100px; display: block; margin-bottom: 10px;">
+                            <% } else { %>
+                                <p>No signature available.</p>
+                            <% } %>
+                        </div>
+                    </div>
                 </div>
             </div>
         <% }); %>
@@ -293,14 +329,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
