@@ -74,19 +74,7 @@
     <!-- Horizontal line separator -->
 
     <div class="container">
-        <fieldset>
-            <legend>Graduation Year Groups</legend>
-            <% graduationYearGroups.forEach(group => { %>
-                <div class="form-container">
-                    <form action="/common/editGraduationYearGroup" method="post" style="display: inline;">
-                        <input type="hidden" name="id" value="<%= group.id %>">
-                        <input type="text" name="newName" value="<%= group.name %>">
-                        <button type="submit">Update</button>
-                        <a href="javascript:void(0)" class="delete-link" onclick="confirmDelete('/common/deleteGraduationYearGroup?id=<%= group.id %>')">Delete</a>
-                    </form>
-                </div>
-            <% }); %>
-        </fieldset>
+ 
 
         <fieldset>
             <legend>Classes</legend>
@@ -113,8 +101,23 @@
                 </select>
             </form>
             
-            <div id="subjectsContainer"></div>
         </fieldset>
+
+        <fieldset>
+            <legend>Graduation Year Groups</legend>
+            <% graduationYearGroups.forEach(group => { %>
+                <div class="form-container">
+                    <form action="/common/editGraduationYearGroup" method="post" style="display: inline;">
+                        <input type="hidden" name="id" value="<%= group.id %>">
+                        <input type="text" name="newName" value="<%= group.name %>">
+                        <button type="submit">Update</button>
+                        <a href="javascript:void(0)" class="delete-link" onclick="confirmDelete('/common/deleteGraduationYearGroup?id=<%= group.id %>')">Delete</a>
+                    </form>
+                </div>
+            <% }); %>
+        </fieldset>
+        <div id="subjectsContainer"></div>
+
     </div>
 
     <script>
