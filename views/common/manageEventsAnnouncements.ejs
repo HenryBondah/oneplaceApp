@@ -1,0 +1,68 @@
+
+<body>
+    <!-- Flash Messages -->
+    <% if (messages && messages.success && messages.success.length > 0) { %>
+        <div class="flash-message flash-success">
+            <%= messages.success[0] %>
+        </div>
+    <% } %>
+    <% if (messages && messages.error && messages.error.length > 0) { %>
+        <div class="flash-message flash-error">
+            <%= messages.error[0] %>
+        </div>
+    <% } %>
+
+    <!-- Add the link to the Register School Year page -->
+    <div class="link-to-next-back">
+        <a href="/common/createEventAnnouncement">Create Event & Announcement</a>
+    </div>
+<hr>
+   
+<div class="container">
+    <fieldset>
+        <h1>Manage Events</h1>
+        <legend>Events</legend>
+        <% events.forEach(function(event) { %>
+                <form action="/common/updateEvent" method="POST">
+                    <input type="hidden" name="id" value="<%= event.id %>">
+                    <input type="text" name="name" value="<%= event.name %>">
+                    <input type="date" name="eventDate" value="<%= event.event_date %>">
+                    <textarea name="details"><%= event.details %></textarea>
+                    <select name="visibility">
+                        <option value="org" <%= event.visibility === 'org' ? 'selected' : '' %>>Org</option>
+                        <option value="public" <%= event.visibility === 'public' ? 'selected' : '' %>>Public</option>
+                        <option value="both" <%= event.visibility === 'both' ? 'selected' : '' %>>Both</option>
+                    </select>
+                    <button type="submit">Update</button>
+                </form>
+                <form action="/common/deleteEvent" method="POST">
+                    <input type="hidden" name="id" value="<%= event.id %>">
+                    <button type="submit">Delete</button>
+                </form>
+        <% }) %>
+    </fieldset>
+
+
+        <fieldset>
+            <h1>Manage Announcements</h1>
+            <legend>Announcements</legend>
+            <% announcements.forEach(function(announcement) { %>
+                <form action="/common/updateAnnouncement" method="POST">
+                    <input type="hidden" name="id" value="<%= announcement.announcement_id %>">
+                    <textarea name="message"><%= announcement.message %></textarea>
+                    <select name="visibility">
+                        <option value="org" <%= announcement.visibility === 'org' ? 'selected' : '' %>>Org</option>
+                        <option value="public" <%= announcement.visibility === 'public' ? 'selected' : '' %>>Public</option>
+                        <option value="both" <%= announcement.visibility === 'both' ? 'selected' : '' %>>Both</option>
+                    </select>
+                    <button type="submit">Update</button>
+                </form>
+                <form action="/common/deleteAnnouncement" method="POST">
+                    <input type="hidden" name="id" value="<%= announcement.announcement_id %>">
+                    <button type="submit">Delete</button>
+                </form>
+            <% }) %>
+</fieldset>
+</div>
+
+</body>

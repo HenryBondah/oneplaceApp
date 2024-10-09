@@ -1,10 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
-    <link rel="stylesheet" href="/css/styles.css"> <!-- Update with your actual CSS file -->
 
     <style>
         .link-to-manage-records {
@@ -52,14 +45,11 @@
     <!-- Horizontal line separator -->
     <div class="separator"></div>
 
-    <% if (messages.success) { %>
-        <div class="flash-message flash-success"><%= messages.success %></div>
-    <% } %>
-    <% if (messages.error) { %>
-        <div class="flash-message flash-error"><%= messages.error %></div>
-    <% } %>
+    <div class="container">
 
-    <h1>Register School Year</h1>
+    <fieldset>
+        <h1>Register School Year</h1>
+        <legend>School Years</legend>
     <form id="registerSchoolYearForm" action="/common/registerSchoolYear" method="POST">
         <input type="text" name="schoolYear" placeholder="Enter School Year" required>
 
@@ -70,6 +60,10 @@
         <a href="#" onclick="addTerm()">Add Term / Semester</a>
         <button type="submit">Register Year and Terms</button>
     </form>
+</fieldset>
+
+</div>
+
 
 
     <script>
@@ -118,28 +112,4 @@
                     console.error('Error fetching classes:', error);
                 });
         }
-
-        // If the form submission is done via fetch (AJAX), handle the redirect in the JavaScript
-        document.getElementById('registerSchoolYearForm').addEventListener('submit', function (e) {
-            e.preventDefault(); // Prevent the default form submission
-
-            const formData = new FormData(this);
-
-            fetch('/common/registerSchoolYear', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (response.redirected) {
-                    window.location.href = response.url; // Redirect the user if redirected by the server
-                } else {
-                    console.log('Form submitted successfully, but no redirect.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        });
     </script>
-</body>
-</html>

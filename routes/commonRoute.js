@@ -6,8 +6,7 @@ const { upload } = require('../middleware/s3Upload');
 
 module.exports = (db) => {
     router.get('/orgDashboard', isAuthenticated, (req, res) => commonController.orgDashboard(req, res, db));
-// Route for when a specific school year and term are selected
-router.get('/orgDashboard/:schoolYearId/:termId', isAuthenticated, (req, res) => commonController.orgDashboardRestricted(req, res, db));
+    router.get('/orgDashboard/schoolYearId/:schoolYearId/termId/:termId', isAuthenticated, (req, res) => commonController.orgDashboardRestricted(req, res, db));
     router.get('/publicDashboardContent', (req, res) => commonController.publicDashboardContent(req, res, db));
     router.get('/addStudent', isAuthenticated, (req, res) => commonController.addStudentGet(req, res, db));
     router.post('/addStudent', upload.single('studentImage'), isAuthenticated, (req, res) => commonController.addStudentPost(req, res, db));
@@ -73,6 +72,17 @@ router.get('/orgDashboard/:schoolYearId/:termId', isAuthenticated, (req, res) =>
     router.post('/deleteSchoolYearPost', isAuthenticated, (req, res) => commonController.deleteSchoolYearPost(req, res, db));
     router.post('/setMainEmployee', isAuthenticated, (req, res) => commonController.setMainEmployee(req, res, db));
     router.post('/saveSingleAttendance', (req, res) => commonController.saveSingleAttendance(req, res, db));
+
+
+    // Event & Announcement Forms
+    router.get('/createEventAnnouncement', isAuthenticated, (req, res) => commonController.createEventAnnouncementGet(req, res, db));
+    router.post('/createEventAnnouncement', isAuthenticated, (req, res) => commonController.createEventAnnouncementPost(req, res, db));
+    router.get('/manageSchoolYear', isAuthenticated, (req, res) => commonController.manageSchoolYearGet(req, res, db));
+    router.get('/manageEventsAnnouncements', isAuthenticated, (req, res) => commonController.manageEventsAnnouncementsGet(req, res, db));
+    router.get('/manageEventsAnnouncements/schoolYearId/:schoolYearId/termId/:termId', isAuthenticated, (req, res) => commonController.manageEventsAnnouncementsGet(req, res, db));
+
+    // Create Event Announcement with schoolYearId and termId
+    router.get('/createEventAnnouncement/schoolYearId/:schoolYearId/termId/:termId', isAuthenticated, (req, res) => commonController.createEventAnnouncementGet(req, res, db));
 
     return router;
 };

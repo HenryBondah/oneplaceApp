@@ -111,9 +111,6 @@ async function updateCategoryScores(student_id, class_id, subject_id, category, 
     );
 }
 
-
-
-
 function generateLastFiveDates() {
     const dates = [];
     const today = new Date();
@@ -174,7 +171,7 @@ const commonController = {
     orgDashboard: async (req, res, db) => {
         try {
             const organizationId = req.session.organizationId;
-            
+
             // Fetch the current school year and term
             const schoolYearResult = await db.query(`
                 SELECT sy.id as school_year_id, sy.year_label, t.term_id, t.term_name, t.start_date, t.end_date, t.current
@@ -183,10 +180,10 @@ const commonController = {
                 WHERE sy.organization_id = $1 AND sy.current = TRUE
                 ORDER BY t.start_date
             `, [organizationId]);
-    
+
             let schoolYear = null;
             let currentTerm = null;
-    
+
             if (schoolYearResult.rows.length > 0) {
                 schoolYear = {
                     id: schoolYearResult.rows[0].school_year_id,
@@ -199,52 +196,51 @@ const commonController = {
                         current: row.current
                     }))
                 };
-    
-                // Find the current term if set
+
+                // Find the current term
                 currentTerm = schoolYearResult.rows.find(row => row.current);
             }
-    
+
+            // If both school year and current term exist, redirect to the URL with schoolYearId and termId
             if (schoolYear && currentTerm) {
-                // Redirect to restricted route with school year and term in URL
-                const redirectUrl = `/common/orgDashboard/${schoolYear.id}/${currentTerm.term_id}`;
-                res.redirect(redirectUrl);
-            } else {
-                // Render the default orgDashboard when no school year/term is set
-                res.render('common/orgDashboard', {
-                    title: 'Organization Dashboard',
-                    schoolYear,
-                    currentTerm,
-                    classes: [],
-                    events: [],
-                    announcements: [],
-                    organizationId,
-                    messages: req.flash()
-                });
+                return res.redirect(`/common/orgDashboard/schoolYearId/${schoolYear.id}/termId/${currentTerm.term_id}`);
             }
+
+            // Otherwise, render the orgDashboard without school year/term
+            res.render('common/orgDashboard', {
+                title: 'Organization Dashboard',
+                schoolYear,
+                currentTerm,
+                classes: [],
+                events: [],
+                announcements: [],
+                organizationId,
+                messages: req.flash()
+            });
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
             req.flash('error', 'Failed to load dashboard data.');
             res.redirect('/');
         }
     },
-    
 
+    // Org Dashboard with specific School Year and Term
     orgDashboardRestricted: async (req, res, db) => {
         try {
             const organizationId = req.session.organizationId;
             const { schoolYearId, termId } = req.params;
-    
-            // Fetch data based on the provided school year and term
+
+            // Fetch data for the specific school year and term
             const schoolYearResult = await db.query(`
                 SELECT sy.id as school_year_id, sy.year_label, t.term_id, t.term_name, t.start_date, t.end_date, t.current
                 FROM school_years sy
                 LEFT JOIN terms t ON sy.id = t.school_year_id
                 WHERE sy.id = $1 AND t.term_id = $2 AND sy.organization_id = $3
             `, [schoolYearId, termId, organizationId]);
-    
+
             let schoolYear = null;
             let currentTerm = null;
-    
+
             if (schoolYearResult.rows.length > 0) {
                 schoolYear = {
                     id: schoolYearResult.rows[0].school_year_id,
@@ -257,24 +253,26 @@ const commonController = {
                         current: row.current
                     }))
                 };
-    
-                // Find the current term
+
+                // Find the current term based on termId
                 currentTerm = schoolYearResult.rows.find(row => row.term_id == termId);
             }
-    
+
+            // If schoolYear or currentTerm is invalid, redirect to general dashboard
             if (!schoolYear || !currentTerm) {
                 req.flash('error', 'Invalid school year or term.');
                 return res.redirect('/common/orgDashboard');
             }
-    
-            // Load restricted data for this specific school year and term
+
+            // Fetch related classes, events, and announcements for the given school year/term
             const classes = await getClassesWithEmployees(db, organizationId);
             const eventsResult = await db.query('SELECT * FROM school_events WHERE organization_id = $1 ORDER BY event_date', [organizationId]);
             const events = eventsResult.rows.filter(event => event.school_year_id == schoolYearId);
-    
+
             const announcementsResult = await db.query('SELECT * FROM announcements WHERE organization_id = $1 ORDER BY announcement_id DESC', [organizationId]);
             const announcements = announcementsResult.rows.filter(announcement => announcement.school_year_id == schoolYearId);
-    
+
+            // Render the orgDashboard with schoolYear and term context
             res.render('common/orgDashboard', {
                 title: 'Organization Dashboard',
                 schoolYear,
@@ -285,14 +283,12 @@ const commonController = {
                 organizationId,
                 messages: req.flash()
             });
-    
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
             req.flash('error', 'Failed to load dashboard data.');
             res.redirect('/');
         }
     },
-    
     
     publicDashboardContent: async (req, res,db) => {
         try {
@@ -397,8 +393,7 @@ const commonController = {
             console.error('Error fetching data for add student:', err);
             res.status(500).send('Error fetching data for add student');
         }
-    },
-            
+    },    
 
     addStudentPost: async (req, res, db) => {
         const { firstName, lastName, dateOfBirth, height, hometown, classId, graduationYearGroupId, guardians, subjects, gender } = req.body;
@@ -449,7 +444,6 @@ const commonController = {
         }
     },
     
-    
     getMajorityGraduationYearGroup: async (req, res, db) => {
         const { classId } = req.query;
 
@@ -499,8 +493,6 @@ const commonController = {
             res.status(500).json({ error: 'Failed to load subjects.' });
         }
     },
-
-
 
     studentDetails: async (req, res, db) => {
         const studentId = req.query.studentId;
@@ -611,8 +603,6 @@ const commonController = {
             res.status(500).send('Failed to fetch student details');
         }
     },
-        
-
     
     editStudentGet: async (req, res, db) => {
         const studentId = req.query.studentId;
@@ -1136,7 +1126,6 @@ const commonController = {
         }
     },
 
-    
     modifyEmployeePost: async (req, res, db) => {
         const { userId } = req.params;
         const { firstName, lastName, email, accountType, classIds = [], subjects = [] } = req.body;
@@ -1268,119 +1257,6 @@ const commonController = {
             res.status(500).send('Error fetching assessment data.');
         }
     },
-
-        
-    // saveAllScores: async (req, res, db) => {
-    //     const { subjectId, classId } = req.query;
-    //     const { scores } = req.body;
-    
-    //     try {
-    //         // Fetch assessments related to this subject and class, including categories
-    //         const assessmentsResult = await db.query(`
-    //             SELECT assessment_id, title, weight, max_score, category
-    //             FROM assessments
-    //             WHERE subject_id = $1 AND class_id = $2 AND organization_id = $3
-    //             ORDER BY assessment_id`, [subjectId, classId, req.session.organizationId]);
-    
-    //         const assessments = assessmentsResult.rows;
-    
-    //         await db.query('BEGIN');
-    
-    //         // Store total category scores and subject scores for students
-    //         const studentCategoryScores = {};
-    //         const studentTotalScores = {};
-    
-    //         // Process each student's scores
-    //         for (let studentId in scores) {
-    //             // Reset total category scores and total subject scores for the student
-    //             studentCategoryScores[studentId] = {};
-    //             studentTotalScores[studentId] = 0;
-    
-    //             for (let assessmentId in scores[studentId]) {
-    //                 let score = scores[studentId][assessmentId];
-    //                 if (score === null || score === "") continue;
-    
-    //                 // Fetch the related assessment details
-    //                 const assessment = assessments.find(a => a.assessment_id == assessmentId);
-    //                 if (!assessment) continue;
-    
-    //                 const { category } = assessment;
-    
-    //                 // Sum scores by category
-    //                 if (!studentCategoryScores[studentId][category]) {
-    //                     studentCategoryScores[studentId][category] = 0;
-    //                 }
-    //                 studentCategoryScores[studentId][category] += parseFloat(score);
-    
-    //                 // Sum the total score for the student across all assessments
-    //                 studentTotalScores[studentId] += parseFloat(score);
-    
-    //                 // Insert or update the score in the assessment_results table
-    //                 await db.query(`
-    //                     INSERT INTO assessment_results (student_id, assessment_id, score, subject_id, organization_id, class_id, category)
-    //                     VALUES ($1, $2, $3, $4, $5, $6, $7)
-    //                     ON CONFLICT (student_id, assessment_id)
-    //                     DO UPDATE SET score = EXCLUDED.score, category = EXCLUDED.category`,
-    //                     [studentId, assessmentId, score, subjectId, req.session.organizationId, classId, category]);
-    //             }
-    //         }
-    
-    //         // Update total category score for each student in the assessment_results table
-    //         for (let studentId in studentCategoryScores) {
-    //             for (let category in studentCategoryScores[studentId]) {
-    //                 const totalCategoryScore = studentCategoryScores[studentId][category];
-    
-    //                 // Update the total_category_score for each category in the assessment_results table
-    //                 await db.query(`
-    //                     UPDATE assessment_results
-    //                     SET total_category_score = $1
-    //                     WHERE student_id = $2 AND subject_id = $3 AND class_id = $4 AND category = $5 AND organization_id = $6`,
-    //                     [totalCategoryScore, studentId, subjectId, classId, category, req.session.organizationId]);
-    //             }
-    //         }
-    
-    //         // Now update the total subject score, percentage, and grade for each student
-    //         for (let studentId in studentTotalScores) {
-    //             const totalScore = studentTotalScores[studentId];
-    
-    //             // Calculate the total percentage based on the weight of the assessments
-    //             const totalPercentage = commonController.calculateTotalPercentage(scores[studentId], assessments);
-    //             const grade = commonController.calculateGrade(totalPercentage);
-    
-    //             const validTotalPercentage = totalPercentage !== "-" ? totalPercentage : null;
-    //             const validGrade = grade !== "-" ? grade : null;
-    
-    //             // Update total subject score, percentage, and grade
-    //             await db.query(`
-    //                 UPDATE assessment_results
-    //                 SET total_subject_score = $1, total_percentage = $2, grade = $3
-    //                 WHERE student_id = $4 AND subject_id = $5 AND organization_id = $6`,
-    //                 [totalScore, validTotalPercentage, validGrade, studentId, subjectId, req.session.organizationId]);
-    
-    //             // Insert or update in the student_positions table with class_id
-    //             await db.query(`
-    //                 INSERT INTO student_positions (student_id, subject_id, organization_id, total_subject_score, class_id, position)
-    //                 VALUES ($1, $2, $3, $4, $5, 0) -- Position will be updated separately
-    //                 ON CONFLICT (student_id, subject_id)
-    //                 DO UPDATE SET total_subject_score = EXCLUDED.total_subject_score, class_id = EXCLUDED.class_id`,
-    //                 [studentId, subjectId, req.session.organizationId, totalScore, classId]);
-    //         }
-    
-    //         // Update positions based on total subject scores
-    //         await commonController.updateStudentPositions(db, subjectId, req.session.organizationId);
-    
-    //         await db.query('COMMIT');
-    
-    //         req.flash('success', 'Scores saved successfully.');
-    //         res.status(200).json({ success: true, message: 'Scores saved successfully.' });
-    //     } catch (error) {
-    //         await db.query('ROLLBACK');
-    //         console.error('Error saving scores:', error);
-    //         req.flash('error', 'An error occurred while saving scores. Please try again.');
-    //         res.status(500).json({ error: 'An error occurred while saving scores. Please try again.' });
-    //     }
-    // },
- 
     
     saveAllScores: async (req, res, db) => {
         const { subjectId, classId } = req.query;
@@ -1436,7 +1312,6 @@ const commonController = {
                         [studentId, assessmentId, score, subjectId, req.session.organizationId, classId, category]);
                 }
             }
-    
             // Update total category score for each student in the assessment_results table
             for (let studentId in studentCategoryScores) {
                 for (let category in studentCategoryScores[studentId]) {
@@ -1496,10 +1371,6 @@ const commonController = {
         }
     },
     
-
-
-
-
         updateStudentPositions: async function (db, subjectId, organizationId) {
         const updateQuery = `
         WITH RankedScores AS (
@@ -1665,10 +1536,7 @@ calculateGrade: (totalPercentage) => {
         const { testName, testWeight, maxScore, classId, subjectId, category } = req.body;
         const organizationId = req.session.organizationId;
     
-        try {
-            // console.log('Starting test creation process...');
-            // console.log(`Test Name: ${testName}, Test Weight: ${testWeight}, Max Score: ${maxScore}, Class ID: ${classId}, Subject ID: ${subjectId}, Category: ${category}`);
-    
+        try {    
             // Insert new test without category ID
             await db.query(`
                 INSERT INTO assessments (title, weight, max_score, class_id, subject_id, category, organization_id)
@@ -1838,8 +1706,7 @@ calculateGrade: (totalPercentage) => {
         }
     },
 
-    
-    
+
     registerSchoolYearGet: async (req, res, db) => { // Add this method
         try {
             const classesResult = await db.query('SELECT class_id, class_name FROM classes WHERE organization_id = $1 ORDER BY class_name ASC', [req.session.organizationId]);
@@ -1947,34 +1814,51 @@ calculateGrade: (totalPercentage) => {
 
     updateSchoolYearAndTerms: async (req, res, db) => {
         try {
-            const { yearId, year_label, currentYear, termIds, termNames, startDates, endDates, currentTerm, termClasses } = req.body;
+            const { yearId, year_label, currentYear, termIds, termNames, startDates, endDates, currentTerm } = req.body;
             const { organizationId } = req.session;
-
-            await db.query('UPDATE school_years SET year_label = $1, current = $2 WHERE id = $3 AND organization_id = $4', [year_label, currentYear === 'true', yearId, organizationId]);
-
-            await db.query('UPDATE terms SET current = FALSE WHERE school_year_id IN (SELECT id FROM school_years WHERE organization_id = $1)', [organizationId]);
-
+            let changeDetails = [];  // Track what changes have been made
+    
+            // Validate that a term is selected if the school year is set as current
+            if (currentYear && !currentTerm) {
+                req.flash('error', 'School year cannot be set as current because no term is selected. Please select a term.');
+                return res.redirect('/common/manageRecords');
+            }
+    
+            // Update the school year label
+            await db.query('UPDATE school_years SET year_label = $1 WHERE id = $2 AND organization_id = $3', [year_label, yearId, organizationId]);
+            changeDetails.push(`Updated the school year label to ${year_label}.`);
+    
+            // If a school year is set to current, ensure only one is active at a time
+            if (currentYear) {
+                await db.query('UPDATE school_years SET current = FALSE WHERE organization_id = $1', [organizationId]); // Deselect all
+                await db.query('UPDATE school_years SET current = TRUE WHERE id = $1 AND organization_id = $2', [currentYear, organizationId]); // Set selected school year as current
+                changeDetails.push(`You have selected the school year ${year_label} as current.`);
+            }
+    
+            // Update all terms
             for (let i = 0; i < termIds.length; i++) {
                 const termId = termIds[i];
                 const termName = termNames[i];
                 const startDate = startDates[i];
                 const endDate = endDates[i];
                 const isCurrent = currentTerm && currentTerm.includes(termId);
-
-                await db.query(
-                    'UPDATE terms SET term_name = $1, start_date = $2, end_date = $3, current = $4 WHERE term_id = $5 AND organization_id = $6',
-                    [termName, startDate, endDate, isCurrent, termId, organizationId]
-                );
-
-                await db.query('DELETE FROM term_classes WHERE term_id = $1', [termId]);
-                if (termClasses && termClasses[i]) {
-                    for (const classId of termClasses[i]) {
-                        await db.query('INSERT INTO term_classes (term_id, class_id) VALUES ($1, $2)', [termId, classId]);
-                    }
+    
+                // Ensure only one term is marked as current across all school years
+                if (isCurrent) {
+                    await db.query('UPDATE terms SET current = FALSE WHERE organization_id = $1', [organizationId]);
+                    await db.query('UPDATE terms SET current = TRUE WHERE term_id = $1 AND organization_id = $2', [termId, organizationId]);
+                    changeDetails.push(`You have selected the term ${termName} as current.`);
                 }
+    
+                // Update term details
+                await db.query(
+                    'UPDATE terms SET term_name = $1, start_date = $2, end_date = $3 WHERE term_id = $4 AND organization_id = $5',
+                    [termName, startDate, endDate, termId, organizationId]
+                );
+                changeDetails.push(`Updated details for term ${termName}.`);
             }
-
-            req.flash('success', 'School year and terms updated successfully.');
+    
+            req.flash('success', `School year and terms updated successfully.`);
             res.redirect('/common/manageRecords');
         } catch (error) {
             console.error('Error updating school year and terms:', error);
@@ -1982,27 +1866,146 @@ calculateGrade: (totalPercentage) => {
             res.redirect('/common/manageRecords');
         }
     },
+    
+    
+    
+    
+    
+        
+ 
+    // Render Create Event & Announcement Form (GET)
+createEventAnnouncementGet: (req, res) => {
+    res.render('common/createEventAnnouncement', {
+        title: 'Create Event & Announcement',
+        messages: req.flash()
+    });
+},
 
-    updateEvent: async (req, res, db) => {
-        try {
-            await db.query('UPDATE school_events SET name = $1, event_date = $2, details = $3, visibility = $4 WHERE id = $5 AND organization_id = $6', [req.body.name, req.body.event_date, req.body.details, req.body.visibility, req.body.id, req.session.organizationId]);
-            res.redirect('/common/manageRecords');
-        } catch (error) {
-            console.error('Error updating event:', error);
-            res.status(500).send('Failed to update event.');
-        }
-    },
+// Handle Create Event & Announcement Form (POST)
+createEventAnnouncementPost: async (req, res, db) => {
+    const { type } = req.body;
+    
+    try {
+        // Log the incoming request body
+        console.log("Form Data: ", req.body);
 
-    updateAnnouncement: async (req, res, db) => {
-        const { announcementId, message, visibility } = req.body;
-        try {
-            await db.query('UPDATE announcements SET message = $1, visibility = $2 WHERE announcement_id = $3 AND organization_id = $4', [message, visibility, announcementId, req.session.organizationId]);
-            res.redirect('/common/manageRecords');
-        } catch (error) {
-            console.error('Error updating announcement:', error);
-            res.status(500).send('Failed to update announcement.');
+        // Fetch the current school year and term for the organization
+        const currentSchoolYearTerm = await db.query(`
+            SELECT sy.id as school_year_id, t.term_id
+            FROM school_years sy
+            JOIN terms t ON sy.id = t.school_year_id
+            WHERE sy.organization_id = $1 AND sy.current = TRUE AND t.current = TRUE
+        `, [req.session.organizationId]);
+
+        if (currentSchoolYearTerm.rows.length === 0) {
+            req.flash('error', 'No current school year or term found. Please set the current school year and term.');
+            return res.redirect('/common/manageRecords');
         }
-    },
+
+        const { school_year_id, term_id } = currentSchoolYearTerm.rows[0];
+
+        // Log the values being used in the SQL query
+        console.log('Announcement Data:', {
+            message: req.body.announcementMessage,
+            visibility: req.body.visibility,
+            organizationId: req.session.organizationId,
+            school_year_id: school_year_id,
+            term_id: term_id
+        });
+
+        if (type === 'event') {
+            // Insert new event with the current school year and term
+            await db.query(
+                'INSERT INTO school_events (name, event_date, details, visibility, organization_id, school_year_id, term_id) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                [req.body.eventName, req.body.eventDate, req.body.eventDetails, req.body.visibility, req.session.organizationId, school_year_id, term_id]
+            );
+        } else if (type === 'announcement') {
+            // Insert new announcement with the current school year and term
+            await db.query(
+                'INSERT INTO announcements (message, visibility, organization_id, school_year_id, term_id) VALUES ($1, $2, $3, $4, $5)',
+                [req.body.announcementMessage, req.body.visibility, req.session.organizationId, school_year_id, term_id]
+            );
+        }
+
+        req.flash('success', 'Event/Announcement created successfully.');
+        res.redirect('/common/orgDashboard');
+    } catch (err) {
+        // Log the error to understand what went wrong
+        console.error('Error creating event/announcement:', err);
+
+        req.flash('error', 'Error creating event/announcement.');
+        res.status(500).redirect('/common/createEventAnnouncement');
+    }
+},
+
+
+
+// Manage Events & Announcements (GET)
+manageEventsAnnouncementsGet: async (req, res, db) => {
+    try {
+        // Fetch the current school year and term
+        const currentSchoolYearTerm = await db.query(`
+            SELECT sy.id as school_year_id, t.term_id
+            FROM school_years sy
+            JOIN terms t ON sy.id = t.school_year_id
+            WHERE sy.organization_id = $1 AND sy.current = TRUE AND t.current = TRUE
+        `, [req.session.organizationId]);
+
+        if (currentSchoolYearTerm.rows.length === 0) {
+            req.flash('error', 'No current school year or term found.');
+            return res.redirect('/common/manageRecords');
+        }
+
+        const { school_year_id, term_id } = currentSchoolYearTerm.rows[0];
+
+        // Fetch events and announcements tied to the current school year and term
+        const events = await db.query('SELECT * FROM school_events WHERE organization_id = $1 AND school_year_id = $2 AND term_id = $3', [req.session.organizationId, school_year_id, term_id]);
+        const announcements = await db.query('SELECT * FROM announcements WHERE organization_id = $1 AND school_year_id = $2 AND term_id = $3', [req.session.organizationId, school_year_id, term_id]);
+
+        res.render('common/manageEventsAnnouncements', {
+            title: 'Manage Events & Announcements',
+            events: events.rows,
+            announcements: announcements.rows,
+            messages: req.flash()
+        });
+    } catch (err) {
+        req.flash('error', 'Error loading events and announcements.');
+        res.status(500).redirect('/common/manageEventsAnnouncements');
+    }
+},
+
+
+    // Update Event (POST)
+updateEvent: async (req, res, db) => {
+    const { id, name, eventDate, details, visibility } = req.body;
+    try {
+        await db.query(
+            'UPDATE events SET name = $1, event_date = $2, details = $3, visibility = $4 WHERE id = $5 AND organization_id = $6',
+            [name, eventDate, details, visibility, id, req.session.organizationId]
+        );
+        req.flash('success', 'Event updated successfully.');
+        res.redirect('/common/manageEventsAnnouncements');
+    } catch (err) {
+        req.flash('error', 'Error updating event.');
+        res.status(500).redirect('/common/manageEventsAnnouncements');
+    }
+},
+
+// Update Announcement (POST)
+updateAnnouncement: async (req, res, db) => {
+    const { id, message, visibility } = req.body;
+    try {
+        await db.query(
+            'UPDATE announcements SET message = $1, visibility = $2 WHERE announcement_id = $3 AND organization_id = $4',
+            [message, visibility, id, req.session.organizationId]
+        );
+        req.flash('success', 'Announcement updated successfully.');
+        res.redirect('/common/manageEventsAnnouncements');
+    } catch (err) {
+        req.flash('error', 'Error updating announcement.');
+        res.status(500).redirect('/common/manageEventsAnnouncements');
+    }
+},
 
     addClassSubject: async (req, res, db) => {
         try {
@@ -2312,9 +2315,6 @@ deleteSubject: async (req, res, db) => {
     }
 },
 
-
-
-
     getGradYearGroupByClassId: async (req, res, db) => {
         const { classId } = req.query;
         if (!classId) {
@@ -2338,28 +2338,6 @@ deleteSubject: async (req, res, db) => {
         }
     },
 
-
-
-    // getStudentsByClass: async (req, res, db) => {
-    //     const classId = req.query.classId;
-
-    //     if (!classId) {
-    //         return res.status(400).json({ error: 'Class ID is required.' });
-    //     }
-
-    //     try {
-    //         const students = await fetchStudentsByClass(db, classId, req.session.organizationId);
-
-    //         if (students.length === 0) {
-    //             return res.json({ error: 'No students found for the selected class.' });
-    //         }
-
-    //         res.json({ students });
-    //     } catch (error) {
-    //         console.error('Error fetching students:', error);
-    //         res.status(500).json({ error: 'Error fetching students.' });
-    //     }
-    // },
     
     closeSchoolYear: async (req, res, db) => {
         try {
@@ -2449,31 +2427,31 @@ deleteSubject: async (req, res, db) => {
         }
     },
 
-    deleteEvent: async (req, res, db) => {
-        const { eventId } = req.body;
-        try {
-            await db.query('DELETE FROM school_events WHERE id = $1 AND organization_id = $2', [eventId, req.session.organizationId]);
-            req.flash('success', 'Event deleted successfully.');
-            res.redirect('/common/manageRecords');
-        } catch (error) {
-            console.error('Error deleting event:', error);
-            req.flash('error', 'Failed to delete event.');
-            res.redirect('/common/manageRecords');
-        }
-    },
+// Delete Event (POST)
+deleteEvent: async (req, res, db) => {
+    const { id } = req.body;
+    try {
+        await db.query('DELETE FROM events WHERE id = $1 AND organization_id = $2', [id, req.session.organizationId]);
+        req.flash('success', 'Event deleted successfully.');
+        res.redirect('/common/manageEventsAnnouncements');
+    } catch (err) {
+        req.flash('error', 'Error deleting event.');
+        res.status(500).redirect('/common/manageEventsAnnouncements');
+    }
+},
 
-    deleteAnnouncement: async (req, res, db) => {
-        const { announcementId } = req.body;
-        try {
-            await db.query('DELETE FROM announcements WHERE announcement_id = $1 AND organization_id = $2', [announcementId, req.session.organizationId]);
-            req.flash('success', 'Announcement deleted successfully.');
-            res.redirect('/common/manageRecords');
-        } catch (error) {
-            console.error('Error deleting announcement:', error);
-            req.flash('error', 'Failed to delete announcement.');
-            res.redirect('/common/manageRecords');
-        }
-    },
+// Delete Announcement (POST)
+deleteAnnouncement: async (req, res, db) => {
+    const { id } = req.body;
+    try {
+        await db.query('DELETE FROM announcements WHERE announcement_id = $1 AND organization_id = $2', [id, req.session.organizationId]);
+        req.flash('success', 'Announcement deleted successfully.');
+        res.redirect('/common/manageEventsAnnouncements');
+    } catch (err) {
+        req.flash('error', 'Error deleting announcement.');
+        res.status(500).redirect('/common/manageEventsAnnouncements');
+    }
+},
 
     deleteSchoolYear: async (req, res, db) => {
         const { yearId } = req.body;

@@ -1,4 +1,3 @@
-
 <body>
     <!-- Flash Messages -->
     <% if (messages && messages.success && messages.success.length > 0) { %>
@@ -14,140 +13,256 @@
 
     <!-- Add the link to the Register School Year page -->
     <div class="link-to-next-back">
-        <a href="/common/registerSchoolYear">Create Event, Announcement & Sch Year</a>
+        <a href="/common/registerSchoolYear" class="create-link">Create School Year</a>
     </div>
-<hr>
-
+    <hr>
 
     <div class="container">
         <fieldset>
-            <h1>Manage Events</h1>
-            <legend>Events</legend>
-            <% events.forEach(function(event) { %>
-                <form action="/common/updateEvent" method="post">
-                    <input type="hidden" name="id" value="<%= event.id %>">
-                    <div>
-                        <label>Event Name:</label>
-                        <input type="text" name="name" value="<%= event.name %>">
-                    </div>
-                    <div>
-                        <label>Event Date:</label>
-                        <input type="date" name="event_date" value="<%= new Date(event.event_date).toISOString().split('T')[0] %>">
-                    </div>
-                    <div>
-                        <label>Details:</label>
-                        <textarea name="details"><%= event.details %></textarea>
-                    </div>
-                    <div>
-                        <label for="visibility">Visibility:</label>
-                        <select name="visibility">
-                            <option value="org" <%= event.visibility === 'org' ? 'selected' : '' %>>Org Dashboard</option>
-                            <option value="public" <%= event.visibility === 'public' ? 'selected' : '' %>>Public</option>
-                            <option value="both" <%= event.visibility === 'both' ? 'selected' : '' %>>Both</option>
-                        </select>
-                    </div>
-                    <button type="submit">Save</button>
-                </form>
-                <form action="/common/deleteEvent" method="post" onsubmit="return confirm('Are you sure you want to delete this event?');">
-                    <input type="hidden" name="eventId" value="<%= event.id %>">
-                    <button type="submit">Delete</button>
-                </form>
-            <% }); %>
-        </fieldset>
-
-        <fieldset>
-            <h1>Manage Announcements</h1>
-            <legend>Announcements</legend>
-            <% announcements.forEach(function(announcement) { %>
-                <form action="/common/updateAnnouncement" method="post">
-                    <input type="hidden" name="announcementId" value="<%= announcement.announcement_id %>">
-                    <textarea name="message"><%= announcement.message %></textarea>
-                    <div>
-                        <label for="visibility">Visibility:</label>
-                        <select name="visibility">
-                            <option value="org" <%= announcement.visibility === 'org' ? 'selected' : '' %>>Org Dashboard</option>
-                            <option value="public" <%= announcement.visibility === 'public' ? 'selected' : '' %>>Public</option>
-                            <option value="both" <%= announcement.visibility === 'both' ? 'selected' : '' %>>Both</option>
-                        </select>
-                    </div>
-                    <button type="submit">Save</button>
-                </form>
-                <form action="/common/deleteAnnouncement" method="post" onsubmit="return confirm('Are you sure you want to delete this announcement?');">
-                    <input type="hidden" name="announcementId" value="<%= announcement.announcement_id %>">
-                    <button type="submit">Delete</button>
-                </form>
-            <% }); %>
-        </fieldset>
-
-        <fieldset>
             <h1>Manage School Years and Terms</h1>
             <legend>School Years</legend>
-            <% schoolYears.forEach(function(year) { %>
-                <form action="/common/updateSchoolYearAndTerms" method="post">
-                    <input type="hidden" name="yearId" value="<%= year.id %>">
-                    <div>
-                        <label>School Year:</label>
-                        <input type="text" name="year_label" value="<%= year.year_label %>">
-                        <label>
-                            <input type="checkbox" name="currentYear" value="true" <%= year.current ? 'checked' : '' %>>
-                            Current
-                        </label>
-                    </div>
 
-                    <% year.terms.forEach(function(term, index) { %>
-                        <fieldset>
-                            <legend>Term <%= index + 1 %></legend>
-                            <input type="hidden" name="termIds[]" value="<%= term.term_id %>">
-                            <div>
-                                <label>Term Name:</label>
-                                <input type="text" name="termNames[]" value="<%= term.term_name %>">
-                            </div>
-                            <div>
-                                <label>
-                                    <input type="radio" name="currentTerm" value="<%= term.term_id %>" <%= term.current ? 'checked' : '' %>>
-                                    Current
-                                </label>
-                            </div>
-                            <div class="date-fields">
-                                <div>
-                                    <label>Start Date:</label>
-                                    <input type="date" name="startDates[]" value="<%= new Date(term.start_date).toISOString().slice(0, 10) %>">
-                                </div>
-                                <div>
-                                    <label>End Date:</label>
-                                    <input type="date" name="endDates[]" value="<%= new Date(term.end_date).toISOString().slice(0, 10) %>">
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label>
-                                    <input type="checkbox" id="selectAll<%= term.term_id %>" onclick="selectAllClasses(<%= term.term_id %>, this)">
-                                    Select All Classes
-                                </label>
-                            </div>
-                            <% classes.forEach(cls => { %>
-                                <div class="class-checkbox-container">
+            <div id="schoolYearContainer">
+                <% let currentYearFound = false; %>
+                
+                <!-- Move the current school year to the top -->
+                <% schoolYears.forEach(function(year) { %>
+                    <% if (year.current) { %>
+                        <div class="school-year-wrapper current-year-wrapper" id="yearWrapper<%= year.id %>">
+                            <form action="/common/updateSchoolYearAndTerms" method="post" class="school-year-form" onsubmit="return validateAndConfirmChanges('<%= year.year_label %>')">
+                                <input type="hidden" name="yearId" value="<%= year.id %>">
+                                <div class="school-year-header" onclick="toggleTerms('<%= year.id %>')">
+                                    <label>School Year:</label>
+                                    <input type="text" name="year_label" value="<%= year.year_label %>" required>
                                     <label>
-                                        <input type="checkbox" name="termClasses[<%= index %>][]" value="<%= cls.class_id %>" <%= (term.classes || []).includes(cls.class_id) ? 'checked' : '' %>>
-                                        <%= cls.class_name %>
+                                        <input type="radio" name="currentYear" value="<%= year.id %>" checked onchange="moveToTop('<%= year.id %>')">
+                                        Current
                                     </label>
+                                    <span class="arrow" id="arrow<%= year.id %>">&#9660;</span> <!-- Down Arrow -->
                                 </div>
-                            <% }); %>
-                        </fieldset>
-                    <% }); %>
-                    <button type="submit">Save Changes</button>
-                </form>
-                <form action="/common/deleteSchoolYear" method="post" onsubmit="return confirm('Are you sure you want to delete this school year?');">
-                    <input type="hidden" name="yearId" value="<%= year.id %>">
-                    <button type="submit">Delete</button> 
-                </form>
-            <% }); %>
+
+                                <div class="term-section" id="termSection<%= year.id %>" style="display: block;">
+                                    <% year.terms.forEach(function(term, index) { %>
+                                        <fieldset>
+                                            <legend>Term <%= index + 1 %></legend>
+                                            <input type="hidden" name="termIds[]" value="<%= term.term_id %>">
+                                            <div>
+                                                <label>Term Name:</label>
+                                                <input type="text" name="termNames[]" value="<%= term.term_name %>">
+                                            </div>
+                                            <div>
+                                                <label>
+                                                    <input type="radio" name="currentTerm" value="<%= term.term_id %>" <%= term.current ? 'checked' : '' %>>
+                                                    Current
+                                                </label>
+                                            </div>
+                                            <div class="date-fields">
+                                                <div>
+                                                    <label>Start Date:</label>
+                                                    <input type="date" name="startDates[]" value="<%= new Date(term.start_date).toISOString().slice(0, 10) %>">
+                                                </div>
+                                                <div>
+                                                    <label>End Date:</label>
+                                                    <input type="date" name="endDates[]" value="<%= new Date(term.end_date).toISOString().slice(0, 10) %>">
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                    <% }); %>
+                                </div>
+
+                                <button type="submit" class="save-button">Save Changes</button>
+                            </form>
+
+                            <form action="/common/deleteSchoolYear" method="post" onsubmit="return confirm('Are you sure you want to delete this school year?');">
+                                <input type="hidden" name="yearId" value="<%= year.id %>">
+                                <button type="submit" class="delete-button">Delete</button>
+                            </form>
+                        </div>
+
+                        <hr> <!-- Divider between current year and the rest -->
+                        <% currentYearFound = true; %>
+                    <% } %>
+                <% }); %>
+
+                <!-- Now list the remaining school years below the line -->
+                <% schoolYears.forEach(function(year) { %>
+                    <% if (!year.current) { %>
+                        <div class="school-year-wrapper" id="yearWrapper<%= year.id %>">
+                            <form action="/common/updateSchoolYearAndTerms" method="post" class="school-year-form" onsubmit="return validateAndConfirmChanges('<%= year.year_label %>')">
+                                <input type="hidden" name="yearId" value="<%= year.id %>">
+                                <div class="school-year-header" onclick="toggleTerms('<%= year.id %>')">
+                                    <label>School Year:</label>
+                                    <input type="text" name="year_label" value="<%= year.year_label %>" required>
+                                    <label>
+                                        <input type="radio" name="currentYear" value="<%= year.id %>" onchange="moveToTop('<%= year.id %>')">
+                                        Current
+                                    </label>
+                                    <span class="arrow" id="arrow<%= year.id %>">&#9660;</span> <!-- Down Arrow -->
+                                </div>
+
+                                <div class="term-section" id="termSection<%= year.id %>" style="display: none;">
+                                    <% year.terms.forEach(function(term, index) { %>
+                                        <fieldset>
+                                            <legend>Term <%= index + 1 %></legend>
+                                            <input type="hidden" name="termIds[]" value="<%= term.term_id %>">
+                                            <div>
+                                                <label>Term Name:</label>
+                                                <input type="text" name="termNames[]" value="<%= term.term_name %>">
+                                            </div>
+                                            <div>
+                                                <label>
+                                                    <input type="radio" name="currentTerm" value="<%= term.term_id %>" <%= term.current ? 'checked' : '' %>>
+                                                    Current
+                                                </label>
+                                            </div>
+                                            <div class="date-fields">
+                                                <div>
+                                                    <label>Start Date:</label>
+                                                    <input type="date" name="startDates[]" value="<%= new Date(term.start_date).toISOString().slice(0, 10) %>">
+                                                </div>
+                                                <div>
+                                                    <label>End Date:</label>
+                                                    <input type="date" name="endDates[]" value="<%= new Date(term.end_date).toISOString().slice(0, 10) %>">
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                    <% }); %>
+                                </div>
+
+                                <button type="submit" class="save-button">Save Changes</button>
+                            </form>
+
+                            <form action="/common/deleteSchoolYear" method="post" onsubmit="return confirm('Are you sure you want to delete this school year?');">
+                                <input type="hidden" name="yearId" value="<%= year.id %>">
+                                <button type="submit" class="delete-button">Delete</button>
+                            </form>
+                        </div>
+                    <% } %>
+                <% }); %>
+            </div>
         </fieldset>
     </div>
 
     <script>
-        function selectAllClasses(termId, checkbox) {
-            const checkboxes = document.querySelectorAll(`input[name="termClasses[${termId}][]"]`);
-            checkboxes.forEach(cb => cb.checked = checkbox.checked);
+        // Toggle terms visibility
+        function toggleTerms(yearId) {
+            const termSection = document.getElementById(`termSection${yearId}`);
+            const arrow = document.getElementById(`arrow${yearId}`);
+            
+            if (termSection.style.display === 'none') {
+                termSection.style.display = 'block';
+                arrow.innerHTML = '&#9650;'; // Change to up arrow
+            } else {
+                termSection.style.display = 'none';
+                arrow.innerHTML = '&#9660;'; // Change to down arrow
+            }
+        }
+
+        // Detect changes in any input fields (radio buttons, text inputs, dates) and enable the Save button
+        document.querySelectorAll('input[type="radio"], input[type="text"], input[type="date"]').forEach(function(input) {
+            input.addEventListener('change', function() {
+                const form = this.closest('form');
+                const saveButton = form.querySelector('.save-button');
+                saveButton.disabled = false; // Enable the save button when any input changes
+            });
+        });
+
+        // Confirmation dialog for changes and term validation
+        function validateAndConfirmChanges(yearLabel) {
+            const form = event.target;
+            const currentTermSelected = form.querySelector('input[type="radio"][name="currentTerm"]:checked');
+            
+            // If no term is selected for a current year, show a message
+            if (!currentTermSelected) {
+                alert(`School year "${yearLabel}" cannot be set as current because no term is selected. Please select a term.`);
+                return false; // Prevent form submission
+            }
+
+            return confirm(`You are about to save changes to the school year: ${yearLabel}. Do you want to proceed?`);
+        }
+
+        // Function to move selected school year to the top
+        function moveToTop(yearId) {
+            const schoolYearContainer = document.getElementById('schoolYearContainer');
+            const yearWrapper = document.getElementById(`yearWrapper${yearId}`);
+
+            // Move the selected year to the top of the container
+            schoolYearContainer.prepend(yearWrapper);
+
+            // Optional: Scroll to the top of the page after moving
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     </script>
+
+    <style>
+        /* Style for flash messages */
+        .flash-message {
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+        .flash-success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .flash-error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+
+        /* School year header styling */
+        .school-year-header {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .arrow {
+            margin-left: 10px;
+            font-size: 18px;
+        }
+
+        /* Button styling */
+        .save-button, .delete-button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: not-allowed;
+        }
+        .save-button:enabled, .delete-button:hover {
+            cursor: pointer;
+            background-color: #0056b3;
+        }
+
+        /* Hover state for delete button */
+        .delete-button {
+            background-color: #dc3545;
+            margin-top: 10px;
+        }
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+
+        /* Link styling */
+        .create-link {
+            display: inline-block;
+            background-color: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            text-decoration: none;
+        }
+        .create-link:hover {
+            background-color: #218838;
+        }
+
+        /* Divider styling */
+        hr {
+            border: 1px solid #ccc;
+            margin: 20px 0;
+        }
+    </style>
+</body>

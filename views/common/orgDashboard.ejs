@@ -49,7 +49,7 @@
             <div id="welcomeMessage" class="welcome-message">
                 <h1>Welcome to your organization!</h1>
                 <p>Start by creating a school year and a term.</p>
-                <a href="/common/registerSchoolYear" class="start-link">Start here</a>
+                <a href="/common/manageRecords" class="start-link">Start here</a>
             </div>
         <% } else { %>
             <!-- Main content when school year and term are set -->
@@ -171,16 +171,17 @@
             .catch(error => console.error('Error fetching public dashboard content:', error));
         
        
-    document.addEventListener('DOMContentLoaded', () => {
-        const schoolYear = <%= JSON.stringify(schoolYear) %>;
-        const currentTerm = <%= JSON.stringify(currentTerm) %>;
+            document.addEventListener('DOMContentLoaded', () => {
+    const schoolYear = <%= JSON.stringify(schoolYear) %>;
+    const currentTerm = <%= JSON.stringify(currentTerm) %>;
 
-        // If school year and term are set, redirect to the restricted URL with their IDs
-        if (schoolYear && currentTerm) {
-            const url = `/common/orgDashboard/${schoolYear.id}/${currentTerm.term_id}`;
-            window.location.href = url;
-        }
-    });
+    // If school year and term are set, redirect to the restricted URL with their IDs
+    if (schoolYear && currentTerm) {
+        const url = `/common/orgDashboard/${schoolYear.id}/${currentTerm.term_id}`;
+        window.location.href = url;
+    }
+});
+
 
 
 

@@ -1,0 +1,63 @@
+
+    <body>
+        <!-- Flash Messages -->
+        <% if (messages && messages.success && messages.success.length > 0) { %>
+            <div class="flash-message flash-success">
+                <%= messages.success[0] %>
+            </div>
+        <% } %>
+        <% if (messages && messages.error && messages.error.length > 0) { %>
+            <div class="flash-message flash-error">
+                <%= messages.error[0] %>
+            </div>
+        <% } %>
+        <div class="link-to-next-back">
+            <a href="/common/manageEventsAnnouncements"> Back</a>
+    </div>
+<hr>
+
+<div class="container">
+
+    <fieldset>
+        <h1>Event</h1>
+        <legend>Create Event</legend>
+    <form action="/common/createEventAnnouncement" method="POST">
+        <input type="hidden" name="type" value="event">
+        <input type="text" name="eventName" placeholder="Event Name" required>
+        <input type="date" name="eventDate" placeholder="Event Date" required>
+        <textarea name="eventDetails" placeholder="Event Details" required></textarea>
+        <div>
+            <label for="visibility">Visibility:</label>
+            <select name="visibility" id="visibility">
+                <option value="org">Org Dashboard</option>
+                <option value="public">Public</option>
+                <option value="both" selected>Both</option>
+            </select>
+        </div>
+        <button type="submit">Create Event</button>
+    </form>
+</fieldset>
+
+
+    <fieldset>
+        <h1>Announcemen</h1>
+        <legend>Create Announcemen</legend>
+    <form action="/common/createEventAnnouncement" method="POST">
+        <input type="hidden" name="type" value="announcement">
+        <textarea name="announcementMessage" placeholder="Announcement Details" required></textarea>
+        <div>
+            <label for="visibility">Visibility:</label>
+            <select name="visibility" id="visibility">
+                <option value="org">Org Dashboard</option>
+                <option value="public">Public</option>
+                <option value="both" selected>Both</option>
+            </select>
+        </div>
+        <button type="submit">Post Announcement</button>
+    </form>
+</fieldset>
+</div>
+
+
+   
+</body>
