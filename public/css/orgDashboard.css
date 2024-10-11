@@ -1,3 +1,4 @@
+/* Overall dashboard container */
 .dashboard-container, .public-dashboard-container {
   margin-top: 20px;
   display: flex;
@@ -8,23 +9,62 @@
   margin: auto;
 }
 
-.classes-container, .events-container, .announcements-container {
-  width: 100%;
-  background: #f9f9f9;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
+/* Center the dashboard heading */
+#orgDashboardSection h1 {
+    text-align: center;
+    margin-bottom: 20px;
 }
 
-.school-year-info, .events-container, .announcements-container {
-  display: block;
-  width: 100%;
-  text-align: center;
+/* Flexbox layout for the main sections in the orgDashboardSection */
+#orgDashboardSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
+/* Two rows of containers: top row has two columns (classes and school year info), and the bottom row has two columns (events and announcements) */
+.dashboard-grid {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 1200px;
+    gap: 20px;
+}
+
+/* Each grid row should be a flex container with two equal parts */
+.grid-row {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+/* Individual section containers with equal flex space */
+.classes-container, .school-year-info, .events-container, .announcements-container {
+    flex: 1;
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    min-width: 250px;
+}
+
+/* Ensure there’s some space between two items in each row */
+.grid-row > div {
+    margin: 10px;
+}
+
+/* Center alignment for event and announcement titles */
+.events-container h2,
+.announcements-container h2 {
+    text-align: center;
+}
+
+/* List styles for events, classes, announcements */
 ul {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
 li {
@@ -32,6 +72,23 @@ li {
   text-align: left;
 }
 
+/* Center the Classes header */
+.classes-container h2 {
+  text-align: center;
+}
+
+/* Keep the rest of the class list aligned as they are */
+.classes-container ul {
+  list-style: none;
+  padding: 0;
+}
+
+.classes-container li {
+  margin-bottom: 10px;
+  text-align: left; /* Keep the list items left-aligned */
+}
+
+/* Optional: Styling for employees and other class details */
 .on-hold {
   color: red;
   font-size: 1.2em;
@@ -42,18 +99,110 @@ li {
   font-size: 1.2em;
 }
 
-.events-container h2,
-.announcements-container h2 {
-  text-align: center;
+
+/* Welcome message when no school year or term is selected */
+.welcome-message {
+    text-align: center;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    width: 50%;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-ul {
-  list-style: disc;
-  padding-left: 20px;
+.welcome-message h1 {
+    font-size: 2.5em;
+    color: #333;
 }
 
+.welcome-message p {
+    font-size: 1.2em;
+    color: #666;
+}
+
+.start-link {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+}
+
+.start-link:hover {
+    background-color: #0056b3;
+    text-decoration: none;
+}
+
+/* Horizontal line divider */
 .line-divider {
   width: 100%;
   border-top: 2px solid #ddd;
   margin: 20px 0;
+}
+
+/* Dashboard button styles */
+.dashboard-buttons {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.dashboard-buttons button {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 20px;
+  margin: 0 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.dashboard-buttons button.active {
+  background-color: #0056b3;
+}
+
+.dashboard-buttons button:hover {
+  background-color: #0056b3;
+}
+/* Current School Year section styling */
+.school-year-info {
+  flex: 1;
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  text-align: center; /* Center all text and items */
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.school-year-info h2 {
+  margin-bottom: 10px;
+}
+
+.school-year-info div {
+  margin-bottom: 10px;
+}
+
+/* Align days until end in the same centered style */
+#daysUntilEnd {
+  font-weight: bold;
+}
+
+
+/* Mobile view: make grid-row elements stack vertically */
+@media (max-width: 768px) {
+    .grid-row {
+        flex-direction: column;
+    }
+    .grid-row > div {
+        margin: 10px 0;
+    }
 }

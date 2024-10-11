@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Term Details</title>
+    <title><%= title %></title>  <!-- Title is now defined -->
     <style>
         body {
             background-color: #f9f9f9;
             margin: 0;
             padding: 0;
+            font-family: Arial, sans-serif;
         }
 
         .container {
@@ -20,25 +21,46 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
-        h1, h2, h3 {
+        h1 {
             color: #333;
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+
+        .term-details {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .term-details h3 {
+            margin: 5px 0;
+        }
+
+        .classes-container {
             text-align: center;
         }
 
-        ul {
-            list-style: none;
-            padding: 0;
+        h2 {
+            font-size: 24px;
+            margin-bottom: 15px;
         }
 
-        li {
-            margin-bottom: 10px;
-            padding: 10px;
+        .class-item {
             background-color: #f1f1f1;
-            border-radius: 4px;
+            padding: 10px 15px;
+            border-radius: 6px;
             border: 1px solid #ddd;
+            margin-bottom: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: background-color 0.3s ease;
+        }
+
+        .class-item:hover {
+            background-color: #e9e9e9;
         }
 
         .btn {
@@ -60,24 +82,24 @@
 </head>
 <body>
     <div class="container">
-        <h1>Term: <%= term.term_name %></h1>
-        <h3>Start Date: <%= new Date(term.start_date).toLocaleDateString() %></h3>
-        <h3>End Date: <%= new Date(term.end_date).toLocaleDateString() %></h3>
-
         <div class="classes-container">
+            <h1><%= title %></h1>
+        <div class="term-details">
+            <h3>Term: <%= term.term_name %></h3>
+            <h3>Start Date: <%= new Date(term.start_date).toLocaleDateString() %></h3>
+            <h3>End Date: <%= new Date(term.end_date).toLocaleDateString() %></h3>
+        </div>
             <h2>Classes</h2>
-            <ul>
-                <% if (classes && classes.length > 0) { %>
-                    <% classes.forEach(function(cls) { %>
-                        <li>
-                            <span><%= cls.class_name %></span>
-                            <a href="/print/printStudentReport?classId=<%= cls.class_id %>" class="btn">Generate Report</a>
-                        </li>
-                    <% }); %>
-                <% } else { %>
-                    <li>No classes found</li>
-                <% } %>
-            </ul>
+            <% if (classes && classes.length > 0) { %>
+                <% classes.forEach(function(cls) { %>
+                    <div class="class-item">
+                        <span><%= cls.class_name %></span>
+                        <a href="/print/printStudentReport?classId=<%= cls.class_id %>&termId=<%= termId %>" class="btn">Generate Report</a>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div class="class-item">No classes assigned for this term</div>
+            <% } %>
         </div>
     </div>
 </body>

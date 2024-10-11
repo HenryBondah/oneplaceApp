@@ -63,7 +63,7 @@ module.exports = (db) => {
     router.get('/getGradYearGroupByClassId', isAuthenticated, (req, res) => commonController.getGradYearGroupByClassId(req, res, db));
     router.get('/getMajorityGraduationYearGroup', isAuthenticated, (req, res) => commonController.getMajorityGraduationYearGroup(req, res, db));
     router.get('/closeSchoolYear', isAuthenticated, (req, res) => commonController.closeSchoolYear(req, res, db));
-    router.get('/termDetails', isAuthenticated, (req, res) => commonController.termDetails(req, res, db));
+    router.get('/termDetails/:termId', isAuthenticated, (req, res) => commonController.termDetails(req, res, db));
     router.get('/closeGraduationYearGroup', isAuthenticated, (req, res) => commonController.closeGraduationYearGroup(req, res, db));
     router.post('/closeGraduationYearGroupPost', isAuthenticated, (req, res) => commonController.closeGraduationYearGroupPost(req, res, db));
     router.post('/deleteEvent', isAuthenticated, (req, res) => commonController.deleteEvent(req, res, db));

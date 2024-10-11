@@ -28,7 +28,11 @@
     <% if (error_msg) { %>
         <div class="alert alert-danger"><%= error_msg %></div>
     <% } %>
-    <a href="/print/printStudentReport?classId=<%= classId %>" class="back-btn">Back</a>
+
+    <div class="link-to-next-back">
+        <button class="btn btn-primary" onclick="window.print()">Print Report</button>
+        <a href="/print/printStudentReport?classId=<%= classId %>&termId=<%= termId %>" class="btn btn-primary"> Back</a>
+    </div>
     <hr>
     <div class="container">
 

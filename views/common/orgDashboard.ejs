@@ -1,41 +1,5 @@
 <body>
-    <style>
-        .welcome-message {
-            text-align: center;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            width: 50%;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        .welcome-message h1 {
-            font-size: 2.5em;
-            color: #333;
-        }
-        
-        .welcome-message p {
-            font-size: 1.2em;
-            color: #666;
-        }
-        
-        .start-link {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-        }
-        
-        .start-link:hover {
-            background-color: #0056b3;
-            text-decoration: none;
-        }
-    </style>
+  
 
     <div class="dashboard-buttons">
         <button id="orgDashboardBtn" class="active">Org Dashboard</button>
@@ -47,93 +11,106 @@
         <% if (!schoolYear || !currentTerm) { %>
             <!-- Show the welcome message if no school year or term is set -->
             <div id="welcomeMessage" class="welcome-message">
-                <h1>Welcome to your organization!</h1>
-                <p>Start by creating a school year and a term.</p>
+                <h1>welcome</h1>
+                <h3>One place is here to help! :)</h3>
+                <p>Start by creating and selecting a school year and a term.</p>
                 <a href="/common/manageRecords" class="start-link">Start here</a>
             </div>
         <% } else { %>
+
             <!-- Main content when school year and term are set -->
             <div id="orgDashboardSection">
                 <h1>Organization Dashboard</h1>
-                
-                <!-- Classes Section -->
-                <div class="classes-container">
-                    <h2>Classes</h2>
-                    <ul>
-                        <% if (classes && classes.length > 0) { %>
-                            <% classes.forEach(function(cls) { %>
-                                <li>
-                                    <a href="/common/classDashboard?classId=<%= cls.class_id %>"><%= cls.class_name %></a>
-                                    - Employees:
-                                    <% cls.employees.forEach(function(emp, index) { %>
-                                        <% if (emp.main) { %><span class="main">•</span><% } %>
-                                        <%= emp.name %>
-                                        <% if (emp.on_hold) { %><span class="on-hold">•</span><% } %>
-                                        <%= index < cls.employees.length - 1 ? ' | ' : '' %>
+
+                <!-- Dashboard grid layout -->
+                <div class="dashboard-grid">
+                    <!-- Top row: classes and school year info -->
+                    <div class="grid-row">
+                        
+                    
+
+
+                            <!-- Classes Section -->
+                            <div class="classes-container" style="text-align: center;">
+                                <h2>Classes</h2>
+                                <ul>
+                                    <% if (classes && classes.length > 0) { %>
+                                        <% classes.forEach(function(cls) { %>
+                                            <li>
+                                                <a href="/common/classDashboard?classId=<%= cls.class_id %>"><%= cls.class_name %></a>
+                                                - <b>Teachers:</b>
+                                                <% cls.employees.forEach(function(emp, index) { %>
+                                                    <% if (emp.main) { %><span class="main">•</span><% } %>
+                                                    <%= emp.name %>
+                                                    <% if (emp.on_hold) { %><span class="on-hold">•</span><% } %>
+                                                    <%= index < cls.employees.length - 1 ? ' | ' : '' %>
+                                                <% }); %>
+                                            </li>
+                                        <% }); %>
+                                    <% } else { %>
+                                        <li>No classes found</li>
+                                    <% } %>
+                                </ul>
+                            </div>
+
+                        <!-- School Year and Term Section -->
+                        <div class="school-year-info">
+                            <h2>Current School Year: <%= schoolYear.year_label %></h2>
+                            <% if (currentTerm) { %>
+                                <div>
+                                    <strong><%= currentTerm.term_name %>:</strong>
+                                    Start: <%= new Date(currentTerm.start_date).toISOString().split('T')[0] %>,
+                                    End: <%= new Date(currentTerm.end_date).toISOString().split('T')[0] %>
+                                </div>
+                                <div>
+                                    <strong>Days until end of term: </strong>
+                                    <span id="daysUntilEnd"><%= Math.ceil((new Date(currentTerm.end_date) - new Date()) / (1000 * 60 * 60 * 24)) %></span>
+                                </div>
+                            <% } else { %>
+                                <p>No current term information available.</p>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <!-- Bottom row: events and announcements -->
+                    <div class="grid-row">
+                        <!-- Events Section -->
+                        <div class="events-container">
+                            <h2>Events</h2>
+                            <ul>
+                                <% if (events && events.length > 0) { %>
+                                    <% events.forEach(function(event) { %>
+                                        <li>
+                                            <strong><%= event.name %></strong> - <%= new Date(event.event_date).toISOString().split('T')[0] %>
+                                            <br><%= event.details %>
+                                        </li>
                                     <% }); %>
-                                </li>
-                            <% }); %>
-                        <% } else { %>
-                            <li>No classes found</li>
-                        <% } %>
-                    </ul>
-                </div>
-
-                <!-- School Year and Term Section -->
-                <div class="school-year-info">
-                    <h2>Current School Year: <%= schoolYear.year_label %></h2>
-                    <% if (currentTerm) { %>
-                        <div>
-                            <strong><%= currentTerm.term_name %>:</strong>
-                            Start: <%= new Date(currentTerm.start_date).toISOString().split('T')[0] %>,
-                            End: <%= new Date(currentTerm.end_date).toISOString().split('T')[0] %>
+                                <% } else { %>
+                                    <li>No events found</li>
+                                <% } %>
+                            </ul>
                         </div>
-                        <div>
-                            <strong>Days until end of term: </strong>
-                            <span id="daysUntilEnd"><%= Math.ceil((new Date(currentTerm.end_date) - new Date()) / (1000 * 60 * 60 * 24)) %></span>
+
+                        <!-- Announcements Section -->
+                        <div class="announcements-container">
+                            <h2>Announcements</h2>
+                            <ul>
+                                <% if (announcements && announcements.length > 0) { %>
+                                    <% announcements.forEach(function(announcement) { %>
+                                        <li><%= announcement.message %></li>
+                                    <% }); %>
+                                <% } else { %>
+                                    <li>No announcements found</li>
+                                <% } %>
+                            </ul>
                         </div>
-                    <% } else { %>
-                        <p>No current term information available.</p>
-                    <% } %>
-                </div>
-
-                <!-- Events Section -->
-                <div class="events-container">
-                    <h2>Events</h2>
-                    <ul>
-                        <% if (events && events.length > 0) { %>
-                            <% events.forEach(function(event) { %>
-                                <li>
-                                    <strong><%= event.name %></strong> - <%= new Date(event.event_date).toISOString().split('T')[0] %>
-                                    <br><%= event.details %>
-                                </li>
-                            <% }); %>
-                        <% } else { %>
-                            <li>No events found</li>
-                        <% } %>
-                    </ul>
-                </div>
-
-                <!-- Announcements Section -->
-                <div class="announcements-container">
-                    <h2>Announcements</h2>
-                    <ul>
-                        <% if (announcements && announcements.length > 0) { %>
-                            <% announcements.forEach(function(announcement) { %>
-                                <li><%= announcement.message %></li>
-                            <% }); %>
-                        <% } else { %>
-                            <li>No announcements found</li>
-                        <% } %>
-                    </ul>
+                    </div>
                 </div>
             </div>
         <% } %>
     </div>
 
     <script>
-        const organizationId = <%= JSON.stringify(organizationId) %>;
-
         // Hide or show the welcome message or orgDashboardSection based on schoolYear and currentTerm
         document.addEventListener('DOMContentLoaded', () => {
             const schoolYear = <%= JSON.stringify(schoolYear) %>;
@@ -147,44 +124,5 @@
                 document.getElementById('welcomeMessage').style.display = 'none';
             }
         });
-
-        // Additional JS for dashboard buttons
-        document.getElementById('orgDashboardBtn').addEventListener('click', () => {
-            document.getElementById('orgDashboardSection').style.display = 'block';
-            document.getElementById('publicDashboardSection').style.display = 'none';
-            document.getElementById('orgDashboardBtn').classList.add('active');
-            document.getElementById('publicDashboardBtn').classList.remove('active');
-        });
-
-        document.getElementById('publicDashboardBtn').addEventListener('click', () => {
-            document.getElementById('orgDashboardSection').style.display = 'none';
-            document.getElementById('publicDashboardSection').style.display = 'block';
-            document.getElementById('orgDashboardBtn').classList.remove('active');
-            document.getElementById('publicDashboardBtn').classList.add('active');
-        });
-
-        fetch(`/common/publicDashboardContent?organizationId=${organizationId}`)
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById('publicDashboardSection').innerHTML = html;
-            })
-            .catch(error => console.error('Error fetching public dashboard content:', error));
-        
-       
-            document.addEventListener('DOMContentLoaded', () => {
-    const schoolYear = <%= JSON.stringify(schoolYear) %>;
-    const currentTerm = <%= JSON.stringify(currentTerm) %>;
-
-    // If school year and term are set, redirect to the restricted URL with their IDs
-    if (schoolYear && currentTerm) {
-        const url = `/common/orgDashboard/${schoolYear.id}/${currentTerm.term_id}`;
-        window.location.href = url;
-    }
-});
-
-
-
-
-
     </script>
 </body>

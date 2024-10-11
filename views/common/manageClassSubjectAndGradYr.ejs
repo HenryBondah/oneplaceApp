@@ -74,7 +74,7 @@
     <!-- Horizontal line separator -->
 
     <div class="container">
- 
+       
 
         <fieldset>
             <legend>Classes</legend>
@@ -99,10 +99,10 @@
                         <option value="<%= cls.class_id %>"><%= cls.class_name %></option>
                     <% }); %>
                 </select>
+                <div id="subjectsContainer"></div>
             </form>
             
         </fieldset>
-
         <fieldset>
             <legend>Graduation Year Groups</legend>
             <% graduationYearGroups.forEach(group => { %>
@@ -115,9 +115,8 @@
                     </form>
                 </div>
             <% }); %>
+            
         </fieldset>
-        <div id="subjectsContainer"></div>
-
     </div>
 
     <script>

@@ -364,6 +364,14 @@ CREATE TABLE IF NOT EXISTS organization_images (
     class_id INT REFERENCES classes(class_id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS report_settings (
+    setting_id SERIAL PRIMARY KEY,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
+    signature_image_path VARCHAR(255), -- Path to the signature image
+    class_id INT REFERENCES classes(class_id) ON DELETE CASCADE -- You can add additional columns as needed
+);
+
+
 -- Ensure indexes for optimization
 CREATE INDEX IF NOT EXISTS idx_user_email ON users (email);
 CREATE INDEX IF NOT EXISTS idx_org_name ON organizations (organization_name);
@@ -460,3 +468,9 @@ BEGIN
         ALTER TABLE score_remarks ADD COLUMN class_id INT REFERENCES classes(class_id) ON DELETE CASCADE;
     END IF;
 END $$;
+
+ALTER TABLE students ADD COLUMN graduation_year_group_id INT REFERENCES graduation_year_groups(id) ON DELETE SET NULL;
+ALTER TABLE assessments ADD COLUMN max_score NUMERIC(5, 2);
+-- Add class_id to the users table
+ALTER TABLE users 
+ADD COLUMN class_id INT REFERENCES classes(class_id) ON DELETE SET NULL;

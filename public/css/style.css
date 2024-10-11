@@ -301,6 +301,21 @@ footer .social-media a {
   overflow: hidden;
 }
 
+ /* Button styling */
+ button[type="submit"] {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 5px;
+  margin-top: 20px;
+}
+
+button[type="submit"]:hover {
+  background-color: #0056b3;
+}
+
 footer .social-media img {
   width: 100%;
   height: 100%;
@@ -330,10 +345,13 @@ footer .social-media img {
 
 form input[type="text"],
 form select,
+
 form textarea {
   width: 100%;
   box-sizing: border-box;
   margin-bottom: 20px;
+  top: 10px;
+  position: relative;
 }
 
 form textarea {

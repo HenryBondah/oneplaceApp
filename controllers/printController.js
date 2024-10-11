@@ -30,6 +30,12 @@ async function getFromS3(key) {
     }
 }
 
+function getOrdinalSuffix(number) {
+    const suffixes = ["th", "st", "nd", "rd"];
+    const value = number % 100;
+    return number + (suffixes[(value - 20) % 10] || suffixes[value] || suffixes[0]);
+}
+
 async function deleteFromS3(key) {
     const command = new DeleteObjectCommand({
         Bucket: process.env.S3_BUCKET_NAME,
@@ -97,7 +103,15 @@ const printController = (db) => ({
                 FROM status_settings
                 WHERE organization_id = $1 AND class_id = $2 LIMIT 1
             `, [organizationId, parsedClassId]);
-            const statusSettings = statusSettingsResult.rows[0];
+            const statusSettings = statusSettingsResult.rows[0] || {};
+    
+            const cutOffPoint = statusSettings.cut_off_point || 'No Cut-off Point Set';
+            const promotedClass = statusSettings.promoted_class || 'No Promoted Class';
+            const repeatedClass = statusSettings.repeated_class || 'No Repeated Class';
+            const schoolReopenDate = statusSettings.school_reopen_date
+                ? new Date(statusSettings.school_reopen_date).toLocaleDateString()
+                : 'No Reopen Date';
+            const activatePromotion = statusSettings.activate_promotion || false;
     
             // Fetch term details
             const termResult = await db.query('SELECT * FROM terms WHERE term_id = $1 AND organization_id = $2', [parsedTermId, organizationId]);
@@ -130,8 +144,8 @@ const printController = (db) => ({
             const signatureImagePath = reportSettingsResult.rows[0]?.signature_image_path;
             const signatureImageUrl = signatureImagePath ? await getFromS3(signatureImagePath) : null;
     
+            // Process students and their scores
             let studentScores = [];
-    
             for (const student of students) {
                 student.subjects = [];
                 let totalPercentageSum = 0;
@@ -139,7 +153,6 @@ const printController = (db) => ({
                 let subjectCount = 0;
     
                 for (const subject of allSubjects) {
-                    // Fetch category scores from the category_scores table for each category
                     const categoryScoresResult = await db.query(`
                         SELECT 
                             COALESCE(SUM(CASE WHEN cs.category = 'Class Assessment' THEN cs.total_score ELSE 0 END), 0) AS classAssessmentScore,
@@ -150,7 +163,6 @@ const printController = (db) => ({
                     `, [student.student_id, subject.subject_id, parsedClassId, organizationId, parsedTermId]);
     
                     const categoryScores = categoryScoresResult.rows[0] || {};
-    
                     const classAssessmentScore = categoryScores.classassessmentscore || '-';
                     const examsAssessmentScore = categoryScores.examsassessmentscore || '-';
                     const otherAssessmentScore = categoryScores.otherassessmentscore || '-';
@@ -165,7 +177,7 @@ const printController = (db) => ({
                         FROM assessments a
                         LEFT JOIN assessment_results ar ON a.assessment_id = ar.assessment_id AND ar.student_id = $1
                         LEFT JOIN student_positions sp ON sp.student_id = ar.student_id AND sp.subject_id = a.subject_id
-                        WHERE a.subject_id = $2 AND a.class_id = $3 AND a.organization_id = $4 AND a.term_id = $5
+                        WHERE a.subject_id = $2 AND a.class_id = $3 AND a.organization_id = $4 AND ar.term_id = $5
                         GROUP BY ar.total_subject_score, ar.total_percentage, sp.position, ar.grade
                     `, [student.student_id, subject.subject_id, parsedClassId, organizationId, parsedTermId]);
     
@@ -200,12 +212,12 @@ const printController = (db) => ({
                 student.overallPercentage = subjectCount > 0 ? (totalPercentageSum / subjectCount).toFixed(2) : '-';
                 student.totalScoreSum = totalScoreSum;
     
-                if (student.overallPercentage >= statusSettings.cut_off_point) {
+                if (student.overallPercentage >= cutOffPoint) {
                     student.promotionStatus = 'Promoted';
-                    student.promotionClass = statusSettings.promoted_class;
+                    student.promotionClass = promotedClass;
                 } else {
                     student.promotionStatus = 'Repeated';
-                    student.promotionClass = statusSettings.repeated_class;
+                    student.promotionClass = repeatedClass;
                 }
     
                 studentScores.push({
@@ -236,23 +248,23 @@ const printController = (db) => ({
                 teacherRemarks: teacherRemarks,
                 classId: parsedClassId,
                 termId: parsedTermId,
-                schoolReopenDate: statusSettings.school_reopen_date ? new Date(statusSettings.school_reopen_date).toLocaleDateString() : 'TBA',
-                promotedClass: statusSettings.promoted_class,
-                repeatedClass: statusSettings.repeated_class,
-                activatePromotion: statusSettings.activate_promotion
+                schoolReopenDate: schoolReopenDate,
+                promotedClass: promotedClass,
+                repeatedClass: repeatedClass,
+                activatePromotion: activatePromotion
             });
         } catch (error) {
             console.error('Error generating student report:', error);
             res.status(500).send('Failed to generate student report.');
         }
-    },
-            
+    },    
     
+            
     
 
         
     reportSettingsPage: async (req, res) => {
-        const { classId, termId } = req.query;  // Get classId and termId from query parameters
+        const { classId, termId } = req.query;
         const organizationId = req.session.organizationId;
     
         // Validate that classId and termId are provided and are integers
@@ -326,8 +338,8 @@ const printController = (db) => ({
                 scoreRemarks,
                 classes,
                 signatureImageUrl,
-                classId: parsedClassId,  // Pass the parsed classId to the view
-                termId: parsedTermId,    // Pass the parsed termId to the view
+                classId: parsedClassId,
+                termId: parsedTermId,
                 success_msg: req.flash('success_msg'),
                 error_msg: req.flash('error_msg'),
             });
@@ -336,7 +348,8 @@ const printController = (db) => ({
             res.status(500).send('Failed to load report settings page.');
         }
     },
-            
+    
+                    
     
 
     

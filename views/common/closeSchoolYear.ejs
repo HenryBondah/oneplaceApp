@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Close School Year</title>
+    <title><%= title %></title>
     <style>
         body {
             margin: 0;
             padding: 0;
             background-color: #f9f9f9;
+            font-family: Arial, sans-serif;
         }
 
         .close-school-year-container {
@@ -25,6 +26,13 @@
         h1 {
             margin-bottom: 20px;
             color: #333;
+            font-size: 28px;
+        }
+
+        h2 {
+            color: #555;
+            margin-bottom: 10px;
+            font-size: 22px;
         }
 
         .school-year-buttons {
@@ -32,6 +40,7 @@
             flex-wrap: wrap;
             justify-content: center;
             gap: 20px;
+            margin-bottom: 30px;
         }
 
         .btn {
@@ -50,19 +59,33 @@
         .btn:hover {
             background-color: #0056b3;
         }
+
+        .no-terms-message {
+            color: #777;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="close-school-year-container">
-        <h1>Close School Year</h1>
-        <% schoolYears.forEach(schoolYear => { %>
-            <h2><%= schoolYear.year_label %></h2>
-            <div class="school-year-buttons">
-                <% schoolYear.terms.forEach(term => { %>
-                    <a href="/common/termDetails?termId=<%= term.term_id %>" class="btn"><%= term.term_name %></a>
-                <% }) %>
-            </div>
-        <% }) %>
+        <h1><%= title %></h1>
+        <% if (schoolYears && schoolYears.length > 0) { %>
+            <% schoolYears.forEach(schoolYear => { %>
+                <h2><%= schoolYear.year_label %></h2>
+                <div class="school-year-buttons">
+                    <% if (schoolYear.terms.length > 0) { %>
+                        <% schoolYear.terms.forEach(term => { %>
+<a href="/common/termDetails/<%= term.term_id %>" class="btn"><%= term.term_name %></a>
+                        <% }); %>
+                    <% } else { %>
+                        <p class="no-terms-message">No terms available for this school year.</p>
+                    <% } %>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <p>No school years available.</p>
+        <% } %>
     </div>
 </body>
 </html>

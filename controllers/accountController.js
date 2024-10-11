@@ -377,32 +377,33 @@ const accountController = {
     personalizationLogoPost: async (req, res) => {
         const { file } = req;
         const { organizationId } = req.session;
-
+    
         if (!file) {
             req.flash('error', 'No file uploaded. Please select a file to upload.');
             return res.redirect('/account/personalization');
         }
-
+    
         try {
-            const result = await db.query('SELECT logo FROM organizations WHERE organization_id = $1', [organizationId]);
-            const previousLogo = result.rows[0].logo;
-
+            // Fetch the previous logo URL
+            const result = await db.query('SELECT logo_path FROM organizations WHERE organization_id = $1', [organizationId]);
+            const previousLogo = result.rows[0].logo_path;
+    
             // Upload the new logo to S3
             const logoUrl = await uploadToS3(file);
-
+    
             // Update the organization record with the new logo URL
-            await db.query('UPDATE organizations SET logo = $1 WHERE organization_id = $2', [logoUrl, organizationId]);
-
+            await db.query('UPDATE organizations SET logo_path = $1 WHERE organization_id = $2', [logoUrl, organizationId]);
+    
             // Update the session with the new logo URL
             req.session.logo = logoUrl;
             req.session.save();
-
+    
             // Delete the old logo from S3 if it exists
             if (previousLogo) {
                 const oldLogoKey = previousLogo.split('/').pop();
                 await deleteFromS3(`images/${oldLogoKey}`);
             }
-
+    
             req.flash('success', 'Logo updated successfully.');
             res.redirect('/account/personalization');
         } catch (err) {
@@ -411,7 +412,7 @@ const accountController = {
             res.redirect('/account/personalization');
         }
     },
-    
+        
     
     getSubjectsByClass: async (req, res) => {
         const { classId } = req.query;
