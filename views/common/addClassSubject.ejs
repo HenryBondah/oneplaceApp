@@ -1,41 +1,50 @@
+<style>
+    .link-to-manage {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .link-to-manage a {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+    }
+    .link-to-manage a:hover {
+        background-color: #0056b3;
+    }
+    .separator {
+        border-bottom: 1px solid #ccc;
+        margin: 20px 0;
+    }
+    .flash-message {
+        text-align: center;
+        margin-bottom: 20px;
+        padding: 10px;
+        border-radius: 5px;
+    }
+    .flash-success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    .flash-error {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    .add-button {
+        margin-left: 10px;
+        cursor: pointer;
+        color: green;
+    }
+    .remove-button {
+        margin-left: 10px;
+        cursor: pointer;
+        color: red;
+    }
+</style>
 
-    <style>
-        .link-to-manage {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .link-to-manage a {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background-color 0.3s ease;
-        }
-        .link-to-manage a:hover {
-            background-color: #0056b3;
-        }
-        .separator {
-            border-bottom: 1px solid #ccc;
-            margin: 20px 0;
-        }
-        .flash-message {
-            text-align: center;
-            margin-bottom: 20px;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .flash-success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .flash-error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-    </style>
-</head>
 <body>
     <!-- Flash Messages -->
     <% if (messages && messages.success && messages.success.length > 0) { %>
@@ -58,48 +67,119 @@
     <div class="separator"></div>
 
     <div class="container">
+        <!-- Add Class Section -->
         <fieldset>
             <h1>Add Class</h1>
             <legend>Class</legend>
-            <form action="/common/addClass" method="post">
-                <div>
-                    <label>Class Name:</label>
-                    <input type="text" name="className" required>
+            <form action="/common/addClass" method="post" id="classForm">
+                <div id="class-fields">
+                    <div>
+                        <label>Class Name:</label>
+                        <input type="text" name="className[]" required>
+                        <span class="add-button" onclick="addClassField()">+</span>
+                    </div>
                 </div>
                 <button type="submit">Add Class</button>
             </form>
         </fieldset>
 
+        <!-- Add Subject Section -->
         <fieldset>
             <h1>Add Subject</h1>
             <legend>Subject</legend>
-            <form action="/common/addSubject" method="post">
-                <div>
-                    <label>Subject Name:</label>
-                    <input type="text" name="subjectName" required>
-                </div>
-                <div>
-                    <label>Assign to Class:</label>
-                    <select name="classId" required>
-                        <% classes.forEach(function(cls) { %>
-                            <option value="<%= cls.class_id %>"><%= cls.class_name %></option>
-                        <% }); %>
-                    </select>
+            <form action="/common/addSubject" method="post" id="subjectForm">
+                <div id="subject-fields">
+                    <div>
+                        <label>Subject Name:</label>
+                        <input type="text" name="subjectName[]" required>
+                        <label>Assign to Class:</label>
+                        <div>
+                            <!-- Add a Select All checkbox -->
+                            <input type="checkbox" id="selectAll"> Select All <br>
+                            <% classes.forEach(function(cls) { %>
+                                <input type="checkbox" class="class-checkbox" name="classId[]" value="<%= cls.class_id %>"> <%= cls.class_name %> <br>
+                            <% }); %>
+                        </div>
+                        <HR></HR>
+                        <span class="add-button" onclick="addSubjectField()">+</span>
+                    </div>
                 </div>
                 <button type="submit">Add Subject</button>
             </form>
         </fieldset>
 
+        <!-- Add Graduation Year Group Section -->
         <fieldset>
             <h1>Add Graduation Year Group</h1>
             <legend>Graduation Year Group</legend>
-            <form action="/common/addGraduationYearGroup" method="post">
-                <div>
-                    <label>Graduation Year:</label>
-                    <input type="text" name="graduationYear" required>
+            <form action="/common/addGraduationYearGroup" method="post" id="graduationYearGroupForm">
+                <div id="graduationYear-fields">
+                    <div>
+                        <label>Graduation Year:</label>
+                        <input type="text" name="graduationYear[]" required>
+                        <span class="add-button" onclick="addGraduationYearField()">+</span>
+                    </div>
                 </div>
                 <button type="submit">Add Graduation Year Group</button>
             </form>
         </fieldset>
     </div>
 
+    <script>
+        // Function to add a new class field
+        function addClassField() {
+            const classFields = document.getElementById('class-fields');
+            const newField = document.createElement('div');
+            newField.innerHTML = `
+                <label>Class Name:</label>
+                <input type="text" name="className[]" required>
+                <span class="remove-button" onclick="removeField(this)">-</span>
+            `;
+            classFields.appendChild(newField);
+        }
+
+        // Function to add a new subject field
+        function addSubjectField() {
+            const subjectFields = document.getElementById('subject-fields');
+            const newField = document.createElement('div');
+            newField.innerHTML = `
+                <label>Subject Name:</label>
+                <input type="text" name="subjectName[]" required>
+                <label>Assign to Class:</label>
+                <div>
+                    <input type="checkbox" id="selectAll"> Select All <br>
+                    <% classes.forEach(function(cls) { %>
+                        <input type="checkbox" class="class-checkbox" name="classId[]" value="<%= cls.class_id %>"> <%= cls.class_name %> <br>
+                    <% }); %>
+                </div>
+                <span class="remove-button" onclick="removeField(this)">-</span>
+            `;
+            subjectFields.appendChild(newField);
+        }
+
+        // Function to add a new graduation year field
+        function addGraduationYearField() {
+            const graduationYearFields = document.getElementById('graduationYear-fields');
+            const newField = document.createElement('div');
+            newField.innerHTML = `
+                <label>Graduation Year:</label>
+                <input type="text" name="graduationYear[]" required>
+                <span class="remove-button" onclick="removeField(this)">-</span>
+            `;
+            graduationYearFields.appendChild(newField);
+        }
+
+        // Function to remove a field
+        function removeField(element) {
+            element.parentNode.remove();
+        }
+
+        // Add event listener to "Select All" checkbox
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.class-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    </script>
+</body>

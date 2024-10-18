@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Assessments</title>
+
     <% if (messages.success && messages.success.length > 0) { %>
         <div class="flash-success"><%= messages.success %></div>
     <% } %>
@@ -12,57 +13,83 @@
     <% } %>
 
     <style>
-        th, td {
+        /* Style the form */
+        .manage-assessment-form {
+            max-width: 80%; /* Adjusts width relative to the page */
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-wrapper {
+            overflow-x: auto; /* Ensures the table is scrollable horizontally */
+            width: 100%; /* Ensures it takes up the full width */
+        }
+
+        .manage-assessment-form table {
+            width: 100%; /* Full width for table inside the form */
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            min-width: 800px; /* Ensures that the table doesn't get too squished on smaller screens */
+        }
+
+        .manage-assessment-form th, .manage-assessment-form td {
             padding: 10px;
+            text-align: left;
             border: 1px solid #ddd;
-            vertical-align: top;
+            font-size: 16px;
+            vertical-align: middle; /* Vertically align input fields */
         }
 
-        .form-group {
-            margin-bottom: 15px;
+        .manage-assessment-form th {
+            background-color: #f2f2f2;
+            text-align: center;
         }
 
+        /* Input fields within the form */
+        .manage-assessment-form input,
+        .manage-assessment-form select {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box; /* Ensures consistent sizing */
+        }
+
+        .manage-assessment-form button {
+            padding: 10px 15px;
+            font-size: 16px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .manage-assessment-form button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Center the update button */
         .action-buttons {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .weight-input, .max-score-input {
-            width: 100%;
-        }
-
-        .test-name-input {
-            width: 100%;
-        }
-
-        .category-select {
-            width: 100%;
-            padding: 5px;
-        }
-
-        @media (max-width: 768px) {
-            .test-name-input {
-                width: 60%;
-            }
-            .weight-input, .max-score-input, .category-select {
-                width: 20%;
-            }
-        }
-
-        .action-buttons form {
-            display: inline-block;
-            margin-top: 5px;
+            text-align: center;
+            margin-top: 20px;
         }
 
         .action-buttons button {
-            padding: 8px 15px;
-            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
             background-color: #284cdb;
             color: white;
-            font-size: 14px;
             cursor: pointer;
             border-radius: 5px;
             transition: background-color 0.3s ease, transform 0.2s ease;
+            width: 150px;
         }
 
         .action-buttons button:hover {
@@ -76,6 +103,18 @@
         .action-buttons button:focus {
             outline: none;
         }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .manage-assessment-form th, .manage-assessment-form td {
+                padding: 8px;
+                font-size: 14px;
+            }
+
+            .manage-assessment-form button {
+                width: 100%; /* Full width button on mobile */
+            }
+        }
     </style>
 </head>
 <body>
@@ -84,59 +123,98 @@
         <a href="/common/assessment?classId=<%= classId %>&subjectId=<%= subjectId %>">Back to Assessment</a>
     </div>
     <hr>
-    <h1>Manage Assessments for <%= className %></h1>
-    <h1>Subject: <%= subjectName %></h1>
+    <h1 style="text-align: center;">Manage Assessments for <%= className %></h1>
+    <h1 style="text-align: center;">Subject: <%= subjectName %></h1>
 
-
-    <!-- Form to update assessments -->
-    <form id="updateAssessmentsForm">
-        <table>
-            <thead>
-                <tr>
-                    <th>Test Name</th>
-                    <th>Weight (%)</th>
-                    <th>Score Out Of</th>
-                    <th>Category</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <% assessments.forEach(function(assessment) { %>
+    <!-- Form to update assessments with scoped styles for this form -->
+    <form id="updateAssessmentsForm" class="manage-assessment-form">
+        <div class="table-wrapper">
+            <table>
+                <thead>
                     <tr>
-                        <td>
-                            <input type="text" name="title[<%= assessment.assessment_id %>]" value="<%= assessment.title %>" class="test-name-input" required>
-                        </td>
-                        <td>
-                            <input type="number" name="weight[<%= assessment.assessment_id %>]" value="<%= assessment.weight %>" step="0.1" class="weight-input" required>
-                        </td>
-                        <td>
-                            <input type="number" name="maxScore[<%= assessment.assessment_id %>]" value="<%= assessment.max_score %>" step="0.1" class="max-score-input" required>
-                        </td>
-                        <td>
-                            <select name="category[<%= assessment.assessment_id %>]" class="category-select">
-                                <option value="Class Assessment" <%= assessment.category === 'Class Assessment' ? 'selected' : '' %>>Class Assessment</option>
-                                <option value="Exams Assessment" <%= assessment.category === 'Exams Assessment' ? 'selected' : '' %>>Exams Assessment</option>
-                                <option value="Other" <%= assessment.category === 'Other' ? 'selected' : '' %>>Other</option>
-                            </select>
-                        </td>
-                        <td class="action-buttons">
-                            <form action="/common/deleteAssessment" method="post" style="display:inline;">
-                                <input type="hidden" name="assessmentId" value="<%= assessment.assessment_id %>">
-                                <button type="submit">Delete</button>
-                            </form>
-                        </td>
+                        <th>Test Name</th>
+                        <th>Weight (%)</th>
+                        <th>Score Out Of</th>
+                        <th>Category</th>
+                        <th>Classes</th>
+                        <th>Subjects</th>
+                        <th>Actions</th>
                     </tr>
-                <% }); %>
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    <% assessments.forEach(function(assessment) { %>
+                        <tr>
+                            <!-- Test Name -->
+                            <td>
+                                <input type="text" name="title[<%= assessment.assessment_id %>]" value="<%= assessment.title %>" required>
+                            </td>
+
+                            <!-- Weight -->
+                            <td>
+                                <input type="number" name="weight[<%= assessment.assessment_id %>]" value="<%= assessment.weight %>" step="0.1" required>
+                            </td>
+
+                            <!-- Score Out Of -->
+                            <td>
+                                <input type="number" name="maxScore[<%= assessment.assessment_id %>]" value="<%= assessment.max_score %>" step="0.1" required>
+                            </td>
+
+                            <!-- Category -->
+                            <td>
+                                <select name="category[<%= assessment.assessment_id %>]" required>
+                                    <option value="Class Assessment" <%= assessment.category === 'Class Assessment' ? 'selected' : '' %>>Class Assessment</option>
+                                    <option value="Exams Assessment" <%= assessment.category === 'Exams Assessment' ? 'selected' : '' %>>Exams Assessment</option>
+                                    <option value="Other" <%= assessment.category === 'Other' ? 'selected' : '' %>>Other</option>
+                                </select>
+                            </td>
+
+                            <!-- Display Classes -->
+                            <td>
+                                <ul>
+                                    <% if (assessment.classes && assessment.classes.length > 0) { %>
+                                        <% assessment.classes.forEach(cls => { %>
+                                            <li><%= cls.class_name %></li>
+                                        <% }); %>
+                                    <% } else { %>
+                                        <li>No classes assigned</li>
+                                    <% } %>
+                                </ul>
+                            </td>
+
+                            <!-- Display Subjects -->
+                            <td>
+                                <ul>
+                                    <% if (assessment.subjects && assessment.subjects.length > 0) { %>
+                                        <% assessment.subjects.forEach(sub => { %>
+                                            <li><%= sub.subject_name %></li>
+                                        <% }); %>
+                                    <% } else { %>
+                                        <li>No subjects assigned</li>
+                                    <% } %>
+                                </ul>
+                            </td>
+
+                            <!-- Actions (Delete) -->
+                            <td class="action-buttons">
+                                <form action="/common/deleteAssessment" method="post" style="display:inline;">
+                                    <input type="hidden" name="assessmentId" value="<%= assessment.assessment_id %>">
+                                    <button type="submit">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Update Button -->
         <div class="action-buttons">
-            <!-- Pass classId and subjectId as hidden inputs -->
             <input type="hidden" name="classId" value="<%= classId %>">
             <input type="hidden" name="subjectId" value="<%= subjectId %>">
             <button type="button" id="update-assessments-button">Update All</button>
         </div>
     </form>
-    
+
     <script>
         document.getElementById('update-assessments-button').addEventListener('click', async function() {
             const formElement = document.getElementById('updateAssessmentsForm');

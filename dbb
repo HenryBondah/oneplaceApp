@@ -474,3 +474,6 @@ ALTER TABLE assessments ADD COLUMN max_score NUMERIC(5, 2);
 -- Add class_id to the users table
 ALTER TABLE users 
 ADD COLUMN class_id INT REFERENCES classes(class_id) ON DELETE SET NULL;
+
+ALTER TABLE organizations ADD COLUMN logo TEXT;
+ALTER TABLE assessment_results ADD COLUMN subject_id INT REFERENCES subjects(subject_id);

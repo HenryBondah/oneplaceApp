@@ -1183,25 +1183,33 @@ orgDashboardRestricted: async (req, res, db) => {
 
     assessment: async (req, res, db) => {
         const { classId, subjectId } = req.query;
-
+    
         if (!classId || !subjectId) {
             return res.status(400).send('Class ID and Subject ID are required for the assessment.');
         }
-
+    
         try {
             const classNameResult = await db.query('SELECT class_name FROM classes WHERE class_id = $1 AND organization_id = $2', [classId, req.session.organizationId]);
             const subjectNameResult = await db.query('SELECT subject_name FROM subjects WHERE subject_id = $1 AND organization_id = $2', [subjectId, req.session.organizationId]);
-
+    
             if (classNameResult.rows.length === 0 || subjectNameResult.rows.length === 0) {
                 return res.status(404).send('Class or Subject not found.');
             }
-
+    
             const className = classNameResult.rows[0].class_name;
             const subjectName = subjectNameResult.rows[0].subject_name;
-
+    
+            // Fetch all classes for the organization
+            const classesResult = await db.query('SELECT * FROM classes WHERE organization_id = $1', [req.session.organizationId]);
+            const classes = classesResult.rows;
+    
+            // Fetch all subjects for the organization
+            const subjectsResult = await db.query('SELECT * FROM subjects WHERE organization_id = $1', [req.session.organizationId]);
+            const subjects = subjectsResult.rows;
+    
             // Fetch students in the class, ordered by last name and first name
             let students = await db.query('SELECT student_id, first_name, last_name FROM students WHERE class_id = $1 AND organization_id = $2 ORDER BY last_name ASC, first_name ASC', [classId, req.session.organizationId]);
-
+    
             // Fetch assessments for the subject, including the category
             const assessmentsResult = await db.query(`
                 SELECT assessment_id, title, weight, max_score, category
@@ -1209,7 +1217,7 @@ orgDashboardRestricted: async (req, res, db) => {
                 WHERE class_id = $1 AND subject_id = $2 AND organization_id = $3
                 ORDER BY assessment_id`, [classId, subjectId, req.session.organizationId]);
             const assessments = assessmentsResult.rows;
-
+    
             // Fetch scores and positions for the students in this subject
             const resultsResult = await db.query(`
                 SELECT ar.assessment_id, ar.student_id, ar.score, ar.total_subject_score, ar.total_percentage, ar.grade,
@@ -1228,9 +1236,9 @@ orgDashboardRestricted: async (req, res, db) => {
                     WHERE class_id = $1
                 )
                 ORDER BY ar.student_id, ar.assessment_id`, [classId, subjectId, req.session.organizationId]);
-
+    
             const results = resultsResult.rows;
-
+    
             // Organize the scores by student and populate total scores and other details
             const studentScores = {};
             results.forEach(result => {
@@ -1245,7 +1253,7 @@ orgDashboardRestricted: async (req, res, db) => {
                 }
                 studentScores[result.student_id].assessments[result.assessment_id] = result.score;
             });
-
+    
             students.rows.forEach(student => {
                 student.scores = studentScores[student.student_id] ? studentScores[student.student_id].assessments : {};
                 student.total_subject_score = studentScores[student.student_id] ? studentScores[student.student_id].total_subject_score : '-';
@@ -1253,7 +1261,7 @@ orgDashboardRestricted: async (req, res, db) => {
                 student.grade = studentScores[student.student_id] ? studentScores[student.student_id].grade : '-';
                 student.position = studentScores[student.student_id] ? studentScores[student.student_id].position : '-';
             });
-
+    
             // Fetch employees assigned to the class
             const employeesResult = await db.query(`
                 SELECT u.first_name, u.last_name, uc.main
@@ -1261,7 +1269,8 @@ orgDashboardRestricted: async (req, res, db) => {
                 JOIN users u ON uc.user_id = u.user_id
                 WHERE uc.class_id = $1 AND u.organization_id = $2`, [classId, req.session.organizationId]);
             const employees = employeesResult.rows;
-
+    
+            // Render the assessment page and pass classes and subjects
             res.render('common/assessment', {
                 title: 'Assessment',
                 classId,
@@ -1271,6 +1280,8 @@ orgDashboardRestricted: async (req, res, db) => {
                 assessments,
                 students: students.rows,
                 employees, // Pass the employees to the template
+                classes, // Pass classes to the template
+                subjects, // Pass subjects to the template
                 messages: req.flash() // Pass messages to the template
             });
         } catch (err) {
@@ -1278,7 +1289,7 @@ orgDashboardRestricted: async (req, res, db) => {
             res.status(500).send('Error fetching assessment data.');
         }
     },
-    
+            
     saveAllScores: async (req, res, db) => {
         const { subjectId, classId } = req.query;
         const { scores } = req.body;
@@ -2105,56 +2116,97 @@ updateAnnouncement: async (req, res, db) => {
     },
 
     addClass: async (req, res, db) => {
-        const { className, gradYearGroupId } = req.body;
-        const { organizationId } = req.session;
+        const { className } = req.body; // This will be an array of class names
+    const { organizationId } = req.session;
 
-        const client = await db.connect();
-        try {
-            await client.query('BEGIN');
+    if (!className || className.length === 0) {
+        req.flash('error', 'Please provide at least one class name.');
+        return res.redirect('/common/addClassSubject');
+    }
 
-            await client.query(
-                'INSERT INTO classes (class_name, organization_id, graduation_year_group_id) VALUES ($1, $2, $3)',
-                [className, organizationId, gradYearGroupId]
-            );
+    const client = await db.connect();
+    try {
+        await client.query('BEGIN');
 
-            await client.query('COMMIT');
-            req.flash('success', 'Class added successfully.');
-            res.redirect('/common/addClassSubject');
-        } catch (error) {
-            await client.query('ROLLBACK');
-            console.error('Error adding class:', error);
-            req.flash('error', 'Failed to add class.');
-            res.redirect('/common/addClassSubject');
-        } finally {
-            client.release();
+        for (let name of className) {
+            if (name.trim() !== '') {
+                await client.query(
+                    'INSERT INTO classes (class_name, organization_id) VALUES ($1, $2)',
+                    [name.trim(), organizationId]
+                );
+            }
         }
+
+        await client.query('COMMIT');
+        req.flash('success', 'Classes added successfully.');
+        res.redirect('/common/addClassSubject');
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error adding classes:', error);
+        req.flash('error', 'Failed to add classes.');
+        res.redirect('/common/addClassSubject');
+    } finally {
+        client.release();
+    }
     },
 
     addSubject: async (req, res, db) => {
-        const { subjectName, classId } = req.body;
+        const { subjectName, classId } = req.body; // Arrays of subject names and class IDs
         const { organizationId } = req.session;
-
+    
+        // Ensure we have at least one subject name and one class ID
+        if (!subjectName || subjectName.length === 0) {
+            req.flash('error', 'Please provide at least one subject name.');
+            return res.redirect('/common/addClassSubject');
+        }
+    
+        if (!classId || classId.length === 0) {
+            req.flash('error', 'Please select at least one class.');
+            return res.redirect('/common/addClassSubject');
+        }
+    
         const client = await db.connect();
         try {
             await client.query('BEGIN');
-
-            await client.query(
-                'INSERT INTO subjects (subject_name, class_id, organization_id) VALUES ($1, $2, $3)',
-                [subjectName, classId, organizationId]
-            );
-
+    
+            for (let i = 0; i < subjectName.length; i++) {
+                const name = subjectName[i].trim();
+    
+                // Only add the subject if the name is not empty
+                if (name !== '') {
+                    // Ensure classId is an array and convert to individual integers
+                    let classIds = Array.isArray(classId) ? classId.map(Number) : [parseInt(classId)];
+    
+                    // Loop through classIds and insert each subject-class pair
+                    for (let classIdValue of classIds) {
+                        // Check if this subject already exists for the given class to avoid duplicates
+                        const existingSubject = await client.query(
+                            'SELECT * FROM subjects WHERE subject_name = $1 AND class_id = $2 AND organization_id = $3',
+                            [name, classIdValue, organizationId]
+                        );
+    
+                        // If the subject does not already exist, insert it
+                        if (existingSubject.rows.length === 0) {
+                            await client.query(
+                                'INSERT INTO subjects (subject_name, class_id, organization_id) VALUES ($1, $2, $3)',
+                                [name, classIdValue, organizationId]
+                            );
+                        }
+                    }
+                }
+            }
+    
             await client.query('COMMIT');
-            req.flash('success', 'Subject added successfully.');
+            req.flash('success', 'Subjects added successfully.');
             res.redirect('/common/addClassSubject');
         } catch (error) {
             await client.query('ROLLBACK');
-            console.error('Error adding subject:', error);
-            req.flash('error', 'Failed to add subject.');
+            console.error('Error adding subjects:', error);
+            req.flash('error', 'Failed to add subjects.');
             res.redirect('/common/addClassSubject');
         } finally {
             client.release();
-        }
-    },
+        }    },
 
     updateTerm: async (req, res, db) => {
         const { term_id, term_name, start_date, end_date } = req.body;
@@ -2179,27 +2231,39 @@ updateAnnouncement: async (req, res, db) => {
     },
 
     addGraduationYearGroup: async (req, res, db) => {
-        const { graduationYear } = req.body;
-        const yearGroup = `Graduation Class of ${graduationYear} Group`;
-    
-        try {
-            const result = await db.query(
-                'INSERT INTO graduation_year_groups (name, organization_id) VALUES ($1, $2) ON CONFLICT (name) DO NOTHING RETURNING id',
-                [yearGroup, req.session.organizationId]
-            );
-    
-            if (result.rows.length > 0) {
-                req.flash('success', 'Graduation year group added successfully.');
-            } else {
-                req.flash('info', 'Graduation year group already exists.');
+        const { graduationYear } = req.body; // Array of graduation years
+    const { organizationId } = req.session;
+
+    if (!graduationYear || graduationYear.length === 0) {
+        req.flash('error', 'Please provide at least one graduation year.');
+        return res.redirect('/common/addClassSubject');
+    }
+
+    const client = await db.connect();
+    try {
+        await client.query('BEGIN');
+
+        for (let year of graduationYear) {
+            if (year.trim() !== '') {
+                const yearGroup = `Graduation Class of ${year.trim()} Group`;
+                await client.query(
+                    'INSERT INTO graduation_year_groups (name, organization_id) VALUES ($1, $2) ON CONFLICT (name) DO NOTHING',
+                    [yearGroup, organizationId]
+                );
             }
-    
-            res.redirect('/common/addClassSubject');
-        } catch (error) {
-            console.error('Error adding graduation year group:', error);
-            req.flash('error', 'Failed to add graduation year group.');
-            res.redirect('/common/addClassSubject');
         }
+
+        await client.query('COMMIT');
+        req.flash('success', 'Graduation year groups added successfully.');
+        res.redirect('/common/addClassSubject');
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error adding graduation year groups:', error);
+        req.flash('error', 'Failed to add graduation year groups.');
+        res.redirect('/common/addClassSubject');
+    } finally {
+        client.release();
+    }
     },
 
     manageClassSubjectAndGradYr: async (req, res, db) => {
