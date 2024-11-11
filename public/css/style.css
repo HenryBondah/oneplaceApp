@@ -10,6 +10,7 @@
   --font-family: 'Arial', sans-serif;
 }
 
+/* Ensuring html and body take full height and use flexbox */
 html, body {
   height: 100%;
   margin: 0;
@@ -21,6 +22,9 @@ body {
   margin: 0;
   padding: 0;
   font-family: var(--font-family);
+  min-height: 100vh; /* Ensures body takes full viewport height */
+  display: flex;
+  flex-direction: column;
 }
 
 h1 {
@@ -148,8 +152,9 @@ nav ul li a {
   margin-top: 10px;
 }
 
+/* Main content area - takes remaining height */
 main {
-  flex: 1; /* Added to ensure footer stays at the bottom */
+  flex: 1; /* Ensures main content fills available space */
   margin: 20px auto;
   padding: 0 15px;
   width: 100%;
@@ -275,7 +280,7 @@ footer {
   font-size: 0.8em;
   background-color: #f8f8f8;
   width: 100%;
-  margin-top: auto; /* Push the footer to the bottom */
+  margin-top: auto; /* Ensures footer is pushed to the bottom */
 }
 
 footer .copyright,

@@ -1,71 +1,67 @@
 <body>
-    <main class="class-dashboard-container">
-        <h1 id="className"><%= className %> <% if (graduationYearGroup) { %><p><%= graduationYearGroup %></p><% } %></h1>
-        
-        <!-- Display the current school year and term info -->
-        <div class="school-year-term-info">
-            <h2>Current School Year: <%= schoolYear.year_label %></h2>
-            <h3>Current Term: <%= currentTerm.term_name %></h3>
-            <p>Start Date: <%= new Date(currentTerm.start_date).toISOString().split('T')[0] %></p>
-            <p>End Date: <%= new Date(currentTerm.end_date).toISOString().split('T')[0] %></p>
-        </div>
+    <div class="page-container">
+        <main class="class-dashboard-container">
+            <h1 id="className"><%= className %> <% if (graduationYearGroup) { %><p><%= graduationYearGroup %></p><% } %></h1>
+            
+            <!-- Display the current school year and term info -->
+            <div class="school-year-term-info">
+                <h2>Current School Year: <%= schoolYear.year_label %></h2>
+                <h3>Current Term: <%= currentTerm.term_name %></h3>
+                <p>Start Date: <%= new Date(currentTerm.start_date).toISOString().split('T')[0] %></p>
+                <p>End Date: <%= new Date(currentTerm.end_date).toISOString().split('T')[0] %></p>
+            </div>
 
-        <!-- Employee List -->
-        <div class="employee-list">
-            <% employees.forEach(function(employee) { %>
-                <div class="employee-item">
-                    <input type="radio" name="main_employee" value="<%= employee.user_id %>" <% if (employee.main) { %> checked <% } %> onchange="setMainEmployee('<%= classId %>', '<%= employee.user_id %>')">
-                    <label><%= employee.name %></label>
-                    <% if (employee.main) { %><span class="main">•</span><% } %>
-                </div>
-            <% }); %>
-        </div>
+            <!-- Employee List -->
+            <div class="employee-list">
+                <% employees.forEach(function(employee) { %>
+                    <div class="employee-item">
+                        <input type="radio" name="main_employee" value="<%= employee.user_id %>" <% if (employee.main) { %> checked <% } %> onchange="setMainEmployee('<%= classId %>', '<%= employee.user_id %>')">
+                        <label><%= employee.name %></label>
+                        <% if (employee.main) { %><span class="main">•</span><% } %>
+                    </div>
+                <% }); %>
+            </div>
 
-        <!-- Dashboard Buttons -->
-        <!-- <div class="dashboard-buttons">
-            <button onclick="window.location.href='/common/attendance?classId=<%= classId %>'">Mark Attendance</button>
-            <button onclick="window.location.href='<%= attendanceLink %>'">Attendance Records</button>
-        </div> -->
-        <div class="dashboard-buttons">
-            <button onclick="navigateToAttendance('<%= classId %>', '<%= currentTerm.term_id %>')">Mark Attendance</button>
-            <button onclick="navigateToAttendanceRecords('<%= classId %>', '<%= currentTerm.term_id %>')">Attendance Records</button>
-        </div>
-        
+            <!-- Dashboard Buttons -->
+            <div class="dashboard-buttons">
+                <button onclick="navigateToAttendance('<%= classId %>', '<%= currentTerm.term_id %>')">Mark Attendance</button>
+                <button onclick="navigateToAttendanceRecords('<%= classId %>', '<%= currentTerm.term_id %>')">Attendance Records</button>
+            </div>
 
-        <!-- Subjects List -->
-        <div class="subjects-list">
-            <h2>Subjects</h2>
-            <% if (subjects.length > 0) { %>
-                <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 10px;">
-                    <% subjects.forEach(function(subject) { %>
-                        <a href="/common/assessment?classId=<%= classId %>&subjectId=<%= subject.subject_id %>" class="subject-link">
-                            <%= subject.subject_name %>
-                        </a>
-                    <% }); %>
-                </div>
-            <% } else { %>
-                <p style="text-align: center;">No subjects added yet.</p>
-            <% } %>
-        </div>
+            <!-- Subjects List -->
+            <div class="subjects-list">
+                <h2>Subjects</h2>
+                <% if (subjects.length > 0) { %>
+                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 10px;">
+                        <% subjects.forEach(function(subject) { %>
+                            <a href="/common/assessment?classId=<%= classId %>&subjectId=<%= subject.subject_id %>" class="subject-link">
+                                <%= subject.subject_name %>
+                            </a>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <p style="text-align: center;">No subjects added yet.</p>
+                <% } %>
+            </div>
 
-      <!-- Student List Container -->
-<div class="student-list-container">
-    <h2>Students Enrolled in <%= currentTerm.term_name %></h2>
-    <ul class="student-list">
-        <% if (students.length > 0) { %>
-            <% students.forEach(function(student) { %>
-                <li><a href="/common/studentDetails?studentId=<%= student.student_id %>&termId=<%= currentTerm.term_id %>">
-                    <%= student.first_name %> <%= student.last_name %></a>
-                </li>
-            <% }); %>
-        <% } else { %>
-            <li>No students enrolled for this term yet.</li>
-        <% } %>
-    </ul>
-</div>
+            <!-- Student List Container -->
+            <div class="student-list-container">
+                <h2>Students Enrolled in <%= currentTerm.term_name %></h2>
+                <ul class="student-list">
+                    <% if (students.length > 0) { %>
+                        <% students.forEach(function(student) { %>
+                            <li><a href="/common/studentDetails?studentId=<%= student.student_id %>&termId=<%= currentTerm.term_id %>">
+                                <%= student.first_name %> <%= student.last_name %></a>
+                            </li>
+                        <% }); %>
+                    <% } else { %>
+                        <li>No students enrolled for this term yet.</li>
+                    <% } %>
+                </ul>
+            </div>
+        </main>
 
-
-
+    </div>
 
     <script>
         function setMainEmployee(classId, userId) {
@@ -89,14 +85,13 @@
                 alert('Error setting main employee');
             });
         }
-    
+
         function navigateToAttendance(classId, termId) {
             window.location.href = `/common/attendance?classId=${classId}&termId=${termId}`;
         }
-    
+
         function navigateToAttendanceRecords(classId, termId) {
             window.location.href = `/common/attendanceCollection?classId=${classId}&termId=${termId}`;
         }
     </script>
-    
 </body>
