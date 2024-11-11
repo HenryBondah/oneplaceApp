@@ -1,5 +1,5 @@
 <header id="top-header">
-  <span class="siteName">
+  <!-- <span class="siteName">
     <img src="/images/1place.png" alt="Existing Logo" class="logo" />
     <% if (session.logo) { %>
       <img src="<%= session.logo %>" alt="Organization Logo" class="logo" />
@@ -9,7 +9,23 @@
     <% } else { %>
       <a href="/" title="Return to home page">OnePlace</a>
     <% } %>
+  </span> -->
+  <span class="siteName">
+    <img src="/images/1place.png" alt="Existing Logo" class="logo" />
+    <% if (session.logo) { %>
+      <a href="/common/orgDashboard" title="Go to dashboard">
+        <img src="<%= session.logo %>" alt="Organization Logo" class="logo" />
+      </a>
+    <% } else { %>
+      <a href="/" title="Return to home page">
+        <!-- <img src="/images/1place.png" alt="Default Logo" class="logo" /> -->
+      </a>
+    <% } %>
+    <% if (session.organizationName) { %>
+      <span><%= session.organizationName %></span>
+    <% } %>
   </span>
+  
   <div id="tools">
     <% if (session.firstName) { %>
       <a href="#" title="Go to management page" class="header-welcome">Welcome, <%= session.firstName %>!</a>
@@ -26,9 +42,11 @@
               <li><a href="/common/manageRecords">Manage School Year</a></li>
               <li><a href="/common/manageClassSubjectAndGradYr">Class, Subject & Graduation Year</a></li>
               <li><a href="/common/addStudent">Create Student</a></li>
+              <li><a href="/common/createTest?organizationId=<%= session.organizationId %>&termId=<%= currentTerm ? currentTerm.term_id : '' %>">Create Test</a></li>
               <li><a href="/common/createEmployee">Manage Employee</a></li>
               <li><a href="/common/manageEventsAnnouncements">Manage Events & Announcements</a></li>
-     </ul>
+              <li><a href="/enrollment/enroll">Enrollment</a></li>
+            </ul>
           </li>
           <li class="nav-item">
             <a href="#" class="submenu-toggle" data-target="settings-submenu">Settings <span class="arrow">&#9660;</span></a>
@@ -50,6 +68,7 @@
     <% } %>
   </div>
 </header>
+
 
 <script>
   document.addEventListener("DOMContentLoaded", () => {

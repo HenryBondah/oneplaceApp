@@ -5,17 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Assessments</title>
 
-    <% if (messages.success && messages.success.length > 0) { %>
-        <div class="flash-success"><%= messages.success %></div>
-    <% } %>
-    <% if (messages.error && messages.error.length > 0) { %>
-        <div class="flash-error"><%= messages.error %></div>
-    <% } %>
-
     <style>
-        /* Style the form */
         .manage-assessment-form {
-            max-width: 80%; /* Adjusts width relative to the page */
+            max-width: 90%;
             margin: 0 auto;
             background-color: #fff;
             padding: 20px;
@@ -24,43 +16,31 @@
         }
 
         .table-wrapper {
-            overflow-x: auto; /* Ensures the table is scrollable horizontally */
-            width: 100%; /* Ensures it takes up the full width */
+            overflow-x: auto;
+            width: 100%;
         }
 
-        .manage-assessment-form table {
-            width: 100%; /* Full width for table inside the form */
+        table {
+            width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            min-width: 800px; /* Ensures that the table doesn't get too squished on smaller screens */
+            min-width: 1000px;
         }
 
-        .manage-assessment-form th, .manage-assessment-form td {
+        th, td {
             padding: 10px;
             text-align: left;
             border: 1px solid #ddd;
             font-size: 16px;
-            vertical-align: middle; /* Vertically align input fields */
         }
 
-        .manage-assessment-form th {
+        th {
             background-color: #f2f2f2;
             text-align: center;
         }
 
-        /* Input fields within the form */
-        .manage-assessment-form input,
-        .manage-assessment-form select {
-            width: 100%;
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            box-sizing: border-box; /* Ensures consistent sizing */
-        }
-
-        .manage-assessment-form button {
+        .action-buttons button {
             padding: 10px 15px;
             font-size: 16px;
             color: white;
@@ -68,197 +48,78 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            width: 100%;
-        }
-
-        .manage-assessment-form button:hover {
-            background-color: #0056b3;
-        }
-
-        /* Center the update button */
-        .action-buttons {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .action-buttons button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #284cdb;
-            color: white;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            width: 150px;
+            transition: background-color 0.3s;
         }
 
         .action-buttons button:hover {
-            transform: scale(1.05);
-        }
-
-        .action-buttons button:active {
-            transform: scale(0.95);
-        }
-
-        .action-buttons button:focus {
-            outline: none;
-        }
-
-        /* Responsive design */
-        @media (max-width: 768px) {
-            .manage-assessment-form th, .manage-assessment-form td {
-                padding: 8px;
-                font-size: 14px;
-            }
-
-            .manage-assessment-form button {
-                width: 100%; /* Full width button on mobile */
-            }
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
-
     <div class="link-to-next-back">
-        <a href="/common/assessment?classId=<%= classId %>&subjectId=<%= subjectId %>">Back to Assessment</a>
+        <a href="/common/createTest?organizationId=<%= organizationId %>&termId=<%= termId %>">Back to Create Test</a>
     </div>
     <hr>
-    <h1 style="text-align: center;">Manage Assessments for <%= className %></h1>
-    <h1 style="text-align: center;">Subject: <%= subjectName %></h1>
-
-    <!-- Form to update assessments with scoped styles for this form -->
-    <form id="updateAssessmentsForm" class="manage-assessment-form">
-        <div class="table-wrapper">
-            <table>
-                <thead>
+    <h1 style="text-align: center;">Manage Assessments</h1>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Test Name</th>
+                    <th>Weight (%)</th>
+                    <th>Score Out Of</th>
+                    <th>Category</th>
+                    <th>Assigned Classes and Subjects</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% assessments.forEach(function(assessment) { %>
                     <tr>
-                        <th>Test Name</th>
-                        <th>Weight (%)</th>
-                        <th>Score Out Of</th>
-                        <th>Category</th>
-                        <th>Classes</th>
-                        <th>Subjects</th>
-                        <th>Actions</th>
+                        <td><%= assessment.title %></td>
+                        <td><%= assessment.weight %></td>
+                        <td><%= assessment.max_score %></td>
+                        <td><%= assessment.category %></td>
+                        <td>
+                            <% Object.keys(assessment.assigned_classes).forEach(function(classId) { %>
+                                <div>
+                                    <strong>Class <%= assessment.assigned_classes[classId].class_name %>:</strong>
+                                    <ul>
+                                        <% 
+                                            let subjects = assessment.assigned_classes[classId].subjects;
+                                            // Ensure that subjects are treated as an array, even if they aren't already.
+                                            if (typeof subjects === 'string') {
+                                                subjects = subjects.split(',').map(subject => subject.trim());
+                                            }
+                                            if (Array.isArray(subjects)) {
+                                                subjects.forEach(function(subject) { 
+                                        %>
+                                                <li><%= subject %></li>
+                                        <% 
+                                                });
+                                            } else {
+                                        %>
+                                                <li>No subjects assigned</li>
+                                        <% 
+                                            }
+                                        %>
+                                    </ul>
+                                </div>
+                            <% }); %>
+                        </td>
+                        <td>
+                            <% Object.keys(assessment.assigned_classes).forEach(function(classId) { %>
+                                <a href="/common/modifyAssessment?title=<%= assessment.title %>&classId=<%= classId %>&termId=<%= termId %>&organizationId=<%= organizationId %>">
+                                    Modify for Class <%= assessment.assigned_classes[classId].class_name %>
+                                </a>
+                                <br>
+                            <% }); %>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    <% assessments.forEach(function(assessment) { %>
-                        <tr>
-                            <!-- Test Name -->
-                            <td>
-                                <input type="text" name="title[<%= assessment.assessment_id %>]" value="<%= assessment.title %>" required>
-                            </td>
-
-                            <!-- Weight -->
-                            <td>
-                                <input type="number" name="weight[<%= assessment.assessment_id %>]" value="<%= assessment.weight %>" step="0.1" required>
-                            </td>
-
-                            <!-- Score Out Of -->
-                            <td>
-                                <input type="number" name="maxScore[<%= assessment.assessment_id %>]" value="<%= assessment.max_score %>" step="0.1" required>
-                            </td>
-
-                            <!-- Category -->
-                            <td>
-                                <select name="category[<%= assessment.assessment_id %>]" required>
-                                    <option value="Class Assessment" <%= assessment.category === 'Class Assessment' ? 'selected' : '' %>>Class Assessment</option>
-                                    <option value="Exams Assessment" <%= assessment.category === 'Exams Assessment' ? 'selected' : '' %>>Exams Assessment</option>
-                                    <option value="Other" <%= assessment.category === 'Other' ? 'selected' : '' %>>Other</option>
-                                </select>
-                            </td>
-
-                            <!-- Display Classes -->
-                            <td>
-                                <ul>
-                                    <% if (assessment.classes && assessment.classes.length > 0) { %>
-                                        <% assessment.classes.forEach(cls => { %>
-                                            <li><%= cls.class_name %></li>
-                                        <% }); %>
-                                    <% } else { %>
-                                        <li>No classes assigned</li>
-                                    <% } %>
-                                </ul>
-                            </td>
-
-                            <!-- Display Subjects -->
-                            <td>
-                                <ul>
-                                    <% if (assessment.subjects && assessment.subjects.length > 0) { %>
-                                        <% assessment.subjects.forEach(sub => { %>
-                                            <li><%= sub.subject_name %></li>
-                                        <% }); %>
-                                    <% } else { %>
-                                        <li>No subjects assigned</li>
-                                    <% } %>
-                                </ul>
-                            </td>
-
-                            <!-- Actions (Delete) -->
-                            <td class="action-buttons">
-                                <form action="/common/deleteAssessment" method="post" style="display:inline;">
-                                    <input type="hidden" name="assessmentId" value="<%= assessment.assessment_id %>">
-                                    <button type="submit">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                    <% }); %>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Update Button -->
-        <div class="action-buttons">
-            <input type="hidden" name="classId" value="<%= classId %>">
-            <input type="hidden" name="subjectId" value="<%= subjectId %>">
-            <button type="button" id="update-assessments-button">Update All</button>
-        </div>
-    </form>
-
-    <script>
-        document.getElementById('update-assessments-button').addEventListener('click', async function() {
-            const formElement = document.getElementById('updateAssessmentsForm');
-            const formData = new FormData(formElement);
-
-            const assessments = {};
-            formData.forEach((value, key) => {
-                const match = key.match(/title\[(\d+)\]|weight\[(\d+)\]|maxScore\[(\d+)\]|category\[(\d+)\]/);
-                if (match) {
-                    const id = match[1] || match[2] || match[3] || match[4];
-                    if (!assessments[id]) assessments[id] = {};
-                    if (key.startsWith('title')) assessments[id].title = value;
-                    if (key.startsWith('weight')) assessments[id].weight = parseFloat(value);
-                    if (key.startsWith('maxScore')) assessments[id].maxScore = parseFloat(value);
-                    if (key.startsWith('category')) assessments[id].category = value;
-                }
-            });
-
-            await saveAssessments(assessments);
-        });
-
-        async function saveAssessments(assessments) {
-            const classId = "<%= classId %>";
-            const subjectId = "<%= subjectId %>";
-
-            try {
-                const response = await fetch(`/common/updateAssessments?classId=${classId}&subjectId=${subjectId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ assessments })
-                });
-
-                if (response.ok) {
-                    alert('Assessments updated successfully.');
-                    location.reload();
-                } else {
-                    alert('Error updating assessments.');
-                }
-            } catch (error) {
-                alert('Error updating assessments.');
-            }
-        }
-    </script>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
 </body>
 </html>

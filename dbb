@@ -477,3 +477,52 @@ ADD COLUMN class_id INT REFERENCES classes(class_id) ON DELETE SET NULL;
 
 ALTER TABLE organizations ADD COLUMN logo TEXT;
 ALTER TABLE assessment_results ADD COLUMN subject_id INT REFERENCES subjects(subject_id);
+ 
+
+ALTER TABLE assessments
+ADD CONSTRAINT unique_class_subject_title UNIQUE (class_id, subject_id, title);
+
+
+ALTER TABLE assessment_results ADD CONSTRAINT unique_student_assessment UNIQUE (student_id, assessment_id);
+ALTER TABLE student_positions ADD CONSTRAINT unique_student_subject UNIQUE (student_id, subject_id);
+
+ALTER TABLE assessments
+ADD CONSTRAINT unique_assessment_title_subject UNIQUE (title, subject_id, organization_id);
+
+
+
+CREATE TABLE enrollments (
+    enrollment_id SERIAL PRIMARY KEY,
+    school_year_id INTEGER REFERENCES school_years(id),
+    term_id INTEGER REFERENCES terms(term_id),
+    organization_id INTEGER REFERENCES organizations(organization_id),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE enrolled_classes (
+    enrolled_class_id SERIAL PRIMARY KEY,
+    enrollment_id INTEGER REFERENCES enrollments(enrollment_id),
+    class_id INTEGER REFERENCES classes(class_id)
+);
+
+CREATE TABLE enrolled_students (
+    enrolled_student_id SERIAL PRIMARY KEY,
+    enrollment_id INTEGER REFERENCES enrollments(enrollment_id),
+    student_id INTEGER REFERENCES students(student_id),
+    class_id INTEGER REFERENCES classes(class_id)
+);
+
+ALTER TABLE attendance_records
+ADD COLUMN term_id INTEGER,
+ADD CONSTRAINT fk_term
+    FOREIGN KEY (term_id) 
+    REFERENCES terms (term_id)
+    ON DELETE CASCADE;
+
+ALTER TABLE assessments
+ADD COLUMN term_id integer;
+
+ALTER TABLE assessments DROP CONSTRAINT unique_assessment_title_subject;
+ALTER TABLE assessments ADD CONSTRAINT unique_assessment_title_class_subject UNIQUE (title, subject_id, class_id);
+ALTER TABLE assessments ADD COLUMN group_id BIGINT;
+CREATE SEQUENCE assessments_group_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;

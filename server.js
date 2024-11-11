@@ -7,6 +7,8 @@ const passport = require('passport');
 const db = require('./config/db');
 require('./config/passport')(passport);
 
+const setCurrentTerm = require('./middleware/setCurrentTerm'); // Import middleware
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 const expressLayouts = require('express-ejs-layouts');
@@ -30,6 +32,13 @@ app.use((req, res, next) => {
     next();
 });
 
+// Use setCurrentTerm middleware to make the current term globally available
+app.use(async (req, res, next) => {
+    req.db = db; // Pass the database to the middleware through the request object
+    next();
+});
+app.use(setCurrentTerm);
+
 app.use(expressLayouts);
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
@@ -41,12 +50,14 @@ const adminRoute = require('./routes/adminRoute')(db);
 const commonRoute = require('./routes/commonRoute')(db);
 const printRoute = require('./routes/printRoute')(db);
 const legalRoute = require('./routes/legalRoute');
+const enrollmentRoutes = require('./routes/enrollmentRoutes')(db);
 
 app.use('/account', accountRoute);
 app.use('/admin', adminRoute);
 app.use('/common', commonRoute);
 app.use('/print', printRoute);
 app.use('/legal', legalRoute);
+app.use('/enrollment', enrollmentRoutes); 
 
 app.get('/', (req, res) => {
     res.render('index', { title: 'Home' });

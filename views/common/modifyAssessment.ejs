@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modify Assessment</title>
+    <style>
+        /* Styles for form and elements */
+        .form-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: #f9f9f9;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .action-buttons button {
+            padding: 10px 15px;
+            font-size: 16px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .action-buttons button:hover {
+            background-color: #0056b3;
+        }
+        
+        .action-buttons .delete-button {
+            background-color: red;
+        }
+
+        .action-buttons .delete-button:hover {
+            background-color: darkred;
+        }
+        
+        .subject-container {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .subject-container div {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="link-to-next-back">
+        <a href="/common/manageAssessment?organizationId=<%= organizationId %>&termId=<%= termId %>">Back to Manage Assessments</a>
+    </div>
+    <hr>
+    <h1 style="text-align: center;">Modify Assessment</h1>
+
+    <div class="form-container">
+        <% if (messages && messages.error) { %>
+            <div class="alert alert-danger">
+                <%= messages.error %>
+            </div>
+        <% } %>
+        <% if (messages && messages.success) { %>
+            <div class="alert alert-success">
+                <%= messages.success %>
+            </div>
+        <% } %>
+
+        <form id="modifyAssessmentForm">
+            <input type="hidden" name="assessmentId" value="<%= assessment.assessment_id %>">
+            <input type="hidden" name="organizationId" value="<%= organizationId %>">
+            <input type="hidden" name="termId" value="<%= termId %>">
+            <input type="hidden" name="title" value="<%= assessment.title %>">
+            <input type="hidden" name="classId" value="<%= assessment.class_id %>">
+
+            <div class="form-group">
+                <label for="title">Test Name:</label>
+                <input type="text" name="title" value="<%= assessment.title %>" required>
+            </div>
+            <div class="form-group">
+                <label for="weight">Weight (%):</label>
+                <input type="number" name="weight" value="<%= assessment.weight %>" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="maxScore">Score Out Of:</label>
+                <input type="number" name="maxScore" value="<%= assessment.max_score %>" required>
+            </div>
+            <div class="form-group">
+                <label for="category">Category:</label>
+                <select name="category" required>
+                    <option value="Class Assessment" <%= assessment.category === 'Class Assessment' ? 'selected' : '' %>>Class Assessment</option>
+                    <option value="Exams Assessment" <%= assessment.category === 'Exams Assessment' ? 'selected' : '' %>>Exams Assessment</option>
+                    <option value="Other" <%= assessment.category === 'Other' ? 'selected' : '' %>>Other</option>
+                </select>
+            </div>
+
+            <h4>Assign Test to Classes and Subjects</h4>
+            <div class="class-container">
+                <% classes.forEach((cls) => { %>
+                    <div class="class-checkbox">
+                        <input type="checkbox" id="class_<%= cls.class_id %>" name="classes[]" value="<%= cls.class_id %>" 
+                            <%= assessment.assigned_classes.find(c => c.class_id === cls.class_id) ? 'checked' : '' %> 
+                            onchange="toggleSubjects('subjects-container-<%= cls.class_id %>', this)">
+                        <label for="class_<%= cls.class_id %>"><%= cls.class_name %></label>
+                    </div>
+                    <div id="subjects-container-<%= cls.class_id %>" class="subject-container" style="<%= assessment.assigned_classes.find(c => c.class_id === cls.class_id) ? 'display: block;' : 'display: none;' %>">
+                        <div>
+                            <input type="checkbox" id="select-all-subjects-<%= cls.class_id %>" 
+                                onchange="selectAllSubjects('<%= cls.class_id %>')">
+                            <label for="select-all-subjects-<%= cls.class_id %>">Select All Subjects</label>
+                        </div>
+                        <% subjects.forEach(subject => { %>
+                            <% if (subject.class_id === cls.class_id) { %>
+                                <div>
+                                    <input type="checkbox" class="subject-checkbox-<%= cls.class_id %>" 
+                                           name="subjects[]" value="<%= subject.subject_id %>" 
+                                           <%= assessment.assigned_classes.find(c => c.class_id === cls.class_id)?.subjects.find(s => s.subject_id === subject.subject_id) ? 'checked' : '' %>>
+                                    <label for="subject_<%= subject.subject_id %>"><%= subject.subject_name %></label>
+                                </div>
+                            <% } %>
+                        <% }); %>
+                    </div>
+                <% }); %>
+            </div>
+
+            <div class="action-buttons">
+                <button type="button" onclick="updateAssessment()">Update Assessment</button>
+                <button type="button" class="delete-button" onclick="deleteAssessment()">Delete Assessment</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function toggleSubjects(containerId, checkbox) {
+            const container = document.getElementById(containerId);
+            container.style.display = checkbox.checked ? 'block' : 'none';
+        }
+
+        function selectAllSubjects(containerId) {
+            const selectAllCheckbox = document.getElementById(`select-all-subjects-${containerId}`);
+            const checkboxes = document.querySelectorAll(`.subject-checkbox-${containerId}`);
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        }
+
+        async function updateAssessment() {
+            const formElement = document.getElementById('modifyAssessmentForm');
+            const formData = new FormData(formElement);
+
+            const classes = formData.getAll('classes[]');
+            const subjects = formData.getAll('subjects[]');
+
+            const response = await fetch('/common/modifyAssessment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    assessmentId: formData.get('assessmentId'),
+                    title: formData.get('title'),
+                    weight: formData.get('weight'),
+                    maxScore: formData.get('maxScore'),
+                    category: formData.get('category'),
+                    classes: classes,
+                    subjects: subjects,
+                    organizationId: formData.get('organizationId'),
+                    termId: formData.get('termId')
+                })
+            });
+
+            if (response.ok) {
+                alert('Assessment updated successfully.');
+                window.location.href = `/common/manageAssessment?organizationId=${formData.get('organizationId')}&termId=${formData.get('termId')}`;
+            } else {
+                alert('Error updating assessment.');
+            }
+        }
+
+        async function deleteAssessment() {
+            const formData = new FormData(document.getElementById('modifyAssessmentForm'));
+
+            const response = await fetch('/common/deleteAssessment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ assessmentId: formData.get('assessmentId') })
+            });
+
+            if (response.ok) {
+                alert('Assessment deleted successfully.');
+                window.location.href = `/common/manageAssessment?organizationId=${formData.get('organizationId')}&termId=${formData.get('termId')}`;
+            } else {
+                alert('Error deleting assessment.');
+            }
+        }
+    </script>
+</body>
+</html>

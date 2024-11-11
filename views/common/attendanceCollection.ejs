@@ -1,29 +1,42 @@
-
-    <style>
-        .date-header {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .edit-save-link,
-        .cancel-link {
-            cursor: pointer;
-            color: blue;
-            text-decoration: underline;
-            margin-top: 5px;
-        }
-        .cancel-link {
-            color: red;
-        }
-        .overall-attendance {
-            font-weight: bold;
-        }
-        .center-link {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-    </style>
+<style>
+    .date-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .edit-save-link,
+    .cancel-link {
+        cursor: pointer;
+        color: blue;
+        text-decoration: underline;
+        margin-top: 5px;
+    }
+    .cancel-link {
+        color: red;
+    }
+    .last-edited {
+        font-size: 0.8em;
+        color: gray;
+    }
+    .overall-attendance {
+        font-weight: bold;
+    }
+    .center-link {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+    .attendance-sheet th,
+    .attendance-sheet td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center; /* Center all content, including checkboxes */
+        vertical-align: middle; /* Ensure checkboxes are vertically centered */
+    }
+    .attendance-sheet input[type="checkbox"] {
+        transform: scale(1.3); /* Optional: make checkboxes larger for better visibility */
+    }
+</style>
 </head>
 <body>
     <div class="link-to-next-back">
@@ -42,6 +55,11 @@
                                 <%= new Date(date).toLocaleDateString() %>
                                 <div class="edit-save-link" data-date="<%= date %>" onclick="toggleEditSaveMode('<%= date %>')">Edit</div>
                                 <div class="cancel-link" data-date="<%= date %>" style="display: none;" onclick="cancelEditMode('<%= date %>')">Cancel</div>
+                                <div class="last-edited" id="last-edited-<%= date %>">
+                                    <% if (lastEditedMap && lastEditedMap[date]) { %>
+                                        Last edited: <%= new Date(lastEditedMap[date]).toLocaleString() %>
+                                    <% } %>
+                                </div>
                             </div>
                         </th>
                     <% }); %>
@@ -75,16 +93,23 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const classId = '<%= classId %>';
-            fetch(`/common/getAttendanceForClass?classId=${classId}`)
+            fetch(`/common/getAttendanceForClass?classId=${classId}&termId=<%= termId %>`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         const attendanceMap = {};
+                        const lastEditedMap = {};
+
                         data.attendance.forEach(record => {
                             if (!attendanceMap[record.student_id]) {
                                 attendanceMap[record.student_id] = {};
                             }
                             attendanceMap[record.student_id][record.date] = record.status;
+
+                            // Store last edited date and time
+                            if (record.updated_at) {
+                                lastEditedMap[record.date] = record.updated_at;
+                            }
                         });
 
                         const students = document.querySelectorAll('.attendance-sheet tbody tr');
@@ -98,6 +123,14 @@
                                     dateCheckbox.disabled = true;
                                 }
                             });
+                        });
+
+                        // Set last edited date and time for each date column
+                        Object.keys(lastEditedMap).forEach(date => {
+                            const lastEditedElement = document.getElementById(`last-edited-${date}`);
+                            if (lastEditedElement) {
+                                lastEditedElement.textContent = `Last edited: ${new Date(lastEditedMap[date]).toLocaleString()}`;
+                            }
                         });
                     } else {
                         console.error('Failed to fetch attendance:', data.error);
@@ -125,8 +158,11 @@
             }
         }
 
+        // Function to handle saving attendance for a particular date
         function saveAttendanceForDate(date, checkboxes, link) {
             const attendanceData = {};
+            const classId = '<%= classId %>';
+            const termId = '<%= termId %>'; // Ensure that termId is included
 
             checkboxes.forEach(checkbox => {
                 attendanceData[checkbox.dataset.studentId] = checkbox.checked ? 'Present' : 'Absent';
@@ -137,7 +173,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ attendance: attendanceData, classId: '<%= classId %>', date: date }),
+                body: JSON.stringify({ attendance: attendanceData, classId, termId, date })
             })
             .then(response => response.json())
             .then(data => {
@@ -149,7 +185,14 @@
                     });
                     const cancelLink = document.querySelector(`.cancel-link[data-date='${date}']`);
                     cancelLink.style.display = 'none';
+
+                    // Update last edited date and time
+                    const lastEditedElement = document.getElementById(`last-edited-${date}`);
+                    if (lastEditedElement) {
+                        lastEditedElement.textContent = `Last edited: ${new Date().toLocaleString()}`;
+                    }
                 } else {
+                    console.error('Failed to save attendance:', data.error);
                     alert('Failed to save attendance. Please try again.');
                 }
             })
@@ -182,4 +225,3 @@
             cancelLink.style.display = 'none';
         }
     </script>
-

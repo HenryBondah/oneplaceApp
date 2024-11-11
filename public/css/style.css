@@ -10,11 +10,19 @@
   --font-family: 'Arial', sans-serif;
 }
 
+html, body {
+  height: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 body {
   margin: 0;
   padding: 0;
   font-family: var(--font-family);
 }
+
 h1 {
   text-align: center;
 }
@@ -54,7 +62,7 @@ header#top-header {
   justify-content: space-between;
   align-items: center;
   padding: 10px 20px;
-  background-color: #f8f8f8;
+  background-color: #ebebeb;
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -68,7 +76,6 @@ header#top-header.blur {
   backdrop-filter: blur(5px);
   transition: backdrop-filter 0.3s ease;
 }
-
 
 header#top-header .siteName {
   display: flex;
@@ -142,6 +149,7 @@ nav ul li a {
 }
 
 main {
+  flex: 1; /* Added to ensure footer stays at the bottom */
   margin: 20px auto;
   padding: 0 15px;
   width: 100%;
@@ -266,14 +274,8 @@ footer {
   padding: 10px;
   font-size: 0.8em;
   background-color: #f8f8f8;
-}
-
-footer {
-  text-align: center;
-  padding: 10px;
-  background-color: #f1f1f1;
-  color: #333;
-  border-top: 1px solid #ddd;
+  width: 100%;
+  margin-top: auto; /* Push the footer to the bottom */
 }
 
 footer .copyright,
@@ -301,8 +303,14 @@ footer .social-media a {
   overflow: hidden;
 }
 
- /* Button styling */
- button[type="submit"] {
+footer .social-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Button styling */
+button[type="submit"] {
   background-color: #007bff;
   color: white;
   border: none;
@@ -314,12 +322,6 @@ footer .social-media a {
 
 button[type="submit"]:hover {
   background-color: #0056b3;
-}
-
-footer .social-media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 /* Responsive Styles */
@@ -345,7 +347,6 @@ footer .social-media img {
 
 form input[type="text"],
 form select,
-
 form textarea {
   width: 100%;
   box-sizing: border-box;
@@ -511,7 +512,6 @@ form textarea {
   object-fit: cover;
 }
 
-
 .video-container {
   position: relative;
   width: 100%;
@@ -524,59 +524,11 @@ form textarea {
   object-fit: cover;
 }
 
-
-
 #herostuff h2 {
   font-size: 18px;
   margin: 0;
   color: white;
   bottom: 10px;
-}
-
-/* Main styles */
-main {
-  font-family: var(--font-family);
-  width: 100%;
-}
-
-.info {
-  border-radius: 10px;
-  border: black solid;
-  text-align: center;
-  padding: 4px;
-  margin: 2px;
-}
-
-/* Features styles */
-.services {
-  text-align: center;
-}
-
-#img-feature {
-  width: 100px;
-  height: 100px;
-  border-radius: 10px;
-}
-
-.feature h3 {
-  border-bottom: solid black 1.5px;
-}
-
-#features {
-  display: block;
-  text-align: center;
-}
-
-.feature {
-  border-radius: 10px;
-  padding: 10px;
-  margin: 10px;
-  width: auto;
-}
-
-.feature p,
-h3 {
-  text-align: center;
 }
 
 /* Flash Messages */
@@ -637,7 +589,7 @@ h3 {
     width: 80%;
     height: 200px;
     object-fit: cover;
- }
+  }
 
   .info {
     width: 100%;
@@ -700,22 +652,36 @@ h3 {
   }
 }
 
-@media (max-width: 1200px) and (min-width: 769px) {
-  main {
+@media (max-width: 500px) {
+  #herostuff {
+    position: absolute;
+    top: 85%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 3px;
+    padding-bottom: 0px;
+    border-radius: 50px;
     width: 100%;
-  }
-
-  .info {
-    width: 100%;
-    /* margin: 1px 0; */
-  }
-
-  #hero {
-    height: 50vh;
   }
 
   #herostuff h2 {
-    font-size: 40px;
+    font-size: 15px;
+    margin: 0;
+    color: white;
+    bottom: 5px;
+  }
+
+  #img-feature {
+    width: 100px;
+    height: 100px;
+    border-radius: 10px;
+  }
+
+  .feature p {
+    font-size: 15px;
   }
 }
 
@@ -761,43 +727,20 @@ h3 {
   }
 }
 
-@media (max-width: 500px) {
-  #herostuff {
-    position: absolute;
-    top: 85%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: white;
-    text-align: center;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 3px;
-    padding-bottom: 0px;
-    border-radius: 50px;
+@media (max-width: 1200px) and (min-width: 769px) {
+  main {
     width: 100%;
   }
 
+  .info {
+    width: 100%;
+  }
+
+  #hero {
+    height: 50vh;
+  }
+
   #herostuff h2 {
-    font-size: 15px;
-    margin: 0;
-    color: white;
-    bottom: 5px;
-  }
-
-  #img-feature {
-    width: 100px;
-    height: 100px;
-    border-radius: 10px;
-  }
-
-  .feature p {
-    font-size: 15px;
+    font-size: 40px;
   }
 }
-/* Image Section Styles */
-#image-section {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  margin: 20px 0;
-}
-

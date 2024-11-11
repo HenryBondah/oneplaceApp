@@ -27,13 +27,17 @@ module.exports = (db) => {
     router.post('/deleteEmployee/:userId', isAuthenticated, (req, res) => commonController.deleteEmployee(req, res, db));
     router.post('/toggleHoldEmployee/:userId', isAuthenticated, (req, res) => commonController.toggleHoldEmployee(req, res, db));
     router.get('/assessment', isAuthenticated, (req, res) => commonController.assessment(req, res, db));
-    router.post('/createTest', isAuthenticated, (req, res) => commonController.createTest(req, res, db));
+    // router.post('/createTest', isAuthenticated, (req, res) => commonController.createTest(req, res, db));
     router.get('/getAssessments', isAuthenticated, (req, res) => commonController.getAssessments(req, res, db));
     router.get('/getScores', isAuthenticated, (req, res) => commonController.getScores(req, res, db));
     router.get('/manageAssessment', isAuthenticated, (req, res) => commonController.manageAssessment(req, res, db));
     router.post('/updateAssessments', isAuthenticated, (req, res) => commonController.updateAssessments(req, res, db));
     router.post('/deleteAssessment', isAuthenticated, (req, res) => commonController.deleteAssessment(req, res, db));
-    router.post('/saveAllScores', isAuthenticated, (req, res) => commonController.saveAllScores(req, res, db));  // This now handles single and all scores
+ // Route to modify an existing assessment
+    router.get('/modifyAssessment', isAuthenticated, (req, res) => commonController.modifyAssessmentGet(req, res, db));
+    router.post('/modifyAssessment', isAuthenticated, (req, res) => commonController.modifyAssessmentPost(req, res, db));
+router.post('/saveAllScores', isAuthenticated, upload.none(), (req, res) => commonController.saveAllScores(req, res, db));
+
     router.get('/getSubjectsForClass', isAuthenticated, (req, res) => commonController.getSubjectsForClass(req, res, db));
     router.get('/classDashboard', isAuthenticated, (req, res) => commonController.classDashboard(req, res, db));
     router.post('/registerSchoolYear', isAuthenticated, (req, res) => commonController.registerSchoolYear(req, res, db));
@@ -72,6 +76,9 @@ module.exports = (db) => {
     router.post('/deleteSchoolYearPost', isAuthenticated, (req, res) => commonController.deleteSchoolYearPost(req, res, db));
     router.post('/setMainEmployee', isAuthenticated, (req, res) => commonController.setMainEmployee(req, res, db));
     router.post('/saveSingleAttendance', (req, res) => commonController.saveSingleAttendance(req, res, db));
+    router.get('/createTest', isAuthenticated, (req, res) => commonController.createTestGet(req, res, db));
+    router.post('/createTest', isAuthenticated, (req, res) => commonController.createTestPost(req, res, db));
+    
 
 
     // Event & Announcement Forms

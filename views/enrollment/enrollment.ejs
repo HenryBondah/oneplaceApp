@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enrollment Page</title>
+    <style>
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .center {
+            text-align: center;
+        }
+        .class-container, .student-container {
+            margin-top: 20px;
+        }
+        .class-checkbox {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .class-checkbox label {
+            margin-left: 10px;
+        }
+        .student-list {
+            margin-left: 30px;
+            margin-top: 10px;
+            display: none;
+        }
+        .student-checkbox {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .student-checkbox label {
+            margin-left: 10px;
+        }
+        .flash-message {
+            padding: 10px;
+            margin: 15px 0;
+            border: 1px solid transparent;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .flash-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .flash-error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="center">Enrollment Page</h1>
+
+    <!-- Flash Messages -->
+    <% if (messages.error && messages.error.length > 0) { %>
+        <% messages.error.forEach(message => { %>
+            <div class="flash-message flash-error"><%= message %></div>
+        <% }) %>
+    <% } %>
+    <% if (messages.success && messages.success.length > 0) { %>
+        <% messages.success.forEach(message => { %>
+            <div class="flash-message flash-success"><%= message %></div>
+        <% }) %>
+    <% } %>
+
+    <form id="enrollmentForm">
+        <div class="form-group">
+            <label for="schoolYear">Select School Year:</label>
+            <select id="schoolYear" name="schoolYearId" required>
+                <option value="">Select a school year</option>
+                <% schoolYears.forEach(schoolYear => { %>
+                    <option value="<%= schoolYear.school_year_id %>" data-terms='<%= JSON.stringify(schoolYear.terms) %>'><%= schoolYear.year_label %></option>
+                <% }); %>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="term">Select Term:</label>
+            <select id="term" name="termId" required>
+                <option value="">Select a term</option>
+                <!-- Terms will be loaded dynamically based on school year selection -->
+            </select>
+        </div>
+
+        <div class="class-container">
+            <h3>Select Classes:</h3>
+            <div class="select-all-classes">
+                <input type="checkbox" id="selectAllClasses">
+                <label for="selectAllClasses">Select All Classes</label>
+            </div>
+            <% classes.forEach(cls => { %>
+                <div class="class-checkbox">
+                    <input type="checkbox" name="classId" value="<%= cls.class_id %>" id="class_<%= cls.class_id %>" class="class-checkbox-input">
+                    <label for="class_<%= cls.class_id %>"><%= cls.class_name %></label>
+                </div>
+                <div id="students_<%= cls.class_id %>" class="student-list">
+                    <h4>Students in <%= cls.class_name %>:</h4>
+                    <div class="select-all">
+                        <input type="checkbox" class="select-all-students" data-class-id="<%= cls.class_id %>">
+                        <label>Select All Students in <%= cls.class_name %></label>
+                    </div>
+                    <div id="studentsContainer_<%= cls.class_id %>">
+                        <!-- Students will be loaded here via JavaScript -->
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+
+        <div class="form-group center">
+            <button type="button" onclick="enrollStudents()">Enroll</button>
+        </div>
+    </form>
+
+    <script>
+        document.getElementById('schoolYear').addEventListener('change', function() {
+            const schoolYearId = this.value;
+            const selectedOption = this.options[this.selectedIndex];
+            const terms = JSON.parse(selectedOption.getAttribute('data-terms'));
+
+            const termSelect = document.getElementById('term');
+            termSelect.innerHTML = '<option value="">Select a term</option>';
+
+            if (terms && terms.length > 0) {
+                terms.forEach(term => {
+                    termSelect.innerHTML += `<option value="${term.term_id}">${term.term_name}</option>`;
+                });
+            }
+        });
+
+        document.querySelectorAll('.class-checkbox-input').forEach(function(classCheckbox) {
+            classCheckbox.addEventListener('change', async function() {
+                const classId = this.value;
+                const studentsList = document.getElementById(`students_${classId}`);
+                if (this.checked) {
+                    studentsList.style.display = "block";
+                    // Fetch students for the selected class
+                    const response = await fetch(`/enrollment/getStudentsByClass?classId=${classId}`);
+                    const data = await response.json();
+                    const studentsContainer = document.getElementById(`studentsContainer_${classId}`);
+                    studentsContainer.innerHTML = "";
+
+                    data.students.forEach(student => {
+                        studentsContainer.innerHTML += `
+                            <div class="student-checkbox">
+                                <input type="checkbox" name="selectedStudents[]" value="${student.student_id}" class="student-checkbox-input student-checkbox-${classId}" id="student_${student.student_id}">
+                                <label for="student_${student.student_id}">${student.first_name} ${student.last_name}</label>
+                            </div>
+                        `;
+                    });
+                } else {
+                    studentsList.style.display = "none";
+                }
+            });
+        });
+
+        document.querySelectorAll(".select-all-students").forEach(function(selectAllCheckbox) {
+            selectAllCheckbox.addEventListener("change", function() {
+                const classId = this.getAttribute("data-class-id");
+                document.querySelectorAll(`#studentsContainer_${classId} .student-checkbox-input`).forEach(function(studentCheckbox) {
+                    studentCheckbox.checked = selectAllCheckbox.checked;
+                });
+            });
+        });
+
+        document.getElementById('selectAllClasses').addEventListener('change', async function() {
+            const allClassesChecked = this.checked;
+            document.querySelectorAll('.class-checkbox-input').forEach(async function(classCheckbox) {
+                classCheckbox.checked = allClassesChecked;
+                const classId = classCheckbox.value;
+                const studentsList = document.getElementById(`students_${classId}`);
+
+                if (allClassesChecked) {
+                    studentsList.style.display = "block";
+                    // Fetch students for the selected class if not already loaded
+                    const response = await fetch(`/enrollment/getStudentsByClass?classId=${classId}`);
+                    const data = await response.json();
+                    const studentsContainer = document.getElementById(`studentsContainer_${classId}`);
+                    studentsContainer.innerHTML = "";
+
+                    data.students.forEach(student => {
+                        studentsContainer.innerHTML += `
+                            <div class="student-checkbox">
+                                <input type="checkbox" name="selectedStudents[]" value="${student.student_id}" class="student-checkbox-input student-checkbox-${classId}" id="student_${student.student_id}">
+                                <label for="student_${student.student_id}">${student.first_name} ${student.last_name}</label>
+                            </div>
+                        `;
+                    });
+
+                    // Select all students for this class
+                    document.querySelectorAll(`#studentsContainer_${classId} .student-checkbox-input`).forEach(function(studentCheckbox) {
+                        studentCheckbox.checked = true;
+                    });
+                } else {
+                    studentsList.style.display = "none";
+                }
+            });
+
+            // Also check the "Select All Students" for each class
+            document.querySelectorAll('.select-all-students').forEach(function(selectAllCheckbox) {
+                selectAllCheckbox.checked = allClassesChecked;
+                const classId = selectAllCheckbox.getAttribute('data-class-id');
+                document.querySelectorAll(`#studentsContainer_${classId} .student-checkbox-input`).forEach(function(studentCheckbox) {
+                    studentCheckbox.checked = allClassesChecked;
+                });
+            });
+        });
+
+        async function enrollStudents() {
+        const formElement = document.getElementById('enrollmentForm');
+        const formData = new FormData(formElement);
+
+        const students = [];
+        const classes = [];
+        formData.forEach((value, key) => {
+            if (key === 'selectedStudents[]') {
+                students.push(value);
+            }
+            if (key === 'classId') {
+                classes.push(value);
+            }
+        });
+
+        const termId = formData.get('termId');
+        const schoolYearId = formData.get('schoolYearId');
+
+        if (students.length === 0 || !termId || !schoolYearId || classes.length === 0) {
+            alert('Please select school year, term, classes, and students.');
+            return;
+        }
+
+        const response = await fetch('/enrollment/enroll', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ selectedStudents: students, termId, schoolYearId, selectedClasses: classes })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert(result.message);
+            location.reload();
+        } else {
+            alert(result.message);
+        }
+    }
+        </script>
+</body>
+</html>

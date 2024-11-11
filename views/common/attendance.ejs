@@ -1,34 +1,47 @@
-
-    <style>
-        .date-header {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .edit-save-link,
-        .cancel-link {
-            cursor: pointer;
-            color: blue;
-            text-decoration: underline;
-            margin-top: 5px;
-        }
-        .cancel-link {
-            color: red;
-        }
-        .center-link {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
+<style>
+    .date-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .edit-save-link,
+    .cancel-link {
+        cursor: pointer;
+        color: blue;
+        text-decoration: underline;
+        margin-top: 5px;
+    }
+    .cancel-link {
+        color: red;
+    }
+    .last-edited {
+        font-size: 0.8em;
+        color: gray;
+    }
+    .center-link {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+    .attendance-sheet th,
+    .attendance-sheet td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center; 
+        vertical-align: middle; /
+    }
+    .attendance-sheet input[type="checkbox"] {
+        transform: scale(1.3);
+    }
     </style>
 </head>
 <body>
     <div class="link-to-next-back">
         <a href="/common/classDashboard?classId=<%= classId %>" class="back-link">Back to Class Dashboard</a>
     </div>
-    
+
     <hr>
-    <h1>Attendance Records for <%= className %></h1>
+    <h1 style="text-align: center;">Attendance Records for <%= className %></h1>
     <div class="attendance-sheet-container">
         <table class="attendance-sheet">
             <thead>
@@ -39,6 +52,11 @@
                             <%= new Date(today).toLocaleDateString() %>
                             <div class="edit-save-link" data-date="<%= today %>" onclick="toggleEditSaveMode('<%= today %>')">Edit</div>
                             <div class="cancel-link" data-date="<%= today %>" style="display: none;" onclick="cancelEditMode('<%= today %>')">Cancel</div>
+                            <div class="last-edited" id="last-edited-<%= today %>">
+                                <% if (typeof lastEditedMap !== 'undefined' && lastEditedMap[today]) { %>
+                                    Last edited: <%= new Date(lastEditedMap[today]).toLocaleString() %>
+                                <% } %>
+                            </div>
                         </div>
                     </th>
                     <% displayDates.sort((a, b) => new Date(b) - new Date(a)).forEach(date => { if (date !== today) { %>
@@ -47,6 +65,11 @@
                                 <%= new Date(date).toLocaleDateString() %>
                                 <div class="edit-save-link" data-date="<%= date %>" onclick="toggleEditSaveMode('<%= date %>')">Edit</div>
                                 <div class="cancel-link" data-date="<%= date %>" style="display: none;" onclick="cancelEditMode('<%= date %>')">Cancel</div>
+                                <div class="last-edited" id="last-edited-<%= date %>">
+                                    <% if (typeof lastEditedMap !== 'undefined' && lastEditedMap[date]) { %>
+                                        Last edited: <%= new Date(lastEditedMap[date]).toLocaleString() %>
+                                    <% } %>
+                                </div>
                             </div>
                         </th>
                     <% }}); %>
@@ -78,16 +101,23 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const classId = '<%= classId %>';
-            fetch(`/common/getAttendanceForClass?classId=${classId}`)
+            fetch(`/common/getAttendanceForClass?classId=${classId}&termId=<%= termId %>`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         const attendanceMap = {};
+                        const lastEditedMap = {};
+
                         data.attendance.forEach(record => {
                             if (!attendanceMap[record.student_id]) {
                                 attendanceMap[record.student_id] = {};
                             }
                             attendanceMap[record.student_id][record.date] = record.status;
+
+                            // Store last edited date and time
+                            if (record.updated_at) {
+                                lastEditedMap[record.date] = record.updated_at;
+                            }
                         });
 
                         const students = document.querySelectorAll('.attendance-sheet tbody tr');
@@ -101,6 +131,14 @@
                                     dateCheckbox.disabled = true;
                                 }
                             });
+                        });
+
+                        // Set last edited date and time for each date column
+                        Object.keys(lastEditedMap).forEach(date => {
+                            const lastEditedElement = document.getElementById(`last-edited-${date}`);
+                            if (lastEditedElement) {
+                                lastEditedElement.textContent = `Last edited: ${new Date(lastEditedMap[date]).toLocaleString()}`;
+                            }
                         });
                     } else {
                         console.error('Failed to fetch attendance:', data.error);
@@ -117,10 +155,8 @@
             const cancelLink = document.querySelector(`.cancel-link[data-date='${date}']`);
 
             if (link.textContent === 'Save') {
-                console.log('Saving attendance for date:', date);
                 saveAttendanceForDate(date, checkboxes, link);
             } else if (link.textContent === 'Edit') {
-                console.log('Entering edit mode for date:', date);
                 saveOriginalStates(date, checkboxes);
                 checkboxes.forEach(checkbox => {
                     checkbox.disabled = false;
@@ -132,19 +168,19 @@
 
         function saveAttendanceForDate(date, checkboxes, link) {
             const attendanceData = {};
+            const classId = '<%= classId %>';
+            const termId = '<%= termId %>';
 
             checkboxes.forEach(checkbox => {
                 attendanceData[checkbox.dataset.studentId] = checkbox.checked ? 'Present' : 'Absent';
             });
-
-            console.log('Attendance data to save:', attendanceData);
 
             fetch('/common/saveSingleAttendance', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ attendance: attendanceData, classId: '<%= classId %>', date: date }),
+                body: JSON.stringify({ attendance: attendanceData, classId, termId, date })
             })
             .then(response => response.json())
             .then(data => {
@@ -156,6 +192,12 @@
                     });
                     const cancelLink = document.querySelector(`.cancel-link[data-date='${date}']`);
                     cancelLink.style.display = 'none';
+
+                    // Update last edited date and time
+                    const lastEditedElement = document.getElementById(`last-edited-${date}`);
+                    if (lastEditedElement) {
+                        lastEditedElement.textContent = `Last edited: ${new Date().toLocaleString()}`;
+                    }
                 } else {
                     console.error('Failed to save attendance:', data.error);
                     alert('Failed to save attendance. Please try again.');
@@ -182,7 +224,6 @@
         }
 
         function cancelEditMode(date) {
-            console.log('Cancelling edit mode for date:', date);
             const checkboxes = document.querySelectorAll(`input[data-date='${date}']`);
             restoreOriginalStates(date, checkboxes);
             const link = document.querySelector(`.edit-save-link[data-date='${date}']`);
@@ -191,4 +232,3 @@
             cancelLink.style.display = 'none';
         }
     </script>
-

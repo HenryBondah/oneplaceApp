@@ -84,7 +84,7 @@
                 <thead>
                     <tr>
                         <th>Subject</th>
-                        <% if (subjects.length > 0 && subjects[0].assessments.length > 0) { %>
+                        <% if (subjects.length > 0) { %>
                             <% subjects[0].assessments.forEach(function(assessment) { %>
                                 <th>
                                     <%= assessment.title %> (<%= assessment.weight %>%)<br>
