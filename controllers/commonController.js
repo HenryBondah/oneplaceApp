@@ -1521,225 +1521,221 @@ calculateGrade: (totalPercentage) => {
         }
     },
 
-// Controller for managing assessments
-manageAssessment: async (req, res, db) => {
-    let { organizationId, termId } = req.query;
-
-    if (!organizationId) {
-        organizationId = req.session.organizationId;
-    }
-
-    if (!termId) {
-        termId = req.session.termId;
-    }
-
-    // Validate incoming organizationId and termId
-    if (!organizationId || !termId) {
-        req.flash('error', 'Organization ID and Term ID are required.');
-        return res.status(400).send('Organization ID and Term ID are required.');
-    }
-
-    organizationId = parseInt(organizationId, 10);
-    termId = parseInt(termId, 10);
-
-    if (isNaN(organizationId) || isNaN(termId)) {
-        req.flash('error', 'Invalid Organization ID or Term ID.');
-        return res.status(400).send('Invalid Organization ID or Term ID.');
-    }
-
-    try {
-        // Fetch assessments with their associated classes and subjects
-        const assessmentsQuery = `
-            SELECT a.assessment_id, a.title, a.weight, a.max_score, a.category, a.term_id, 
-                   c.class_id, c.class_name, s.subject_name
-            FROM assessments a
-            LEFT JOIN classes c ON a.class_id = c.class_id
-            LEFT JOIN subjects s ON a.subject_id = s.subject_id
-            WHERE a.organization_id = $1 AND a.term_id = $2
-            ORDER BY a.assessment_id, c.class_id, s.subject_name
-        `;
-        const assessmentsResult = await db.query(assessmentsQuery, [organizationId, termId]);
-
-        // Group classes and subjects under each assessment
-        const assessmentsMap = {};
-        for (let row of assessmentsResult.rows) {
-            const assessmentId = row.assessment_id;
-
-            if (!assessmentsMap[assessmentId]) {
-                assessmentsMap[assessmentId] = {
-                    assessment_id: assessmentId,
-                    title: row.title,
-                    weight: row.weight,
-                    max_score: row.max_score,
-                    category: row.category,
-                    term_id: row.term_id,
-                    assigned_classes: {}
-                };
-            }
-
-            if (!assessmentsMap[assessmentId].assigned_classes[row.class_id]) {
-                assessmentsMap[assessmentId].assigned_classes[row.class_id] = {
-                    class_name: row.class_name,
-                    subjects: []
-                };
-            }
-
-            assessmentsMap[assessmentId].assigned_classes[row.class_id].subjects.push(row.subject_name);
+    manageAssessment: async (req, res, db) => {
+        let { organizationId, termId } = req.query;
+    
+        if (!organizationId) {
+            organizationId = req.session.organizationId;
         }
-
-        // Convert the map into an array for easier rendering in EJS
-        const assessments = Object.values(assessmentsMap).map(assessment => {
-            const assigned_classes = Object.values(assessment.assigned_classes).map(cls => {
-                return {
-                    class_name: cls.class_name,
-                    subjects: cls.subjects.join(', ')
-                };
-            });
-            return { ...assessment, assigned_classes };
-        });
-
-        res.render('common/manageAssessment', {
-            title: 'Manage Assessments',
-            organizationId,
-            termId,
-            assessments,
-            messages: req.flash()
-        });
-    } catch (err) {
-        console.error('Error fetching manage assessment data:', err);
-        req.flash('error', 'Failed to load manage assessment data.');
-        res.status(500).send('Error fetching manage assessment data.');
-    }
-},
-
-
     
-    
-    
-modifyAssessmentGet: async (req, res, db) => {
-    const { assessmentId } = req.query;
-
-    if (!assessmentId) {
-        req.flash('error', 'Assessment ID is required.');
-        return res.redirect('/common/manageAssessment');
-    }
-
-    try {
-        // Fetch assessment details
-        const assessmentQuery = `
-            SELECT a.*, c.class_name, s.subject_name, c.class_id, s.subject_id
-            FROM assessments a
-            LEFT JOIN classes c ON a.class_id = c.class_id
-            LEFT JOIN subjects s ON a.subject_id = s.subject_id
-            WHERE a.assessment_id = $1
-        `;
-        const assessmentResult = await db.query(assessmentQuery, [assessmentId]);
-
-        if (assessmentResult.rows.length === 0) {
-            req.flash('error', 'No assessment found with the provided ID.');
-            return res.redirect('/common/manageAssessment');
+        if (!termId) {
+            termId = req.session.termId;
         }
-
-        const assessment = assessmentResult.rows[0];
-
-        // Fetch available classes and subjects
-        const classesResult = await db.query(
-            `SELECT class_id, class_name FROM classes WHERE organization_id = $1`,
-            [assessment.organization_id]
-        );
-
-        const subjectsResult = await db.query(
-            `SELECT subject_id, subject_name, class_id FROM subjects WHERE organization_id = $1`,
-            [assessment.organization_id]
-        );
-
-        res.render('common/modifyAssessment', {
-            title: 'Modify Assessment',
-            assessment,
-            classes: classesResult.rows,
-            subjects: subjectsResult.rows,
-            organizationId: assessment.organization_id,
-            termId: assessment.term_id,
-            messages: req.flash()
-        });
-    } catch (error) {
-        console.error('Error fetching assessment for modification:', error);
-        req.flash('error', 'Failed to load assessment for modification.');
-        res.redirect('/common/manageAssessment');
-    }
-},
-            
-// Controller to update an assessment
-updateAssessmentPost: async (req, res, db) => {
-    const { assessmentId, title, weight, maxScore, category, classId, subjectId } = req.body;
-
-    if (!assessmentId || !title || !weight || !maxScore || !category || !classId || !subjectId) {
-        return res.status(400).json({ error: 'All fields are required.' });
-    }
-
-    try {
-        await db.query(
-            `UPDATE assessments
-             SET title = $1, weight = $2, max_score = $3, category = $4, class_id = $5, subject_id = $6
-             WHERE assessment_id = $7`,
-            [title, weight, maxScore, category, classId, subjectId, assessmentId]
-        );
-
-        res.status(200).json({ message: 'Assessment updated successfully.' });
-    } catch (err) {
-        console.error('Error updating assessment:', err);
-        res.status(500).json({ error: 'Failed to update assessment.' });
-    }
-},
-
-// Controller to delete an assessment
-deleteAssessmentPost: async (req, res, db) => {
-    const { assessmentId } = req.body;
-
-    if (!assessmentId) {
-        return res.status(400).json({ error: 'Assessment ID is required.' });
-    }
-
-    try {
-        await db.query(
-            `DELETE FROM assessments
-             WHERE assessment_id = $1`,
-            [assessmentId]
-        );
-
-        res.status(200).json({ message: 'Assessment deleted successfully.' });
-    } catch (err) {
-        console.error('Error deleting assessment:', err);
-        res.status(500).json({ error: 'Failed to delete assessment.' });
-    }
-},
     
-    updateAssessments: async (req, res, db) => {
-        const { assessments } = req.body;
+        // Validate incoming organizationId and termId
+        if (!organizationId || !termId) {
+            req.flash('error', 'Organization ID and Term ID are required.');
+            return res.status(400).send('Organization ID and Term ID are required.');
+        }
+    
+        organizationId = parseInt(organizationId, 10);
+        termId = parseInt(termId, 10);
+    
+        if (isNaN(organizationId) || isNaN(termId)) {
+            req.flash('error', 'Invalid Organization ID or Term ID.');
+            return res.status(400).send('Invalid Organization ID or Term ID.');
+        }
     
         try {
-            await db.query('BEGIN');
+            // Fetch assessments with their associated classes and subjects, grouped by group_id
+            const assessmentsQuery = `
+                SELECT a.group_id, a.title, a.weight, a.max_score, a.category, a.term_id, 
+                       c.class_id, c.class_name, s.subject_name
+                FROM assessments a
+                LEFT JOIN classes c ON a.class_id = c.class_id
+                LEFT JOIN subjects s ON a.subject_id = s.subject_id
+                WHERE a.organization_id = $1 AND a.term_id = $2
+                ORDER BY a.group_id, c.class_id, s.subject_name
+            `;
+            const assessmentsResult = await db.query(assessmentsQuery, [organizationId, termId]);
     
-            for (let assessmentId in assessments) {
-                const { title, weight, maxScore, category, classId } = assessments[assessmentId];
-                await db.query(`
-                    UPDATE assessments
-                    SET title = $1, weight = $2, max_score = $3, category = $4, class_id = $5
-                    WHERE assessment_id = $6 AND organization_id = $7`,
-                    [title, weight, maxScore, category, classId, assessmentId, req.session.organizationId]
-                );
+            // Group classes and subjects under each assessment group
+            const assessmentsMap = {};
+            for (let row of assessmentsResult.rows) {
+                const groupId = row.group_id;
+    
+                if (!assessmentsMap[groupId]) {
+                    assessmentsMap[groupId] = {
+                        group_id: groupId,
+                        title: row.title,
+                        weight: row.weight,
+                        max_score: row.max_score,
+                        category: row.category,
+                        term_id: row.term_id,
+                        assigned_classes: {}
+                    };
+                }
+    
+                if (!assessmentsMap[groupId].assigned_classes[row.class_id]) {
+                    assessmentsMap[groupId].assigned_classes[row.class_id] = {
+                        class_id: row.class_id,
+                        class_name: row.class_name,
+                        subjects: []
+                    };
+                }
+    
+                assessmentsMap[groupId].assigned_classes[row.class_id].subjects.push(row.subject_name);
             }
     
-            await db.query('COMMIT');
-            req.flash('success', 'Assessments updated successfully.');
-            res.status(200).json({ success: true });
+            // Convert the map into an array for easier rendering in EJS
+            const assessments = Object.values(assessmentsMap).map(assessment => {
+                return {
+                    ...assessment,
+                    assigned_classes: Object.values(assessment.assigned_classes)
+                };
+            });
+    
+            res.render('common/manageAssessment', {
+                title: 'Manage Assessments',
+                organizationId,
+                termId,
+                assessments,
+                messages: req.flash()
+            });
         } catch (err) {
-            await db.query('ROLLBACK');
-            console.error('Error updating assessments:', err);
-            req.flash('error', 'Failed to update assessments.');
-            res.status(500).json({ error: 'Failed to update assessments.' });
+            console.error('Error fetching manage assessment data:', err);
+            req.flash('error', 'Failed to load manage assessment data.');
+            res.status(500).send('Error fetching manage assessment data.');
         }
-    }, 
+    },
+        
+    
+    modifyAssessmentGet: async (req, res, db) => {
+        const { groupId } = req.query;
+    
+        if (!groupId) {
+            req.flash('error', 'Group ID is required.');
+            return res.redirect('/common/manageAssessment');
+        }
+    
+        try {
+            // Fetch all assessments in the group
+            const assessmentQuery = `
+                SELECT a.*, c.class_name, s.subject_name, c.class_id, s.subject_id
+                FROM assessments a
+                LEFT JOIN classes c ON a.class_id = c.class_id
+                LEFT JOIN subjects s ON a.subject_id = s.subject_id
+                WHERE a.group_id = $1
+            `;
+            const assessmentResult = await db.query(assessmentQuery, [groupId]);
+    
+            if (assessmentResult.rows.length === 0) {
+                req.flash('error', 'No assessments found with the provided group ID.');
+                return res.redirect('/common/manageAssessment');
+            }
+    
+            const assessments = assessmentResult.rows;
+    
+            // Fetch available classes and subjects
+            const classesResult = await db.query(
+                `SELECT class_id, class_name FROM classes WHERE organization_id = $1`,
+                [assessments[0].organization_id]
+            );
+    
+            const subjectsResult = await db.query(
+                `SELECT subject_id, subject_name, class_id FROM subjects WHERE organization_id = $1`,
+                [assessments[0].organization_id]
+            );
+    
+            res.render('common/modifyAssessment', {
+                title: 'Modify Assessment',
+                assessments,
+                classes: classesResult.rows,
+                subjects: subjectsResult.rows,
+                organizationId: assessments[0].organization_id,
+                termId: assessments[0].term_id,
+                messages: req.flash()
+            });
+        } catch (error) {
+            console.error('Error fetching assessment for modification:', error);
+            req.flash('error', 'Failed to load assessment for modification.');
+            res.redirect('/common/manageAssessment');
+        }
+    },
+    
+// Controller to delete an assessment group
+deleteAssessmentPost: async (req, res, db) => {
+    const { groupId } = req.body;
+
+    if (!groupId) {
+        return res.status(400).json({ error: 'Group ID is required.' });
+    }
+
+    const client = await db.connect();
+
+    try {
+        await client.query('BEGIN'); // Start a transaction
+
+        // Delete all assessments associated with the given group ID
+        await client.query(
+            `DELETE FROM assessments
+             WHERE group_id = $1`,
+            [groupId]
+        );
+
+        await client.query('COMMIT'); // Commit the transaction
+        res.status(200).json({ message: 'Assessment group deleted successfully.' });
+    } catch (err) {
+        await client.query('ROLLBACK'); // Rollback transaction on error
+        console.error('Error deleting assessment group:', err);
+        res.status(500).json({ error: 'Failed to delete assessment group.' });
+    } finally {
+        client.release();
+    }
+},
+
+
+// Controller to update an assessment group
+updateAssessmentPost: async (req, res, db) => {
+    const { groupId, title, weight, maxScore, category, classes, subjects, organizationId, termId } = req.body;
+
+    if (!groupId || !title || !weight || !maxScore || !category) {
+        return res.status(400).json({ error: 'Missing required fields.' });
+    }
+
+    const client = await db.connect();
+
+    try {
+        await client.query('BEGIN'); // Start a transaction
+
+        // Delete existing assessments in the group to ensure a clean update
+        await client.query(
+            `DELETE FROM assessments
+             WHERE group_id = $1`,
+            [groupId]
+        );
+
+        // Insert updated assessments for the group
+        for (const classId of classes) {
+            for (const subjectId of subjects) {
+                await client.query(
+                    `INSERT INTO assessments (group_id, title, weight, max_score, category, subject_id, organization_id, term_id, class_id)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                    [groupId, title, weight, maxScore, category, subjectId, organizationId, termId, classId]
+                );
+            }
+        }
+
+        await client.query('COMMIT'); // Commit the transaction
+        res.status(200).json({ message: 'Assessment updated successfully.' });
+    } catch (err) {
+        await client.query('ROLLBACK'); // Rollback transaction on error
+        console.error('Error updating assessments:', err);
+        res.status(500).json({ error: 'Failed to update assessments.' });
+    } finally {
+        client.release();
+    }
+},
         
 // Controller for rendering createTest page
 createTestGet: async (req, res, db) => {
@@ -1800,7 +1796,6 @@ createTestGet: async (req, res, db) => {
     }
 },
 
-
 createTestPost: async (req, res, db) => {
     const { organizationId, termId: formTermId, tests } = req.body;
 
@@ -1818,7 +1813,7 @@ createTestPost: async (req, res, db) => {
             const selectedSubjects = test.subjects;
 
             if (!selectedClasses || !selectedSubjects || selectedClasses.length === 0 || selectedSubjects.length === 0) {
-                throw new Error("Class ID and Subject ID are required.");
+                throw new Error("At least one Class ID and Subject ID are required.");
             }
 
             // Generate a new group ID for this form's assessments
@@ -1826,8 +1821,15 @@ createTestPost: async (req, res, db) => {
             const newGroupId = groupIdResult.rows[0].next_group_id;
 
             for (let cls of selectedClasses) {
-                for (let subj of selectedSubjects) {
-                    // Insert the assessment into the assessments table using the generated group ID
+                // Insert subjects associated with this class
+                const subjectsForClass = selectedSubjects.filter(subject => {
+                    const subjectClassId = subject.split('-')[0];
+                    return subjectClassId == cls;
+                });
+
+                for (let subject of subjectsForClass) {
+                    const [, subj] = subject.split('-');
+
                     const insertAssessmentQuery = `
                         INSERT INTO assessments (group_id, title, weight, max_score, category, subject_id, organization_id, term_id, class_id)
                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -1843,70 +1845,20 @@ createTestPost: async (req, res, db) => {
                         formTermId,
                         cls
                     ]);
+
                 }
             }
         }
-
         await client.query('COMMIT'); // Commit the transaction
         res.status(200).json({ message: `Tests added successfully to Term: ${formTermId}` });
     } catch (error) {
-        await client.query('ROLLBACK'); // Rollback transaction on error
+        await client.query('ROLLBACK'); 
+        console.error('Error adding tests:', error);
         res.status(400).json({ error: `Failed to add tests. ${error.message}` });
     } finally {
         client.release();
     }
 },
-    
-                    
-    updateAssessments: async (req, res, db) => {
-        const { classId, subjectId } = req.query;
-        const { assessments } = req.body;
-    
-        try {
-            // Begin transaction
-            await db.query('BEGIN');
-    
-            for (let assessmentId in assessments) {
-                const { title, weight, maxScore, category } = assessments[assessmentId];
-    
-                // Update the assessment with the new data, including the category
-                const result = await db.query(`
-                    UPDATE assessments
-                    SET title = $1, weight = $2, max_score = $3, category = $4
-                    WHERE assessment_id = $5 AND class_id = $6 AND subject_id = $7 AND organization_id = $8
-                `, [title, parseFloat(weight), parseFloat(maxScore), category, assessmentId, classId, subjectId, req.session.organizationId]);
-    
-                if (result.rowCount === 0) {
-                    console.error(`Failed to update assessment ID: ${assessmentId}`);
-                }
-            }
-    
-            // Commit the transaction
-            await db.query('COMMIT');
-    
-            req.flash('success', 'Assessments updated successfully.');
-            res.status(200).json({ success: true, message: 'Assessments updated successfully.' });
-        } catch (err) {
-            // Rollback the transaction in case of an error
-            await db.query('ROLLBACK');
-            console.error('Error updating assessments:', err);
-            req.flash('error', 'Failed to update assessments.');
-            res.status(500).json({ error: 'Failed to update assessments.' });
-        }
-    },
-            
-    deleteAssessment: async (req, res, db) => {
-        const { assessmentId } = req.body;
-        try {
-            await db.query('DELETE FROM assessments WHERE assessment_id = $1 AND organization_id = $2', [assessmentId, req.session.organizationId]);
-            req.flash('success', 'Assessment deleted successfully.');
-            res.redirect('back');
-        } catch (err) {
-            console.error('Error deleting assessment:', err);
-            req.flash('error', 'Failed to delete assessment.');
-            res.redirect('back');
-        }
-    },
 
     deleteEmployee: async (req, res, db) => {
         const { userId } = req.params;

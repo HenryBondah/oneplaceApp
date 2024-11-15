@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Assessments</title>
-
     <style>
         .manage-assessment-form {
             max-width: 90%;
@@ -14,12 +13,10 @@
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-
         .table-wrapper {
             overflow-x: auto;
             width: 100%;
         }
-
         table {
             width: 100%;
             border-collapse: collapse;
@@ -27,32 +24,24 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             min-width: 1000px;
         }
-
         th, td {
             padding: 10px;
             text-align: left;
             border: 1px solid #ddd;
             font-size: 16px;
         }
-
         th {
             background-color: #f2f2f2;
             text-align: center;
         }
-
-        .action-buttons button {
-            padding: 10px 15px;
-            font-size: 16px;
-            color: white;
-            background-color: #007bff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
+        .action-buttons a {
+            display: block;
+            padding: 5px;
+            color: #007bff;
+            text-decoration: none;
         }
-
-        .action-buttons button:hover {
-            background-color: #0056b3;
+        .action-buttons a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -84,37 +73,19 @@
                         <td>
                             <% Object.keys(assessment.assigned_classes).forEach(function(classId) { %>
                                 <div>
-                                    <strong>Class <%= assessment.assigned_classes[classId].class_name %>:</strong>
+                                    <strong> <%= assessment.assigned_classes[classId].class_name %>:</strong>
                                     <ul>
-                                        <% 
-                                            let subjects = assessment.assigned_classes[classId].subjects;
-                                            // Ensure that subjects are treated as an array, even if they aren't already.
-                                            if (typeof subjects === 'string') {
-                                                subjects = subjects.split(',').map(subject => subject.trim());
-                                            }
-                                            if (Array.isArray(subjects)) {
-                                                subjects.forEach(function(subject) { 
-                                        %>
-                                                <li><%= subject %></li>
-                                        <% 
-                                                });
-                                            } else {
-                                        %>
-                                                <li>No subjects assigned</li>
-                                        <% 
-                                            }
-                                        %>
+                                        <% assessment.assigned_classes[classId].subjects.forEach(function(subject) { %>
+                                            <li><%= subject %></li>
+                                        <% }); %>
                                     </ul>
                                 </div>
                             <% }); %>
                         </td>
                         <td>
-                            <% Object.keys(assessment.assigned_classes).forEach(function(classId) { %>
-                                <a href="/common/modifyAssessment?title=<%= assessment.title %>&classId=<%= classId %>&termId=<%= termId %>&organizationId=<%= organizationId %>">
-                                    Modify for Class <%= assessment.assigned_classes[classId].class_name %>
-                                </a>
-                                <br>
-                            <% }); %>
+                            <a href="/common/modifyAssessment?groupId=<%= assessment.group_id %>&termId=<%= termId %>&organizationId=<%= organizationId %>">
+                                Modify
+                            </a>
                         </td>
                     </tr>
                 <% }); %>

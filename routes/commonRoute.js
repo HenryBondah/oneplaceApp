@@ -31,8 +31,8 @@ module.exports = (db) => {
     router.get('/getAssessments', isAuthenticated, (req, res) => commonController.getAssessments(req, res, db));
     router.get('/getScores', isAuthenticated, (req, res) => commonController.getScores(req, res, db));
     router.get('/manageAssessment', isAuthenticated, (req, res) => commonController.manageAssessment(req, res, db));
-    router.post('/updateAssessments', isAuthenticated, (req, res) => commonController.updateAssessments(req, res, db));
-    router.post('/deleteAssessment', isAuthenticated, (req, res) => commonController.deleteAssessment(req, res, db));
+    router.post('/deleteAssessment', isAuthenticated, (req, res) => commonController.deleteAssessmentPost(req, res, db));
+    router.post('/modifyAssessment', isAuthenticated, (req, res) => commonController.updateAssessmentPost(req, res, db));
  // Route to modify an existing assessment
     router.get('/modifyAssessment', isAuthenticated, (req, res) => commonController.modifyAssessmentGet(req, res, db));
     router.post('/modifyAssessment', isAuthenticated, (req, res) => commonController.modifyAssessmentPost(req, res, db));
