@@ -24,8 +24,7 @@
 
             <!-- Dashboard Buttons -->
             <div class="dashboard-buttons">
-                <button onclick="navigateToAttendance('<%= classId %>', '<%= currentTerm.term_id %>')">Mark Attendance</button>
-                <button onclick="navigateToAttendanceRecords('<%= classId %>', '<%= currentTerm.term_id %>')">Attendance Records</button>
+                <button onclick="navigateToAttendanceRecords('<%= classId %>', '<%= currentTerm.term_id %>')">Attendance</button>
             </div>
 
             <!-- Subjects List -->
@@ -44,23 +43,28 @@
                 <% } %>
             </div>
 
-            <!-- Student List Container -->
-            <div class="student-list-container">
-                <h2>Students Enrolled in <%= currentTerm.term_name %></h2>
-                <ul class="student-list">
-                    <% if (students.length > 0) { %>
-                        <% students.forEach(function(student) { %>
-                            <li><a href="/common/studentDetails?studentId=<%= student.student_id %>&termId=<%= currentTerm.term_id %>">
-                                <%= student.first_name %> <%= student.last_name %></a>
-                            </li>
-                        <% }); %>
-                    <% } else { %>
-                        <li>No students enrolled for this term yet.</li>
-                    <% } %>
-                </ul>
-            </div>
-        </main>
+<!-- Student List Container -->
+<!-- Student List Container -->
+<div class="student-list-container">
+    <h2>Students Enrolled in Class <%= className %> for <%= currentTerm.term_name %></h2>
+    <ul class="student-list">
+        <% if (students.length > 0) { %>
+            <% students.forEach(function(student) { %>
+                <li>
+                    <a href="/common/studentDetails?studentId=<%= student.student_id %>&termId=<%= currentTerm.term_id %>&classId=<%= classId %>">
+                        <%= student.first_name %> <%= student.last_name %>
+                    </a>
+                </li>
+            <% }); %>
+        <% } else { %>
+            <li>No students enrolled for this term yet.</li>
+        <% } %>
+    </ul>
+</div>
 
+
+
+        </main>
     </div>
 
     <script>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Enrollments</title>
+    <style>
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .center {
+            text-align: center;
+        }
+        .action-links {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .link-button {
+            text-decoration: none;
+            background-color: #007bff;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .link-button:hover {
+            background-color: #0056b3;
+        }
+        .green-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: green;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .class-container {
+            margin-top: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .class-arrow {
+            font-size: 16px;
+            margin-right: 5px;
+        }
+        .student-list {
+            list-style-type: none;
+            padding-left: 20px;
+            display: none; /* Hidden by default */
+        }
+        .student-checkbox {
+            display: flex;
+            align-items: center;
+        }
+        .student-checkbox label {
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="link-to-next-back">
+        <a href="/enrollment/enroll" class="link-button">Add Enrollment</a>
+    </div>
+
+    <hr>
+
+    <h1 class="center">Manage Enrollments</h1>
+
+    <% if (messages && messages.error && messages.error.length > 0) { %>
+        <div class="flash-message flash-error"><%= messages.error[0] %></div>
+    <% } %>
+    <% if (messages && messages.success && messages.success.length > 0) { %>
+        <div class="flash-message flash-success"><%= messages.success[0] %></div>
+    <% } %>
+
+    <table>
+        <thead>
+            <tr>
+                <th>School Year</th>
+                <th>Term</th>
+                <th>Classes with Enrolled Students</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% enrollments.forEach(enrollment => { %>
+                <tr>
+                    <td>
+                        <% if (enrollment.is_current_year) { %>
+                            <span class="green-dot"></span>
+                        <% } %>
+                        <%= enrollment.school_year %>
+                    </td>
+                    <td>
+                        <% if (enrollment.is_current_term) { %>
+                            <span class="green-dot"></span>
+                        <% } %>
+                        <%= enrollment.term %>
+                    </td>
+                    <td>
+                        <% enrollment.classes.forEach((cls, index) => { %>
+                            <div class="class-container" id="classContainer_<%= enrollment.enrollment_id %>_<%= index %>">
+                                <span class="class-arrow" id="arrow_<%= enrollment.enrollment_id %>_<%= index %>">↓</span>
+                                <strong><%= cls.class_name %></strong>
+                            </div>
+                            <ul id="studentList_<%= enrollment.enrollment_id %>_<%= index %>" class="student-list">
+                                <% cls.all_students.forEach(student => { %>
+                                    <li class="student-checkbox">
+                                        <% if (cls.enrolled_students.some(s => s.student_id === student.student_id)) { %>
+                                            <input type="checkbox" checked disabled>
+                                        <% } else { %>
+                                            <input type="checkbox" disabled>
+                                        <% } %>
+                                        <label><%= student.first_name %> <%= student.last_name %></label>
+                                    </li>
+                                <% }); %>
+                            </ul>
+                        <% }); %>
+                    </td>
+                    <td>
+                        <a href="/enrollment/modifyEnrollment/<%= enrollment.enrollment_id %>" class="link-button">Modify</a>
+                    </td>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            document.querySelectorAll(".class-container").forEach(function(classContainer) {
+                classContainer.addEventListener("click", function() {
+                    const [_, enrollmentId, index] = this.id.split("_");
+                    const studentList = document.getElementById(`studentList_${enrollmentId}_${index}`);
+                    const arrow = document.getElementById(`arrow_${enrollmentId}_${index}`);
+
+                    if (studentList.style.display === "none") {
+                        studentList.style.display = "block";
+                        arrow.textContent = "↑";
+                    } else {
+                        studentList.style.display = "none";
+                        arrow.textContent = "↓";
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>

@@ -38,6 +38,14 @@
             background-color: #fff3cd;
             color: #856404;
         }
+        .enrollment-option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .enrollment-option input[type="radio"] {
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -57,7 +65,40 @@
         <fieldset>
             <h1>Add New Student</h1>
             <legend>Student Details</legend>
+
             <form action="/common/addStudent" method="post" enctype="multipart/form-data">
+                <fieldset>
+                    <legend>Enrollment Options</legend>
+                    <div class="enrollment-option">
+                        <input type="radio" id="enrollCurrent" name="enrollmentType" value="current" required checked>
+                        <label for="enrollCurrent">Enroll in Current Term: <strong><%= currentTerm ? `${currentTerm.year_label}, ${currentTerm.term_name}` : 'N/A' %></strong></label>
+                    </div>
+                    <div class="enrollment-option">
+                        <input type="radio" id="enrollFuture" name="enrollmentType" value="future">
+                        <label for="enrollFuture">Enroll in Future School Year/Term</label>
+                    </div>
+                </fieldset>
+
+                <div id="futureEnrollmentSection" style="display: none;">
+                    <div>
+                        <label><strong>Select School Year:</strong></label>
+                        <select id="schoolYear" name="schoolYearId">
+                            <option value="">Select a school year</option>
+                            <% schoolYears.forEach(schoolYear => { %>
+                                <option value="<%= schoolYear.school_year_id %>" data-terms='<%= JSON.stringify(schoolYear.terms) %>'><strong><%= schoolYear.year_label %></strong></option>
+                            <% }); %>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label><strong>Select Term:</strong></label>
+                        <select id="term" name="termId">
+                            <option value="">Select a term</option>
+                        </select>
+                    </div>
+                </div>
+                <hr>
+
                 <div>
                     <label>First Name:</label>
                     <input type="text" name="firstName" required>
@@ -185,6 +226,29 @@
             container.appendChild(guardianDiv);
             guardianCount++;
         }
+
+        document.getElementById('enrollFuture').addEventListener('change', function () {
+            document.getElementById('futureEnrollmentSection').style.display = 'block';
+        });
+
+        document.getElementById('enrollCurrent').addEventListener('change', function () {
+            document.getElementById('futureEnrollmentSection').style.display = 'none';
+        });
+
+        document.getElementById('schoolYear').addEventListener('change', function() {
+            const schoolYearId = this.value;
+            const selectedOption = this.options[this.selectedIndex];
+            const terms = JSON.parse(selectedOption.getAttribute('data-terms'));
+
+            const termSelect = document.getElementById('term');
+            termSelect.innerHTML = '<option value="">Select a term</option>';
+
+            if (terms && terms.length > 0) {
+                terms.forEach(term => {
+                    termSelect.innerHTML += `<option value="${term.term_id}">${term.term_name}</option>`;
+                });
+            }
+        });
 
         document.getElementById('classSelect').addEventListener('change', async function() {
             const classId = this.value;

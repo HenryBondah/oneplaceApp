@@ -74,6 +74,13 @@ CREATE TRIGGER update_organizations_modtime
     FOR EACH ROW
     EXECUTE FUNCTION update_modified_column();
 
+-- Graduation Year Groups Table
+CREATE TABLE IF NOT EXISTS graduation_year_groups (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE
+);
+
 -- Users Table
 CREATE TABLE IF NOT EXISTS users (
     user_id SERIAL PRIMARY KEY,
@@ -85,7 +92,6 @@ CREATE TABLE IF NOT EXISTS users (
     organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    class_id INT REFERENCES classes(class_id) ON DELETE SET NULL,
     on_hold BOOLEAN DEFAULT FALSE
 );
 
@@ -93,13 +99,6 @@ CREATE TRIGGER update_users_modtime
     BEFORE UPDATE ON users
     FOR EACH ROW
     EXECUTE FUNCTION update_modified_column();
-
--- Graduation Year Groups Table
-CREATE TABLE IF NOT EXISTS graduation_year_groups (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) UNIQUE NOT NULL,
-    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE
-);
 
 -- Classes Table
 CREATE TABLE IF NOT EXISTS classes (
@@ -163,7 +162,6 @@ CREATE TABLE IF NOT EXISTS student_subjects (
     organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE
 );
 
-
 -- Assessments Table
 CREATE TABLE IF NOT EXISTS assessments (
     assessment_id SERIAL PRIMARY KEY,
@@ -190,7 +188,8 @@ CREATE TABLE IF NOT EXISTS assessment_results (
     total_subject_score NUMERIC(10, 2),
     total_percentage NUMERIC(5, 2),
     position INTEGER,
-    category VARCHAR(50)
+    category VARCHAR(50),
+    class_id INT REFERENCES classes(class_id) ON DELETE CASCADE
 );
 
 -- Attendance Records Table
@@ -302,7 +301,9 @@ CREATE TABLE IF NOT EXISTS student_positions (
     organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
     total_subject_score NUMERIC(10, 2),
     position INT,
-    UNIQUE (student_id, subject_id)
+    class_id INT REFERENCES classes(class_id),
+    category VARCHAR(255),
+    UNIQUE (student_id, subject_id, category)
 );
 
 -- Category Scores Table
@@ -314,30 +315,9 @@ CREATE TABLE IF NOT EXISTS category_scores (
     organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
     category VARCHAR(50),
     total_score DECIMAL(10, 2) DEFAULT 0,
-    UNIQUE (student_id, class_id, subject_id, category, organization_id),
-    CONSTRAINT unique_student_class_category_org UNIQUE (student_id, class_id, category, organization_id)
+    term_id INT,  -- This already exists
+    UNIQUE (student_id, class_id, subject_id, category, organization_id)
 );
-
--- Ensure indexes for optimization
-CREATE INDEX IF NOT EXISTS idx_user_email ON users (email);
-CREATE INDEX IF NOT EXISTS idx_org_name ON organizations (organization_name);
-CREATE INDEX IF NOT EXISTS idx_class_name ON classes (class_name);
-CREATE INDEX IF NOT EXISTS idx_student_name ON students (first_name, last_name);
-
--- Update assessment_results to include category information from assessments
-UPDATE assessment_results ar
-SET category = a.category
-FROM assessments a
-WHERE ar.assessment_id = a.assessment_id;
-
--- Update assessment_results with assessment titles
-UPDATE assessment_results ar
-SET title = a.title
-FROM assessments a
-WHERE ar.assessment_id = a.assessment_id;
-
-ALTER TABLE terms ADD COLUMN current_term BOOLEAN DEFAULT false;
-
 
 -- Status Settings Table
 CREATE TABLE IF NOT EXISTS status_settings (
@@ -347,113 +327,209 @@ CREATE TABLE IF NOT EXISTS status_settings (
     promoted_class VARCHAR(255),
     repeated_class VARCHAR(255),
     school_reopen_date DATE,
-    CONSTRAINT fk_org FOREIGN KEY (organization_id) REFERENCES organizations(organization_id) ON DELETE CASCADE
+    class_id INT REFERENCES classes(class_id) ON DELETE CASCADE,
+    activate_promotion BOOLEAN DEFAULT false,
+    term_id INT,
+    CONSTRAINT unique_org_class UNIQUE (organization_id, class_id)
 );
 
 -- Teacher Remarks Table
 CREATE TABLE IF NOT EXISTS teacher_remarks (
     id SERIAL PRIMARY KEY,
     organization_id INT NOT NULL,
+    class_id INT REFERENCES classes(class_id) ON DELETE CASCADE,
     remark TEXT NOT NULL,
-    CONSTRAINT fk_org_teacher FOREIGN KEY (organization_id) REFERENCES organizations(organization_id) ON DELETE CASCADE
+    CONSTRAINT unique_teacher_remarks UNIQUE (organization_id, class_id, remark)
 );
 
 -- Score Remarks Table
 CREATE TABLE IF NOT EXISTS score_remarks (
     id SERIAL PRIMARY KEY,
     organization_id INT NOT NULL,
+    class_id INT REFERENCES classes(class_id) ON DELETE CASCADE,
     remark TEXT NOT NULL,
-    CONSTRAINT fk_org_score FOREIGN KEY (organization_id) REFERENCES organizations(organization_id) ON DELETE CASCADE
+    from_percentage NUMERIC,
+    to_percentage NUMERIC,
+    CONSTRAINT unique_organization_class_score UNIQUE (organization_id, class_id, remark)
 );
 
-ALTER TABLE status_settings ADD CONSTRAINT unique_organization_id UNIQUE (organization_id);
-CREATE TABLE organization_images (
-    image_id SERIAL PRIMARY KEY,
-    organization_id INT NOT NULL,
-    image_url TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    FOREIGN KEY (organization_id) REFERENCES organizations(organization_id)
-);
-
-ALTER TABLE score_remarks
-ADD COLUMN from_percentage INT,
-ADD COLUMN to_percentage INT;
-
-ALTER TABLE score_remarks
-  ALTER COLUMN from_percentage TYPE numeric USING from_percentage::numeric,
-  ALTER COLUMN to_percentage TYPE numeric USING to_percentage::numeric;
-
-
-CREATE TABLE organization_images (
+-- Organization Images Table
+CREATE TABLE IF NOT EXISTS organization_images (
     image_id SERIAL PRIMARY KEY,
     organization_id INTEGER REFERENCES organizations(organization_id),
     image_url TEXT NOT NULL,
     caption TEXT,
-    allocation VARCHAR(50),  -- This is the column you are missing
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    allocation VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    class_id INT REFERENCES classes(class_id) ON DELETE CASCADE
 );
-ALTER TABLE status_settings ADD COLUMN activate_promotion BOOLEAN DEFAULT false;
-ALTER TABLE assessment_results
-ADD COLUMN total_category_score NUMERIC(10, 2);
-ALTER TABLE assessment_results ADD COLUMN class_id INT;
 
--- Assuming `class_id` is a foreign key referencing `classes` table, you can add the constraint as well:
-ALTER TABLE assessment_results
-ADD CONSTRAINT fk_class
-FOREIGN KEY (class_id) REFERENCES classes(class_id) ON DELETE CASCADE;
-ALTER TABLE student_positions 
-ADD COLUMN total_category_score NUMERIC(10, 2),
-ADD COLUMN class_id INTEGER;
-ALTER TABLE student_positions
-ADD COLUMN category VARCHAR(255);
+CREATE TABLE IF NOT EXISTS report_settings (
+    setting_id SERIAL PRIMARY KEY,
+    organization_id INT REFERENCES organizations(organization_id) ON DELETE CASCADE,
+    signature_image_path VARCHAR(255), -- Path to the signature image
+    class_id INT REFERENCES classes(class_id) ON DELETE CASCADE -- You can add additional columns as needed
+);
 
 
-ALTER TABLE student_positions
-ADD CONSTRAINT unique_student_subject_category
-UNIQUE (student_id, subject_id, category);
+-- Ensure indexes for optimization
+CREATE INDEX IF NOT EXISTS idx_user_email ON users (email);
+CREATE INDEX IF NOT EXISTS idx_org_name ON organizations (organization_name);
+CREATE INDEX IF NOT EXISTS idx_class_name ON classes (class_name);
+CREATE INDEX IF NOT EXISTS idx_student_name ON students (first_name, last_name);
+
+-- Update assessment_results to include category information from assessments (after table is created)
+UPDATE assessment_results ar
+SET category = a.category
+FROM assessments a
+WHERE ar.assessment_id = a.assessment_id;
+
+-- Update assessment_results with assessment titles (after table is created)
+UPDATE assessment_results ar
+SET title = a.title
+FROM assessments a
+WHERE ar.assessment_id = a.assessment_id;
+
+-- Additional ALTER statements (skip if column exists)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='terms' AND column_name='current_term') THEN
+        ALTER TABLE terms ADD COLUMN current_term BOOLEAN DEFAULT false;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='assessment_results' AND column_name='total_category_score') THEN
+        ALTER TABLE assessment_results ADD COLUMN total_category_score NUMERIC(10, 2);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='assessment_results' AND column_name='term_id') THEN
+        ALTER TABLE assessment_results ADD COLUMN term_id INTEGER;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='category_scores' AND column_name='term_id') THEN
+        ALTER TABLE category_scores ADD COLUMN term_id INTEGER;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='students' AND column_name='term_id') THEN
+        ALTER TABLE students ADD COLUMN term_id INTEGER;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subjects' AND column_name='term_id') THEN
+        ALTER TABLE subjects ADD COLUMN term_id INTEGER;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='status_settings' AND column_name='term_id') THEN
+        ALTER TABLE status_settings ADD COLUMN term_id INTEGER;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='student_positions' AND column_name='term_id') THEN
+        ALTER TABLE student_positions ADD COLUMN term_id INTEGER;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='student_subjects' AND column_name='term_id') THEN
+        ALTER TABLE student_subjects ADD COLUMN term_id INTEGER;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='assessment_results' AND column_name='class_id') THEN
+        ALTER TABLE assessment_results ADD COLUMN class_id INT;
+    END IF;
+
+    -- Add constraints if they don't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name='fk_class' AND table_name='assessment_results') THEN
+        ALTER TABLE assessment_results
+        ADD CONSTRAINT fk_class
+        FOREIGN KEY (class_id) REFERENCES classes(class_id) ON DELETE CASCADE;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='student_positions' AND column_name='total_category_score') THEN
+        ALTER TABLE student_positions ADD COLUMN total_category_score NUMERIC(10, 2);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='student_positions' AND column_name='class_id') THEN
+        ALTER TABLE student_positions ADD COLUMN class_id INTEGER;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='student_positions' AND column_name='category') THEN
+        ALTER TABLE student_positions ADD COLUMN category VARCHAR(255);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name='unique_student_subject_category' AND table_name='student_positions') THEN
+        ALTER TABLE student_positions
+        ADD CONSTRAINT unique_student_subject_category
+        UNIQUE (student_id, subject_id, category);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name='unique_student_class_subject_category_org' AND table_name='category_scores') THEN
+        ALTER TABLE category_scores
+        ADD CONSTRAINT unique_student_class_subject_category_org
+        UNIQUE (student_id, class_id, subject_id, category, organization_id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='score_remarks' AND column_name='class_id') THEN
+        ALTER TABLE score_remarks ADD COLUMN class_id INT REFERENCES classes(class_id) ON DELETE CASCADE;
+    END IF;
+END $$;
+
+ALTER TABLE students ADD COLUMN graduation_year_group_id INT REFERENCES graduation_year_groups(id) ON DELETE SET NULL;
+ALTER TABLE assessments ADD COLUMN max_score NUMERIC(5, 2);
+-- Add class_id to the users table
+ALTER TABLE users 
+ADD COLUMN class_id INT REFERENCES classes(class_id) ON DELETE SET NULL;
+
+ALTER TABLE organizations ADD COLUMN logo TEXT;
+ALTER TABLE assessment_results ADD COLUMN subject_id INT REFERENCES subjects(subject_id);
+ 
+
+ALTER TABLE assessments
+ADD CONSTRAINT unique_class_subject_title UNIQUE (class_id, subject_id, title);
 
 
-ALTER TABLE category_scores
-ADD CONSTRAINT unique_student_class_subject_category_org
-UNIQUE (student_id, class_id, subject_id, category, organization_id);
+ALTER TABLE assessment_results ADD CONSTRAINT unique_student_assessment UNIQUE (student_id, assessment_id);
+ALTER TABLE student_positions ADD CONSTRAINT unique_student_subject UNIQUE (student_id, subject_id);
 
-ALTER TABLE category_scores
-DROP CONSTRAINT unique_student_class_category_org,
-ADD CONSTRAINT unique_student_class_category_org_subject UNIQUE (student_id, class_id, subject_id, category, organization_id);
+ALTER TABLE assessments
+ADD CONSTRAINT unique_assessment_title_subject UNIQUE (title, subject_id, organization_id);
 
 
 
+CREATE TABLE enrollments (
+    enrollment_id SERIAL PRIMARY KEY,
+    school_year_id INTEGER REFERENCES school_years(id),
+    term_id INTEGER REFERENCES terms(term_id),
+    organization_id INTEGER REFERENCES organizations(organization_id),
+    created_at TIMESTAMP DEFAULT NOW()
+);
 
--- Update `score_remarks` table to store class_id
-ALTER TABLE score_remarks ADD COLUMN class_id INT REFERENCES classes(class_id) ON DELETE CASCADE;
+CREATE TABLE enrolled_classes (
+    enrolled_class_id SERIAL PRIMARY KEY,
+    enrollment_id INTEGER REFERENCES enrollments(enrollment_id),
+    class_id INTEGER REFERENCES classes(class_id)
+);
 
+CREATE TABLE enrolled_students (
+    enrolled_student_id SERIAL PRIMARY KEY,
+    enrollment_id INTEGER REFERENCES enrollments(enrollment_id),
+    student_id INTEGER REFERENCES students(student_id),
+    class_id INTEGER REFERENCES classes(class_id)
+);
 
-ALTER TABLE teacher_remarks ADD CONSTRAINT unique_teacher_remarks UNIQUE (organization_id, class_id, remark);
-ALTER TABLE status_settings DROP CONSTRAINT unique_organization_id;
-ALTER TABLE status_settings ADD CONSTRAINT unique_org_class UNIQUE (organization_id, class_id);
-ALTER TABLE report_settings ADD CONSTRAINT fk_report_class FOREIGN KEY (class_id) REFERENCES classes(class_id) ON DELETE CASCADE;
-ALTER TABLE report_settings ADD COLUMN class_id INT;
-ALTER TABLE score_remarks ADD CONSTRAINT unique_organization_class_score UNIQUE (organization_id, class_id, remark);
-ALTER TABLE teacher_remarks ADD CONSTRAINT unique_organization_class_teacher UNIQUE (organization_id, class_id, remark);
-ALTER TABLE status_settings ADD CONSTRAINT unique_organization_class UNIQUE (organization_id, class_id);
--- Update `status_settings` table to store class_id
-ALTER TABLE status_settings ADD COLUMN class_id INT REFERENCES classes(class_id) ON DELETE CASCADE;
+ALTER TABLE attendance_records
+ADD COLUMN term_id INTEGER,
+ADD CONSTRAINT fk_term
+    FOREIGN KEY (term_id) 
+    REFERENCES terms (term_id)
+    ON DELETE CASCADE;
 
--- Update `teacher_remarks` table to store class_id
-ALTER TABLE teacher_remarks ADD COLUMN class_id INT REFERENCES classes(class_id) ON DELETE CASCADE;
+ALTER TABLE assessments
+ADD COLUMN term_id integer;
 
--- Update `score_remarks` table to store class_id
-ALTER TABLE score_remarks ADD COLUMN class_id INT REFERENCES classes(class_id) ON DELETE CASCADE;
+ALTER TABLE assessments DROP CONSTRAINT unique_assessment_title_subject;
+ALTER TABLE assessments ADD CONSTRAINT unique_assessment_title_class_subject UNIQUE (title, subject_id, class_id);
+ALTER TABLE assessments ADD COLUMN group_id BIGINT;
+CREATE SEQUENCE assessments_group_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 
--- Update `organization_images` table to store class_id for signature images
-ALTER TABLE organization_images ADD COLUMN class_id INT REFERENCES classes(class_id) ON DELETE CASCADE;
-
-ALTER TABLE assessment_results ADD COLUMN term_id INTEGER;
-ALTER TABLE assessments ADD COLUMN term_id INTEGER;
-ALTER TABLE category_scores ADD COLUMN term_id INTEGER;
-ALTER TABLE students ADD COLUMN term_id INTEGER;
-
-ALTER TABLE subjects ADD COLUMN term_id INTEGER;
-ALTER TABLE status_settings ADD COLUMN term_id INTEGER;
-ALTER TABLE student_positions ADD COLUMN term_id INTEGER;
-ALTER TABLE student_subjects ADD COLUMN term_id INTEGER;
+ALTER TABLE enrolled_students
+DROP CONSTRAINT enrolled_students_student_id_fkey,
+ADD CONSTRAINT enrolled_students_student_id_fkey
+FOREIGN KEY (student_id)
+REFERENCES students(student_id)
+ON DELETE CASCADE;

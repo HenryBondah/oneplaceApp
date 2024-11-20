@@ -43,7 +43,9 @@
         <a href="/common/classDashboard?classId=<%= classId %>" class="back-link">Back to Class Dashboard</a>
     </div>
     <hr>
-    <h1>Attendance Records for <%= className %></h1>
+    <h1> Current Term: <%= termName %></h1>
+    <h1>Attendance for <%= className %></h1>
+    <hr>
     <div class="attendance-sheet-container">
         <table class="attendance-sheet">
             <thead>
@@ -88,6 +90,7 @@
             </tbody>
         </table>
     </div>
+
     <script>
         let originalStates = {};
 

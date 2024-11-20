@@ -526,3 +526,10 @@ ALTER TABLE assessments DROP CONSTRAINT unique_assessment_title_subject;
 ALTER TABLE assessments ADD CONSTRAINT unique_assessment_title_class_subject UNIQUE (title, subject_id, class_id);
 ALTER TABLE assessments ADD COLUMN group_id BIGINT;
 CREATE SEQUENCE assessments_group_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+
+ALTER TABLE enrolled_students
+DROP CONSTRAINT enrolled_students_student_id_fkey,
+ADD CONSTRAINT enrolled_students_student_id_fkey
+FOREIGN KEY (student_id)
+REFERENCES students(student_id)
+ON DELETE CASCADE;
