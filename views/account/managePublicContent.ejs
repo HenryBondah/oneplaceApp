@@ -64,6 +64,16 @@
         .delete-link:hover {
             text-decoration: underline;
         }
+        .slideshow-container {
+            border: 2px solid #007bff;
+            padding: 15px;
+            margin-bottom: 30px;
+        }
+        .slideshow-header {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -72,38 +82,111 @@
     </div>
     <hr>
 
-    <% if (success_msg) { %>
-        <div class="alert alert-success"><%= success_msg %></div>
+    <!-- Flash Messages -->
+    <% if (messages.error && messages.error.length > 0) { %>
+        <% messages.error.forEach(message => { %>
+            <div class="flash-message flash-error"><%= message %></div>
+        <% }) %>
     <% } %>
-    <% if (error_msg) { %>
-        <div class="alert alert-danger"><%= error_msg %></div>
+    <% if (messages.success && messages.success.length > 0) { %>
+        <% messages.success.forEach(message => { %>
+            <div class="flash-message flash-success"><%= message %></div>
+        <% }) %>
     <% } %>
+
     <div class="manage-public-container">
         <h1>Manage Public Content</h1>
+        
         <div class="content-container">
             <h2>Images</h2>
             <% if (images.length === 0) { %>
                 <p>No images available now.</p>
             <% } else { %>
-                <% images.forEach(image => { %>
-                    <div class="content-item">
-                        <form action="/account/updateImage" method="POST">
-                            <img src="/<%= image.image_url %>" alt="Image">
-                            <input type="hidden" name="imageId" value="<%= image.image_id %>">
-                            <label for="caption">Caption:</label>
-                            <input type="text" name="caption" value="<%= image.caption %>">
-                            <label for="allocation">Allocation:</label>
-                            <select name="allocation">
-                                <option value="hero" <%= image.allocation === 'hero' ? 'selected' : '' %>>Hero Image</option>
-                                <option value="slideshow" <%= image.allocation === 'slideshow' ? 'selected' : '' %>>Slideshow Image</option>
-                            </select>
-                            <button type="submit">Update</button>
-                        </form>
-                        <a href="/account/deleteImage/<%= image.image_id %>" class="delete-link">Delete</a>
-                    </div>
+                <% let currentSlideShowId = null; %>
+                <% let slideShowImages = []; %>
+
+                <% images.forEach((image, index) => { %>
+                    <% if (image.allocation === 'slideshow') { %>
+                        <% if (currentSlideShowId === null || currentSlideShowId !== image.slideshow_id) { %>
+                            <% if (slideShowImages.length > 0) { %>
+                                <div class="slideshow-container">
+                                    <div class="slideshow-header">Slide Show <%= slideShowImages[0].slideshow_id %></div>
+                                    <% slideShowImages.forEach(slide => { %>
+                                        <div class="content-item">
+                                            <form action="/account/updateImage" method="POST">
+                                                <img src="<%= slide.image_url.startsWith('http') ? slide.image_url : '/' + slide.image_url %>" alt="Slide Image">
+                                                <input type="hidden" name="imageId" value="<%= slide.image_id %>">
+                                                <label for="caption">Caption:</label>
+                                                <input type="text" name="caption" value="<%= slide.caption %>">
+                                                <button type="submit">Update</button>
+                                            </form>
+                                            <a href="/account/deleteImage/<%= slide.image_id %>" class="delete-link">Delete</a>
+                                        </div>
+                                    <% }) %>
+                                </div>
+                                <% slideShowImages = []; %>
+                            <% } %>
+                            <% currentSlideShowId = image.slideshow_id; %>
+                        <% } %>
+                        <% slideShowImages.push(image); %>
+                    <% } else { %>
+                        <% if (slideShowImages.length > 0) { %>
+                            <div class="slideshow-container">
+                                <div class="slideshow-header">Slide Show <%= slideShowImages[0].slideshow_id %></div>
+                                <% slideShowImages.forEach(slide => { %>
+                                    <div class="content-item">
+                                        <form action="/account/updateImage" method="POST">
+                                            <img src="<%= slide.image_url.startsWith('http') ? slide.image_url : '/' + slide.image_url %>" alt="Slide Image">
+                                            <input type="hidden" name="imageId" value="<%= slide.image_id %>">
+                                            <label for="caption">Caption:</label>
+                                            <input type="text" name="caption" value="<%= slide.caption %>">
+                                            <button type="submit">Update</button>
+                                        </form>
+                                        <a href="/account/deleteImage/<%= slide.image_id %>" class="delete-link">Delete</a>
+                                    </div>
+                                <% }) %>
+                            </div>
+                            <% slideShowImages = []; %>
+                        <% } %>
+                        <div class="content-item">
+                            <form action="/account/updateImage" method="POST">
+                                <img src="<%= image.image_url.startsWith('http') ? image.image_url : '/' + image.image_url %>" alt="Image">
+                                <input type="hidden" name="imageId" value="<%= image.image_id %>">
+                                <label for="caption">Caption:</label>
+                                <input type="text" name="caption" value="<%= image.caption %>">
+                                <label for="allocation">Allocation:</label>
+                                <select name="allocation">
+                                    <option value="hero" <%= image.allocation === 'hero' ? 'selected' : '' %>>Hero Image</option>
+                                    <option value="slideshow" <%= image.allocation === 'slideshow' ? 'selected' : '' %>>Slideshow Image</option>
+                                </select>
+                                <button type="submit">Update</button>
+                            </form>
+                            <a href="/account/deleteImage/<%= image.image_id %>" class="delete-link">Delete</a>
+                        </div>
+                    <% } %>
                 <% }) %>
+
+                <!-- Render any remaining slideshow group -->
+                <% if (slideShowImages.length > 0) { %>
+                    <div class="slideshow-container">
+                        <div class="slideshow-header">Slide Show <%= slideShowImages[0].slideshow_id %></div>
+                        <% slideShowImages.forEach(slide => { %>
+                            <div class="content-item">
+                                <form action="/account/updateImage" method="POST">
+                                    <img src="<%= slide.image_url.startsWith('http') ? slide.image_url : '/' + slide.image_url %>" alt="Slide Image">
+                                    <input type="hidden" name="imageId" value="<%= slide.image_id %>">
+                                    <label for="caption">Caption:</label>
+                                    <input type="text" name="caption" value="<%= slide.caption %>">
+                                    <button type="submit">Update</button>
+                                </form>
+                                <a href="/account/deleteImage/<%= slide.image_id %>" class="delete-link">Delete</a>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } %>
             <% } %>
         </div>
+
         <div class="content-container">
             <h2>Texts</h2>
             <% if (texts.length === 0) { %>

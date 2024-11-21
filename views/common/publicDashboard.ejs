@@ -1,125 +1,91 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/styles/publicDashboard.css"> <!-- Link to your CSS file -->
     <style>
         .public-dashboard-container {
             margin-top: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
             width: 90%;
             max-width: 1200px;
             margin: auto;
         }
 
-        .hero-container {
-            width: 100%;
-            max-width: 1000px;
-            margin: 20px 0;
-            position: relative;
-            background: #f9f9f9;
-            border-radius: 8px;
-        }
-
-        .hero-container img {
-            width: 100%;
-            height: auto;
-        }
-
-        .hero-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #f2f2f2;
-            font-size: 24px;
-            background-color: rgba(0, 0, 0, 0.5);
-            padding: 10px 20px;
-            border-radius: 5px;
-            text-align: center;
-        }
-
-        .slideshow-container {
-            width: 100%;
-            max-width: 800px;
-            height: 450px;
-            position: relative;
-            margin: auto;
+        .draggable-container {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            overflow: hidden;
-        }
-
-        .mySlides {
-            display: none;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
             width: 100%;
-            height: 100%;
-        }
-
-        .active-slide {
-            display: block;
-        }
-
-        .slideshow-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .text {
-            color: #f2f2f2;
-            font-size: 15px;
-            padding: 8px 12px;
-            position: absolute;
-            bottom: 8px;
-            width: 100%;
-            text-align: center;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        .text-item {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-      
-
-        .prev, .next {
-            cursor: pointer;
-            position: absolute;
-            top: 50%;
-            width: auto;
-            padding: 16px;
-            color: white;
-            font-weight: bold;
-            font-size: 18px;
-            transition: 0.6s ease;
-            user-select: none;
-            background-color: rgba(0, 0, 0, 0.5);
-            border-radius: 50%;
-        }
-
-        .prev {
-            left: 10px;
-        }
-
-        .next {
-            right: 10px;
-        }
-
-        .prev:hover, .next:hover {
-            background-color: rgba(0, 0, 0, 0.8);
         }
 
         .draggable-item {
-            margin: 10px 0;
-            padding: 10px;
+            width: 100%;
+            max-width: 100%;
             background: #fff;
             border: 1px solid #ccc;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .draggable-item[data-width="100"] {
             width: 100%;
+        }
+
+        .draggable-item[data-width="75"] {
+            width: 74%; /* Adjust to leave space for another item */
+        }
+
+        .draggable-item[data-width="50"] {
+            width: 48%; /* Add margin for proper spacing */
+        }
+
+        .draggable-item[data-width="40"] {
+            width: 39%; /* Adjust to leave space for another 60% */
+        }
+
+        .draggable-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .caption {
+            background: rgba(0, 0, 0, 0.7);
+            color: #ffffff;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .resize-buttons {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .resize-button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 14px;
         }
 
         #save-order-btn {
@@ -144,21 +110,35 @@
             border: 1px solid #c3e6cb;
             border-radius: 5px;
             display: none;
+            max-width: 300px;
+            text-align: center;
+        }
+
+        .text-content {
+            margin: 10px 0;
+        }
+
+        .text-content h2 {
+            margin-bottom: 10px;
+            font-size: 24px;
+            color: #333;
+        }
+
+        .text-content p {
+            margin: 10px 0;
+            line-height: 1.6;
+            font-size: 16px;
+            color: #555;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f8f8f8;
         }
 
         @media (max-width: 768px) {
-            .slideshow-container {
-                height: auto;
-            }
-
-            .text {
-                font-size: 12px;
-                padding: 6px 8px;
-            }
-
-            .prev, .next {
-                padding: 10px;
-                font-size: 16px;
+            .draggable-item[data-width="75"],
+            .draggable-item[data-width="50"],
+            .draggable-item[data-width="40"] {
+                width: 100%;
             }
         }
     </style>
@@ -167,70 +147,72 @@
     <div class="public-dashboard-container">
         <h1>Public Dashboard</h1>
 
-        <div id="draggable-container">
-
-            <% if (heroImage) { %>
-                <div class="hero-container draggable-item" data-id="heroImage">
-                    <img src="/<%= heroImage.image_url %>" alt="Hero Image">
-                    <div class="hero-text"><%= heroImage.caption %></div>
-                </div>
-            <% } %>
-            
-            <div class="slideshow-container draggable-item" data-id="slideshow">
-                <% if (slideshowImages.length === 0) { %>
-                <% } else { %>
-                    <% slideshowImages.forEach((image, index) => { %>
-                        <div class="mySlides <%= index === 0 ? 'active-slide' : '' %>">
-                            <img src="/<%= image.image_url %>" alt="Slideshow Image">
-                            <div class="text"><%= image.caption %></div>
+        <div id="draggable-container" class="draggable-container">
+            <% orderedItems.forEach((item) => { %>
+                <% if (item.type === 'image') { %>
+                    <div class="hero-container draggable-item" data-id="<%= item.id %>" data-width="100">
+                        <div class="resize-buttons">
+                            <button class="resize-button" onclick="resizeItem(this, 100)">100%</button>
+                            <button class="resize-button" onclick="resizeItem(this, 75)">75%</button>
+                            <button class="resize-button" onclick="resizeItem(this, 50)">50%</button>
+                            <button class="resize-button" onclick="resizeItem(this, 40)">40%</button>
                         </div>
-                    <% }) %>
-                    <a class="prev" onclick="changeSlide(-1)">&#10094;</a>
-                    <a class="next" onclick="changeSlide(1)">&#10095;</a>
-                <% } %>
-            </div>
-
-            <% if (texts.length === 0) { %>
-            <% } else { %>
-                <% texts.forEach(text => { %>
-                    <div class="text-item draggable-item" data-id="text-<%= text.id %>">
-                        <div>
-                            <h2><%= text.heading %></h2>
-                            <p><%= text.paragraph %></p>
+                        <img src="<%= item.data.image_url.startsWith('http') ? item.data.image_url : '/' + item.data.image_url %>" alt="Hero Image">
+                        <div class="caption"><%= item.data.caption %></div>
+                    </div>
+                <% } else if (item.type === 'text') { %>
+                    <div class="text-item draggable-item" data-id="<%= item.id %>" data-width="100">
+                        <div class="resize-buttons">
+                            <button class="resize-button" onclick="resizeItem(this, 100)">100%</button>
+                            <button class="resize-button" onclick="resizeItem(this, 75)">75%</button>
+                            <button class="resize-button" onclick="resizeItem(this, 50)">50%</button>
+                            <button class="resize-button" onclick="resizeItem(this, 40)">40%</button>
+                        </div>
+                        <div class="text-content">
+                            <h2><%= item.data.heading %></h2>
+                            <p><%= item.data.paragraph %></p>
                         </div>
                     </div>
-                <% }) %>
-            <% } %>
-
-            <div class="events-container draggable-item" data-id="events">
-                <div>
-                    <h2>Events</h2>
-                    <ul>
-                        <% if (events.length === 0) { %>
-                            <li>No events found</li>
-                        <% } else { %>
-                            <% events.forEach(event => { %>
-                                <li><strong><%= event.name %></strong> - <%= new Date(event.event_date).toISOString().split('T')[0] %><br><%= event.details %></li>
-                            <% }) %>
-                        <% } %>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="announcements-container draggable-item" data-id="announcements">
-                <div>
-                    <h2>Announcements</h2>
-                    <ul>
-                        <% if (announcements.length === 0) { %>
-                            <li>No announcements found</li>
-                        <% } else { %>
-                            <% announcements.forEach(announcement => { %>
-                                <li><%= announcement.message %></li>
-                            <% }) %>
-                        <% } %>
-                    </ul>
-                </div>
-            </div>
+                <% } else if (item.type === 'events') { %>
+                    <div class="events-container draggable-item" data-id="<%= item.id %>" data-width="100">
+                        <div class="resize-buttons">
+                            <button class="resize-button" onclick="resizeItem(this, 100)">100%</button>
+                            <button class="resize-button" onclick="resizeItem(this, 75)">75%</button>
+                            <button class="resize-button" onclick="resizeItem(this, 50)">50%</button>
+                            <button class="resize-button" onclick="resizeItem(this, 40)">40%</button>
+                        </div>
+                        <h2>Events</h2>
+                        <ul>
+                            <% if (item.data.length === 0) { %>
+                                <li>No events found</li>
+                            <% } else { %>
+                                <% item.data.forEach(event => { %>
+                                    <li><strong><%= event.name %></strong> - <%= new Date(event.event_date).toISOString().split('T')[0] %><br><%= event.details %></li>
+                                <% }); %>
+                            <% } %>
+                        </ul>
+                    </div>
+                <% } else if (item.type === 'announcements') { %>
+                    <div class="announcements-container draggable-item" data-id="<%= item.id %>" data-width="100">
+                        <div class="resize-buttons">
+                            <button class="resize-button" onclick="resizeItem(this, 100)">100%</button>
+                            <button class="resize-button" onclick="resizeItem(this, 75)">75%</button>
+                            <button class="resize-button" onclick="resizeItem(this, 50)">50%</button>
+                            <button class="resize-button" onclick="resizeItem(this, 40)">40%</button>
+                        </div>
+                        <h2>Announcements</h2>
+                        <ul>
+                            <% if (item.data.length === 0) { %>
+                                <li>No announcements found</li>
+                            <% } else { %>
+                                <% item.data.forEach(announcement => { %>
+                                    <li><%= announcement.message %></li>
+                                <% }); %>
+                            <% } %>
+                        </ul>
+                    </div>
+                <% } %>
+            <% }); %>
         </div>
 
         <button id="save-order-btn">Save Order</button>
@@ -239,55 +221,16 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script>
-        let slideIndex = 0;
-        let slideInterval;
-
-        function showSlides() {
-            let slides = document.getElementsByClassName("mySlides");
-            for (let i = 0; i < slides.length; i++) {
-                slides[i].classList.remove('active-slide');
-            }
-            slideIndex++;
-            if (slideIndex > slides.length) {
-                slideIndex = 1;
-            }
-            slides[slideIndex - 1].classList.add('active-slide');
-        }
-
-        function changeSlide(n) {
-            let slides = document.getElementsByClassName("mySlides");
-            for (let i = 0; i < slides.length; i++) {
-                slides[i].classList.remove('active-slide');
-            }
-            slideIndex += n;
-            if (slideIndex > slides.length) {
-                slideIndex = 1;
-            }
-            if (slideIndex < 1) {
-                slideIndex = slides.length;
-            }
-            slides[slideIndex - 1].classList.add('active-slide');
-            resetSlideInterval();
-        }
-
-        function resetSlideInterval() {
-            clearInterval(slideInterval);
-            slideInterval = setInterval(showSlides, 5000);
-        }
-
         document.addEventListener("DOMContentLoaded", () => {
-            showSlides();
-            slideInterval = setInterval(showSlides, 5000);
-
-            const sortable = new Sortable(document.getElementById('draggable-container'), {
+            const container = document.getElementById('draggable-container');
+    
+            const sortable = new Sortable(container, {
                 animation: 150,
-                handle: '.draggable-item',
-                onEnd: function (evt) {
-                    evt.oldIndex;  // element's old index within parent
-                    evt.newIndex;  // element's new index within parent
-                }
+                ghostClass: "dragging-item",
+                chosenClass: "dragging-item",
+                dragClass: "dragging-item",
             });
-
+    
             document.getElementById('save-order-btn').addEventListener('click', () => {
                 const items = document.querySelectorAll('.draggable-item');
                 const order = Array.from(items).map(item => item.dataset.id);
@@ -299,7 +242,12 @@
                     },
                     body: JSON.stringify({ order })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         document.getElementById('confirmation-message').style.display = 'block';
@@ -307,10 +255,16 @@
                             document.getElementById('confirmation-message').style.display = 'none';
                         }, 3000);
                     } else {
-                        alert('Failed to save order.');
+                        alert('Failed to save order: ' + data.message);
                     }
                 })
                 .catch(error => console.error('Error saving order:', error));
             });
         });
+    
+        function resizeItem(button, widthPercentage) {
+            const item = button.closest('.draggable-item');
+            item.setAttribute('data-width', widthPercentage);
+        }
     </script>
+    

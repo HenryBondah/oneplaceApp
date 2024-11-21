@@ -101,7 +101,7 @@
             </div>
             <% classes.forEach(cls => { %>
                 <div class="class-checkbox">
-                    <input type="checkbox" name="classId" value="<%= cls.class_id %>" id="class_<%= cls.class_id %>" class="class-checkbox-input">
+                    <input type="checkbox" name="selectedClasses[]" value="<%= cls.class_id %>" id="class_<%= cls.class_id %>" class="class-checkbox-input">
                     <label for="class_<%= cls.class_id %>"><%= cls.class_name %></label>
                 </div>
                 <div id="students_<%= cls.class_id %>" class="student-list">
@@ -153,7 +153,7 @@
                     data.students.forEach(student => {
                         studentsContainer.innerHTML += `
                             <div class="student-checkbox">
-                                <input type="checkbox" name="selectedStudents[]" value="${student.student_id}" class="student-checkbox-input student-checkbox-${classId}" id="student_${student.student_id}">
+                                <input type="checkbox" name="selectedStudents[${classId}][]" value="${student.student_id}" class="student-checkbox-input student-checkbox-${classId}" id="student_${student.student_id}">
                                 <label for="student_${student.student_id}">${student.first_name} ${student.last_name}</label>
                             </div>
                         `;
@@ -173,89 +173,50 @@
             });
         });
 
-        document.getElementById('selectAllClasses').addEventListener('change', async function() {
-            const allClassesChecked = this.checked;
-            document.querySelectorAll('.class-checkbox-input').forEach(async function(classCheckbox) {
-                classCheckbox.checked = allClassesChecked;
-                const classId = classCheckbox.value;
-                const studentsList = document.getElementById(`students_${classId}`);
+        async function enrollStudents() {
+            const formElement = document.getElementById('enrollmentForm');
+            const formData = new FormData(formElement);
+            const selectedStudents = {};
+            const selectedClasses = [];
 
-                if (allClassesChecked) {
-                    studentsList.style.display = "block";
-                    // Fetch students for the selected class if not already loaded
-                    const response = await fetch(`/enrollment/getStudentsByClass?classId=${classId}`);
-                    const data = await response.json();
-                    const studentsContainer = document.getElementById(`studentsContainer_${classId}`);
-                    studentsContainer.innerHTML = "";
-
-                    data.students.forEach(student => {
-                        studentsContainer.innerHTML += `
-                            <div class="student-checkbox">
-                                <input type="checkbox" name="selectedStudents[]" value="${student.student_id}" class="student-checkbox-input student-checkbox-${classId}" id="student_${student.student_id}">
-                                <label for="student_${student.student_id}">${student.first_name} ${student.last_name}</label>
-                            </div>
-                        `;
-                    });
-
-                    // Select all students for this class
-                    document.querySelectorAll(`#studentsContainer_${classId} .student-checkbox-input`).forEach(function(studentCheckbox) {
-                        studentCheckbox.checked = true;
-                    });
-                } else {
-                    studentsList.style.display = "none";
+            formData.forEach((value, key) => {
+                if (key.startsWith('selectedStudents[')) {
+                    const classId = key.match(/selectedStudents\[(\d+)\]/)[1];
+                    if (!selectedStudents[classId]) {
+                        selectedStudents[classId] = [];
+                    }
+                    selectedStudents[classId].push(value);
+                }
+                if (key === 'selectedClasses[]') {
+                    selectedClasses.push(value);
                 }
             });
 
-            // Also check the "Select All Students" for each class
-            document.querySelectorAll('.select-all-students').forEach(function(selectAllCheckbox) {
-                selectAllCheckbox.checked = allClassesChecked;
-                const classId = selectAllCheckbox.getAttribute('data-class-id');
-                document.querySelectorAll(`#studentsContainer_${classId} .student-checkbox-input`).forEach(function(studentCheckbox) {
-                    studentCheckbox.checked = allClassesChecked;
-                });
+            const termId = formData.get('termId');
+            const schoolYearId = formData.get('schoolYearId');
+
+            if (Object.keys(selectedStudents).length === 0 || !termId || !schoolYearId || selectedClasses.length === 0) {
+                alert('Please select school year, term, classes, and students.');
+                return;
+            }
+
+            const response = await fetch('/enrollment/enroll', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ selectedStudents, termId, schoolYearId, selectedClasses })
             });
-        });
 
-        async function enrollStudents() {
-        const formElement = document.getElementById('enrollmentForm');
-        const formData = new FormData(formElement);
+            const result = await response.json();
 
-        const students = [];
-        const classes = [];
-        formData.forEach((value, key) => {
-            if (key === 'selectedStudents[]') {
-                students.push(value);
+            if (response.ok) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert(result.message);
             }
-            if (key === 'classId') {
-                classes.push(value);
-            }
-        });
-
-        const termId = formData.get('termId');
-        const schoolYearId = formData.get('schoolYearId');
-
-        if (students.length === 0 || !termId || !schoolYearId || classes.length === 0) {
-            alert('Please select school year, term, classes, and students.');
-            return;
         }
-
-        const response = await fetch('/enrollment/enroll', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ selectedStudents: students, termId, schoolYearId, selectedClasses: classes })
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            alert(result.message);
-            location.reload();
-        } else {
-            alert(result.message);
-        }
-    }
-        </script>
+    </script>
 </body>
 </html>

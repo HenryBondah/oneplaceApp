@@ -533,3 +533,14 @@ ADD CONSTRAINT enrolled_students_student_id_fkey
 FOREIGN KEY (student_id)
 REFERENCES students(student_id)
 ON DELETE CASCADE;
+
+ALTER TABLE organization_images ADD COLUMN slideshow_id INTEGER;
+CREATE TABLE slideshows (
+    slideshow_id SERIAL PRIMARY KEY,
+    organization_id INTEGER REFERENCES organizations(organization_id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE organization_dashboard (
+    organization_id INT PRIMARY KEY REFERENCES organizations(organization_id),
+    order_data JSON NOT NULL
+);

@@ -311,6 +311,110 @@ orgDashboardRestricted: async (req, res, db) => {
 },
 
     
+publicDashboardContent: async (req, res, db) => {
+    try {
+        const organizationId = req.query.organizationId;
+
+        if (!organizationId) {
+            throw new Error('Invalid organization ID.');
+        }
+
+        // Fetch the saved order of the items
+        const orderResult = await db.query(
+            'SELECT order_data FROM organization_dashboard WHERE organization_id = $1',
+            [organizationId]
+        );
+
+        let savedOrder = [];
+        if (orderResult.rows.length > 0) {
+            savedOrder = JSON.parse(orderResult.rows[0].order_data);
+        }
+
+        // Fetch images for the organization
+        const imagesResult = await db.query(
+            'SELECT * FROM organization_images WHERE organization_id = $1 ORDER BY image_id',
+            [organizationId]
+        );
+        const images = imagesResult.rows;
+
+        // Fetch texts for the organization
+        const textsResult = await db.query(
+            'SELECT * FROM organization_texts WHERE organization_id = $1 ORDER BY text_id',
+            [organizationId]
+        );
+        const texts = textsResult.rows;
+
+        // Fetch events visible to the public
+        const eventsResult = await db.query(
+            'SELECT * FROM school_events WHERE organization_id = $1 AND (visibility = \'public\' OR visibility = \'both\') ORDER BY event_date',
+            [organizationId]
+        );
+        const events = eventsResult.rows;
+
+        // Fetch announcements visible to the public
+        const announcementsResult = await db.query(
+            'SELECT * FROM announcements WHERE organization_id = $1 AND (visibility = \'public\' OR visibility = \'both\') ORDER BY announcement_id DESC',
+            [organizationId]
+        );
+        const announcements = announcementsResult.rows;
+
+        // Combine all items into one array for ordered rendering
+        const items = [
+            ...images.map(image => ({ type: 'image', data: image, id: `heroImage_${image.image_id}` })),
+            ...texts.map(text => ({ type: 'text', data: text, id: `text_${text.text_id}` })),
+            { type: 'events', data: events, id: 'events' },
+            { type: 'announcements', data: announcements, id: 'announcements' }
+        ];
+
+        // Sort items according to saved order or keep original order if there's no saved order
+        const orderedItems = savedOrder.length > 0
+            ? savedOrder.map(orderId => items.find(item => item.id === orderId)).filter(Boolean)
+            : items;
+
+        // Check if the user is logged in by checking the session
+        const isLoggedIn = req.session && req.session.userId;
+
+        // Render the public dashboard page
+        res.render('common/publicDashboard', {
+            title: 'Public Dashboard',
+            orderedItems,
+            isLoggedIn,
+            messages: req.flash()
+        });
+    } catch (error) {
+        console.error('Error fetching public dashboard data:', error);
+        req.flash('error', 'Failed to load public dashboard data.');
+        res.status(500).send('Failed to load public dashboard data.');
+    }
+},
+
+saveOrder: async (req, res, db) => {
+    const { order } = req.body;
+    const organizationId = req.session.organizationId;
+
+    if (!organizationId) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    try {
+        await db.query(
+            `INSERT INTO organization_dashboard (organization_id, order_data)
+             VALUES ($1, $2)
+             ON CONFLICT (organization_id)
+             DO UPDATE SET order_data = $2`,
+            [organizationId, JSON.stringify(order)]
+        );
+
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('Error saving order:', error);
+        res.status(500).json({ success: false, message: 'Failed to save order', error: error.message });
+    }
+},
+
+
+
+
 addStudentGet: async (req, res, db) => {
     try {
         const organizationId = req.session.organizationId;

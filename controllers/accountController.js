@@ -428,28 +428,53 @@ const accountController = {
     },
 
     uploadSlideshowImages: async (req, res) => {
-        const images = req.files;
-        const imageText = req.body.imageText;
-        const imageAllocation = req.body.imageAllocation;
-        const orgId = req.session.organizationId;
-
         try {
-            for (const image of images) {
-                const imageUrl = await uploadToS3(image);
+            const { contentType } = req.body;
+            const files = req.files; // Assuming multer is set up properly to use `req.files`
+            const captions = req.body['fileTexts']; // Captions for each file
+            const orgId = req.session.organizationId;
+    
+            if (!files || files.length === 0) {
+                req.flash('error', 'No files selected for upload.');
+                return res.redirect('/account/personalization');
+            }
+    
+            if (contentType === 'slideShow' && files.length < 2) {
+                req.flash('error', 'Please upload at least two images or videos for the slideshow.');
+                return res.redirect('/account/personalization');
+            }
+    
+            // Generate a unique `slideshow_id` for this set of images
+            const slideshowIdResult = await db.query(
+                'INSERT INTO slideshows (organization_id) VALUES ($1) RETURNING slideshow_id',
+                [orgId]
+            );
+            const slideshowId = slideshowIdResult.rows[0].slideshow_id;
+    
+            // Loop over files and upload them to S3, save to DB with `slideshow_id`
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const caption = captions[i] || '';
+    
+                // Upload to S3
+                const imageUrl = await uploadToS3(file);
+    
+                // Save the file data to the database
                 await db.query(
-                    'INSERT INTO organization_images (organization_id, image_url, caption, allocation) VALUES ($1, $2, $3, $4)',
-                    [orgId, imageUrl, imageText, imageAllocation]
+                    'INSERT INTO organization_images (organization_id, slideshow_id, image_url, caption, allocation) VALUES ($1, $2, $3, $4, $5)',
+                    [orgId, slideshowId, imageUrl, caption, contentType]
                 );
             }
-            req.flash('success', 'Images uploaded successfully.');
+    
+            req.flash('success', 'Content uploaded successfully.');
             res.redirect('/account/personalization');
         } catch (error) {
-            console.error('Error uploading images:', error);
-            req.flash('error', 'Failed to upload images. Please try again.');
+            console.error('Error uploading content:', error);
+            req.flash('error', 'Failed to upload content. Please try again.');
             res.redirect('/account/personalization');
         }
     },
-
+            
     addTextSection: async (req, res) => {
         const { heading, paragraph } = req.body;
         const orgId = req.session.organizationId;
@@ -470,17 +495,21 @@ const accountController = {
 
     managePublicContentGet: async (req, res) => {
         const { organizationId } = req.session;
-
+    
         try {
             const imagesResult = await db.query('SELECT * FROM organization_images WHERE organization_id = $1', [organizationId]);
             const textsResult = await db.query('SELECT * FROM organization_texts WHERE organization_id = $1', [organizationId]);
-
+    
             res.render('account/managePublicContent', {
                 title: 'Manage Public Content',
                 images: imagesResult.rows,
                 texts: textsResult.rows,
                 success_msg: req.flash('success'),
-                error_msg: req.flash('error')
+                error_msg: req.flash('error'),
+                messages: {
+                    error: req.flash('error'),
+                    success: req.flash('success'),
+                },
             });
         } catch (error) {
             console.error('Error fetching public content:', error);
@@ -488,6 +517,7 @@ const accountController = {
             res.redirect('/account');
         }
     },
+    
 
     updateImagePost: async (req, res) => {
         const { imageId, caption, allocation } = req.body;

@@ -7,8 +7,11 @@ const { upload } = require('../middleware/s3Upload');
 module.exports = (db) => {
     router.get('/orgDashboard', isAuthenticated, (req, res) => commonController.orgDashboard(req, res, db));
     router.get('/orgDashboard/schoolYearId/:schoolYearId/termId/:termId', isAuthenticated, (req, res) => commonController.orgDashboardRestricted(req, res, db));
-    router.get('/publicDashboardContent', (req, res) => commonController.publicDashboardContent(req, res, db));
-    router.get('/addStudent', isAuthenticated, (req, res) => commonController.addStudentGet(req, res, db));
+    router.get('/publicDashboard', (req, res) => {commonController.publicDashboardContent(req, res, db);});
+// Add the save order route
+router.post('/save-order', (req, res) => commonController.saveOrder(req, res, db)); // Correct save order route
+  
+router.get('/addStudent', isAuthenticated, (req, res) => commonController.addStudentGet(req, res, db));
     router.post('/addStudent', upload.single('studentImage'), isAuthenticated, (req, res) => commonController.addStudentPost(req, res, db));
     router.get('/studentDetails', isAuthenticated, (req, res) => commonController.studentDetails(req, res, db));
     router.get('/management', isAuthenticated, (req, res) => commonController.management(req, res, db));
@@ -26,13 +29,11 @@ module.exports = (db) => {
     router.post('/deleteEmployee/:userId', isAuthenticated, (req, res) => commonController.deleteEmployee(req, res, db));
     router.post('/toggleHoldEmployee/:userId', isAuthenticated, (req, res) => commonController.toggleHoldEmployee(req, res, db));
     router.get('/assessment', isAuthenticated, (req, res) => commonController.assessment(req, res, db));
-    // router.post('/createTest', isAuthenticated, (req, res) => commonController.createTest(req, res, db));
     router.get('/getAssessments', isAuthenticated, (req, res) => commonController.getAssessments(req, res, db));
     router.get('/getScores', isAuthenticated, (req, res) => commonController.getScores(req, res, db));
     router.get('/manageAssessment', isAuthenticated, (req, res) => commonController.manageAssessment(req, res, db));
     router.post('/deleteAssessment', isAuthenticated, (req, res) => commonController.deleteAssessmentPost(req, res, db));
     router.post('/modifyAssessment', isAuthenticated, (req, res) => commonController.updateAssessmentPost(req, res, db));
- // Route to modify an existing assessment
     router.get('/modifyAssessment', isAuthenticated, (req, res) => commonController.modifyAssessmentGet(req, res, db));
     router.post('/modifyAssessment', isAuthenticated, (req, res) => commonController.modifyAssessmentPost(req, res, db));
 router.post('/saveAllScores', isAuthenticated, upload.none(), (req, res) => commonController.saveAllScores(req, res, db));

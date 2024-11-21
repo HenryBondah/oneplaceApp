@@ -55,56 +55,54 @@ const enrollmentController = {
     enrollmentPost: async (req, res, db) => {
         const { schoolYearId, termId, selectedClasses, selectedStudents } = req.body;
         const organizationId = req.session.organizationId;
-
+    
         if (!schoolYearId || !termId || !selectedClasses || !selectedStudents) {
             req.flash('error', 'School year, term, classes, and students are required for enrollment.');
             return res.status(400).json({ success: false, message: 'School year, term, classes, and students are required for enrollment.' });
         }
-
+    
         try {
             await db.query('BEGIN');
-
+    
             // Check if an enrollment already exists for the selected term, school year, and organization
             const existingEnrollmentResult = await db.query(`
                 SELECT enrollment_id
                 FROM enrollments
                 WHERE school_year_id = $1 AND term_id = $2 AND organization_id = $3
             `, [schoolYearId, termId, organizationId]);
-
+    
             if (existingEnrollmentResult.rows.length > 0) {
                 req.flash('error', 'Enrollment already exists for this term. Please check the modify page to make changes.');
                 await db.query('ROLLBACK');
                 return res.status(400).json({ success: false, message: 'Enrollment already exists for this term. Please check the modify page to make changes' });
             }
-
+    
             // Insert a new enrollment entry
             const enrollmentResult = await db.query(`
                 INSERT INTO enrollments (school_year_id, term_id, organization_id, created_at)
                 VALUES ($1, $2, $3, NOW())
                 RETURNING enrollment_id
             `, [schoolYearId, termId, organizationId]);
-
+    
             const enrollmentId = enrollmentResult.rows[0].enrollment_id;
-
+    
             // Insert enrolled classes for the current enrollment
             await db.query(`
                 INSERT INTO enrolled_classes (enrollment_id, class_id)
                 SELECT $1, unnest($2::int[])
             `, [enrollmentId, selectedClasses]);
-
-            // Insert enrolled students for each selected student
-            for (const studentId of selectedStudents) {
-                // Find the class ID associated with this student
-                const classId = req.body[`classId_${studentId}`] || selectedClasses[0]; // Use selected class if not specified
-
-                if (classId) {
+    
+            // Insert enrolled students for each selected student and respective class
+            for (const classId in selectedStudents) {
+                const students = selectedStudents[classId];
+                for (const studentId of students) {
                     await db.query(`
                         INSERT INTO enrolled_students (enrollment_id, student_id, class_id)
                         VALUES ($1, $2, $3)
                     `, [enrollmentId, studentId, classId]);
                 }
             }
-
+    
             await db.query('COMMIT');
             req.flash('success', 'Students enrolled successfully.');
             res.status(200).json({ success: true, message: 'Students enrolled successfully.' });
@@ -115,6 +113,7 @@ const enrollmentController = {
             res.status(500).json({ success: false, message: 'Failed to enroll students.' });
         }
     },
+    
 
     getStudentsByClass: async (req, res, db) => {
         const { classId } = req.query;

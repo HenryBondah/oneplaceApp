@@ -63,35 +63,31 @@
     </div>
     <button type="submit">Upload Logo</button>
 </form>
-<hr>
-<h1>Public Dashboard Edit 
-</h1>
-<hr>
 
+<hr>
+<h1>Public Dashboard Edit</h1>
+<hr>
 <div class="link-to-next-back">
     <a href="/account/managePublicContent" class="btn btn-primary">Manage Public Content</a>
 </div>
 <hr>
 
-<!-- Form for uploading the slideshow images with allocation dropdown -->
-<form action="/account/uploadSlideshowImages" method="POST" enctype="multipart/form-data">
-    <h2>Upload Images</h2>
+<!-- Form for uploading slideshow images or site images -->
+<form action="/account/uploadSlideshowImages" method="POST" enctype="multipart/form-data" id="contentUploadForm">
+    <h2>Upload Content</h2>
     <div>
-        <label for="slideshowImages">Select Images:</label>
-        <input type="file" id="slideshowImages" name="slideshowImages" accept="image/*" multiple required>
-    </div>
-    <div>
-        <label for="imageText">Text for Images:</label>
-        <input type="text" id="imageText" name="imageText" placeholder="Enter text for the image">
-    </div>
-    <div>
-        <label for="imageAllocation">Allocate as:</label>
-        <select id="imageAllocation" name="imageAllocation" required>
-            <option value="hero">Hero</option>
-            <option value="slideshow">Slideshow</option>
+        <label for="contentType">Content Type:</label>
+        <select id="contentType" name="contentType" required>
+            <option value="">Select Content Type</option>
+            <option value="slideShow">Slide Show</option>
+            <option value="siteImage">Site Image</option>
         </select>
     </div>
-    <button type="submit">Upload Images</button>
+    <div id="fileUploadContainer">
+        <!-- File upload fields will be added dynamically here -->
+    </div>
+    <button type="button" id="addMoreFilesBtn" style="display:none;">Add More Images/Videos</button>
+    <button type="submit">Upload Content</button>
 </form>
 
 <form action="/account/addTextSection" method="POST">
@@ -111,12 +107,67 @@
 <div class="public-dashboard-link">
     <h2>Public Dashboard</h2>
     <p>Access the public dashboard for your organization:</p>
-    <a href="/common/publicDashboardContent?organizationId=<%= organizationId %>">
-        /common/publicDashboardContent?organizationId=<%= organizationId %>
-    </a>
+    <a href="/common/publicDashboard?organizationId=<%= organizationId %>">OurPublicSite.com</a>
 </div>
 
 <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        updateFontSample();
+
+        const contentTypeSelect = document.getElementById('contentType');
+        const fileUploadContainer = document.getElementById('fileUploadContainer');
+        const addMoreFilesBtn = document.getElementById('addMoreFilesBtn');
+
+        contentTypeSelect.addEventListener('change', function() {
+            const contentType = contentTypeSelect.value;
+            fileUploadContainer.innerHTML = '';
+
+            if (contentType === 'slideShow') {
+                addMoreFilesBtn.style.display = 'inline-block';
+                addFileUploadField();
+                addFileUploadField();
+            } else if (contentType === 'siteImage') {
+                addMoreFilesBtn.style.display = 'none';
+                addFileUploadField();
+            }
+        });
+
+        addMoreFilesBtn.addEventListener('click', function() {
+            addFileUploadField();
+        });
+
+        function addFileUploadField() {
+            const fileUploadField = document.createElement('div');
+            fileUploadField.classList.add('file-upload-field');
+            fileUploadField.innerHTML = `
+                <div>
+                    <label>Choose File:</label>
+                    <input type="file" name="slideshowImages" accept="image/*,video/*" required>
+                    <button type="button" class="removeFileBtn" onclick="removeFileField(this)">Remove</button>
+                </div>
+                <div>
+                    <label>Text for File:</label>
+                    <input type="text" name="fileTexts" placeholder="Enter text for this file">
+                </div>
+            `;
+            fileUploadContainer.appendChild(fileUploadField);
+        }
+
+        window.removeFileField = function(button) {
+            fileUploadContainer.removeChild(button.parentElement.parentElement);
+        };
+
+        document.getElementById('contentUploadForm').addEventListener('submit', function(e) {
+            if (contentTypeSelect.value === 'slideShow') {
+                const fileInputs = document.querySelectorAll('input[type="file"]');
+                if (fileInputs.length < 2) {
+                    e.preventDefault();
+                    alert('Please upload at least two images or videos for the slideshow.');
+                }
+            }
+        });
+    });
+
     function updateFontSample() {
         const fontSelect = document.getElementById('font');
         const fontSample = document.getElementById('font-sample');
@@ -125,11 +176,7 @@
         fontSample.style.fontFamily = selectedFont;
         fontSample.textContent = `Sample Text - ${selectedFont}`;
     }
-
-    // Initial font sample update based on the selected font
-    document.addEventListener('DOMContentLoaded', function() {
-        updateFontSample();
-    });
 </script>
+
 </body>
 </html>
