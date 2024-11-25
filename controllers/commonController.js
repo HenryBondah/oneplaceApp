@@ -224,91 +224,95 @@ const commonController = {
         }
     },
     
-// Org Dashboard with specific School Year and Term
-orgDashboardRestricted: async (req, res, db) => {
-    try {
-        const organizationId = req.session.organizationId;
-        const { schoolYearId, termId } = req.params;
-
-        // Fetch data for the specific school year and term
-        const schoolYearResult = await db.query(`
-            SELECT sy.id as school_year_id, sy.year_label, t.term_id, t.term_name, t.start_date, t.end_date, t.current
-            FROM school_years sy
-            LEFT JOIN terms t ON sy.id = t.school_year_id
-            WHERE sy.id = $1 AND t.term_id = $2 AND sy.organization_id = $3
-        `, [schoolYearId, termId, organizationId]);
-
-        let schoolYear = null;
-        let currentTerm = null;
-
-        if (schoolYearResult.rows.length > 0) {
-            schoolYear = {
-                id: schoolYearResult.rows[0].school_year_id,
-                year_label: schoolYearResult.rows[0].year_label,
-                terms: schoolYearResult.rows.map(row => ({
-                    term_id: row.term_id,
-                    term_name: row.term_name,
-                    start_date: row.start_date,
-                    end_date: row.end_date,
-                    current: row.current
-                }))
-            };
-
-            // Find the current term based on termId
-            currentTerm = schoolYearResult.rows.find(row => row.term_id == termId);
+    orgDashboardRestricted: async (req, res, db) => {
+        try {
+            const organizationId = req.session.organizationId;
+            const { schoolYearId, termId } = req.params;
+    
+            // Fetch data for the specific school year and term
+            const schoolYearResult = await db.query(`
+                SELECT sy.id as school_year_id, sy.year_label, t.term_id, t.term_name, t.start_date, t.end_date, t.current
+                FROM school_years sy
+                LEFT JOIN terms t ON sy.id = t.school_year_id
+                WHERE sy.id = $1 AND t.term_id = $2 AND sy.organization_id = $3
+            `, [schoolYearId, termId, organizationId]);
+    
+            let schoolYear = null;
+            let currentTerm = null;
+    
+            if (schoolYearResult.rows.length > 0) {
+                schoolYear = {
+                    id: schoolYearResult.rows[0].school_year_id,
+                    year_label: schoolYearResult.rows[0].year_label,
+                    terms: schoolYearResult.rows.map(row => ({
+                        term_id: row.term_id,
+                        term_name: row.term_name,
+                        start_date: row.start_date,
+                        end_date: row.end_date,
+                        current: row.current
+                    }))
+                };
+    
+                // Find the current term based on termId
+                currentTerm = schoolYearResult.rows.find(row => row.term_id == termId);
+            }
+    
+            // If schoolYear or currentTerm is invalid, redirect to general dashboard
+            if (!schoolYear || !currentTerm) {
+                req.flash('error', 'Invalid school year or term.');
+                return res.redirect('/common/orgDashboard');
+            }
+    
+            // Fetch only enrolled classes assigned to this term
+            const enrolledClassesResult = await db.query(`
+                SELECT c.class_id, c.class_name,
+                    json_agg(
+                        json_build_object(
+                            'user_id', u.user_id,
+                            'name', u.first_name || ' ' || u.last_name,
+                            'main', uc.main,
+                            'on_hold', u.on_hold
+                        ) ORDER BY u.user_id
+                    ) AS employees
+                FROM enrolled_classes ec
+                INNER JOIN classes c ON ec.class_id = c.class_id
+                LEFT JOIN user_classes uc ON c.class_id = uc.class_id
+                LEFT JOIN users u ON u.user_id = uc.user_id
+                WHERE ec.enrollment_id = (
+                    SELECT enrollment_id FROM enrollments 
+                    WHERE term_id = $1 AND school_year_id = $2 AND organization_id = $3
+                    LIMIT 1
+                )
+                GROUP BY c.class_id
+            `, [termId, schoolYearId, organizationId]);
+    
+            const classes = enrolledClassesResult.rows;
+    
+            // Fetch events and announcements
+            const eventsResult = await db.query('SELECT * FROM school_events WHERE organization_id = $1 ORDER BY event_date', [organizationId]);
+            const events = eventsResult.rows.filter(event => event.school_year_id == schoolYearId);
+    
+            const announcementsResult = await db.query('SELECT * FROM announcements WHERE organization_id = $1 ORDER BY announcement_id DESC', [organizationId]);
+            const announcements = announcementsResult.rows.filter(announcement => announcement.school_year_id == schoolYearId);
+    
+            // Render the orgDashboard with schoolYear and term context
+            res.render('common/orgDashboard', {
+                title: 'Organization Dashboard',
+                schoolYear,
+                currentTerm,
+                classes, // Now filtered by the term and only includes enrolled classes
+                events,
+                announcements,
+                organizationId,
+                messages: req.flash()
+            });
+        } catch (error) {
+            console.error('Error fetching dashboard data:', error);
+            req.flash('error', 'Failed to load dashboard data.');
+            res.redirect('/');
         }
-
-        // If schoolYear or currentTerm is invalid, redirect to general dashboard
-        if (!schoolYear || !currentTerm) {
-            req.flash('error', 'Invalid school year or term.');
-            return res.redirect('/common/orgDashboard');
-        }
-
-        // Fetch classes assigned to this term and their employees
-        const classesResult = await db.query(`
-            SELECT c.class_id, c.class_name,
-                json_agg(
-                    json_build_object(
-                        'user_id', u.user_id,
-                        'name', u.first_name || ' ' || u.last_name,
-                        'main', uc.main,
-                        'on_hold', u.on_hold
-                    ) ORDER BY u.user_id
-                ) AS employees
-            FROM classes c
-            INNER JOIN term_classes tc ON c.class_id = tc.class_id
-            LEFT JOIN user_classes uc ON c.class_id = uc.class_id
-            LEFT JOIN users u ON u.user_id = uc.user_id
-            WHERE tc.term_id = $1 AND tc.organization_id = $2
-            GROUP BY c.class_id
-        `, [termId, organizationId]);
-
-        const classes = classesResult.rows;
-
-        // Fetch events and announcements
-        const eventsResult = await db.query('SELECT * FROM school_events WHERE organization_id = $1 ORDER BY event_date', [organizationId]);
-        const events = eventsResult.rows.filter(event => event.school_year_id == schoolYearId);
-
-        const announcementsResult = await db.query('SELECT * FROM announcements WHERE organization_id = $1 ORDER BY announcement_id DESC', [organizationId]);
-        const announcements = announcementsResult.rows.filter(announcement => announcement.school_year_id == schoolYearId);
-
-        // Render the orgDashboard with schoolYear and term context
-        res.render('common/orgDashboard', {
-            title: 'Organization Dashboard',
-            schoolYear,
-            currentTerm,
-            classes, // Now filtered by the term and includes employees
-            events,
-            announcements,
-            organizationId,
-            messages: req.flash()
-        });
-    } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        req.flash('error', 'Failed to load dashboard data.');
-        res.redirect('/');
-    }
-},
+    },
+    
 
     
 publicDashboardContent: async (req, res, db) => {
@@ -2291,7 +2295,7 @@ createTestPost: async (req, res, db) => {
 
     manageRecords: async (req, res, db) => {
         try {
-            const schoolYearsResult = await db.query('SELECT * FROM school_years WHERE organization_id = $1', [req.session.organizationId]);
+            const schoolYearsResult = await db.query('SELECT * FROM school_years WHERE organization_id = $1 ORDER BY current DESC, id ASC', [req.session.organizationId]);
             const termsResult = await db.query(`
                 SELECT t.*, array_agg(tc.class_id) AS class_ids
                 FROM terms t
@@ -2330,7 +2334,7 @@ createTestPost: async (req, res, db) => {
             res.status(500).send('Error loading manage records page.');
         }
     },
-   
+       
     updateSchoolYearAndTerms: async (req, res, db) => {
         const { yearId, year_label, currentYear, termIds, termNames, startDates, endDates, currentTerm, termClasses } = req.body;
         const { organizationId } = req.session;

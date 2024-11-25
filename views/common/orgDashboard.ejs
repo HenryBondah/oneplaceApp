@@ -27,31 +27,29 @@
                     <!-- Top row: classes and school year info -->
                     <div class="grid-row">
                         
-                    
-
 
                             <!-- Classes Section -->
-                            <div class="classes-container" style="text-align: center;">
-                                <h2>Classes</h2>
-                                <ul>
-                                    <% if (classes && classes.length > 0) { %>
-                                        <% classes.forEach(function(cls) { %>
-                                            <li>
-                                                <a href="/common/classDashboard?classId=<%= cls.class_id %>"><%= cls.class_name %></a>
-                                                - <b>Teachers:</b>
-                                                <% cls.employees.forEach(function(emp, index) { %>
-                                                    <% if (emp.main) { %><span class="main">•</span><% } %>
-                                                    <%= emp.name %>
-                                                    <% if (emp.on_hold) { %><span class="on-hold">•</span><% } %>
-                                                    <%= index < cls.employees.length - 1 ? ' | ' : '' %>
-                                                <% }); %>
-                                            </li>
-                                        <% }); %>
-                                    <% } else { %>
-                                        <li>No classes found</li>
-                                    <% } %>
-                                </ul>
-                            </div>
+                        <div class="classes-container" style="text-align: center;">
+                            <h2>Enrolled Classes</h2>
+                            <ul>
+                                <% if (classes && classes.length > 0) { %>
+                                    <% classes.forEach(function(cls) { %>
+                                        <li>
+                                            <a href="/common/classDashboard?classId=<%= cls.class_id %>"><%= cls.class_name %></a>
+                                            - <b>Teachers:</b>
+                                            <% cls.employees.forEach(function(emp, index) { %>
+                                                <% if (emp.main) { %><span class="main">•</span><% } %>
+                                                <%= emp.name %>
+                                                <% if (emp.on_hold) { %><span class="on-hold">•</span><% } %>
+                                                <%= index < cls.employees.length - 1 ? ' | ' : '' %>
+                                            <% }); %>
+                                        </li>
+                                    <% }); %>
+                                <% } else { %>
+                                    <li>No class here yet for the current term. Click <a href="/enrollment/manageEnrollment">here</a> to enroll class.</li>
+                                <% } %>
+                            </ul>
+                        </div>
 
                         <!-- School Year and Term Section -->
                         <div class="school-year-info">

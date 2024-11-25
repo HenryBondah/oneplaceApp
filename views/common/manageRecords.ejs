@@ -1,3 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/styles/publicDashboard.css">
+    <style>
+        .public-dashboard-container {
+            margin-top: 20px;
+            width: 90%;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .current-year-indicator, .current-term-indicator {
+            height: 20px;
+            width: 20px;
+            background-color: rgb(0, 201, 0);
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .school-year-header {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+        }
+
+        .term-section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .arrow {
+            margin-left: auto;
+            font-size: 18px;
+        }
+
+        .save-button, .delete-button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: not-allowed;
+        }
+
+        .save-button:enabled, .delete-button:hover {
+            cursor: pointer;
+            background-color: #0056b3;
+        }
+
+        .delete-button {
+            background-color: #dc3545;
+            margin-top: 10px;
+        }
+
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+
+        .create-link {
+            display: inline-block;
+            background-color: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+
+        .create-link:hover {
+            background-color: #218838;
+        }
+
+        hr {
+            border: 1px solid #ccc;
+            margin: 20px 0;
+        }
+    </style>
+</head>
 <body>
     <!-- Flash Messages -->
     <% if (messages && messages.success && messages.success.length > 0) { %>
@@ -23,145 +109,61 @@
             <legend>School Years</legend>
 
             <div id="schoolYearContainer">
-                <% let currentYearFound = false; %>
-
-                <!-- Move the current school year to the top -->
                 <% schoolYears.forEach(function(year) { %>
-                    <% if (year.current) { %>
-                        <div class="school-year-wrapper current-year-wrapper" id="yearWrapper<%= year.id %>">
-                            <form action="/common/updateSchoolYearAndTerms" method="post" class="school-year-form" onsubmit="return validateAndConfirmChanges('<%= year.year_label %>')">
-                                <input type="hidden" name="yearId" value="<%= year.id %>">
-                                <div class="school-year-header" onclick="toggleTerms('<%= year.id %>')">
-                                    <label>School Year:</label>
-                                    <input type="text" name="year_label" value="<%= year.year_label %>" required>
-                                    <label>
-                                        <input type="radio" name="currentYear" value="<%= year.id %>" checked onchange="moveToTop('<%= year.id %>')">
-                                        Current
-                                    </label>
-                                    <span class="arrow" id="arrow<%= year.id %>">&#9660;</span> <!-- Down Arrow -->
-                                </div>
+                    <div class="school-year-wrapper <%= year.current ? 'current-year-wrapper' : '' %>" id="yearWrapper<%= year.id %>">
+                        <form action="/common/updateSchoolYearAndTerms" method="post" class="school-year-form" onsubmit="return validateAndConfirmChanges(this)">
+                            <input type="hidden" name="yearId" value="<%= year.id %>">
+                            <div class="school-year-header" onclick="toggleTerms('<%= year.id %>')">
+                                <% if (year.current) { %>
+                                    <span class="current-year-indicator"></span>
+                                <% } %>
+                                <label>School Year:</label>
+                                <input type="text" name="year_label" value="<%= year.year_label %>" required>
+                                <label>
+                                    <input type="radio" name="currentYear" value="<%= year.id %>" <%= year.current ? 'checked' : '' %>>
+                                    Current
+                                </label>
+                                <span class="arrow" id="arrow<%= year.id %>">&#9660;</span>
+                            </div>
 
-                                <div class="term-section" id="termSection<%= year.id %>" style="display: block;">
-                                    <% year.terms.forEach(function(term, index) { %>
-                                        <fieldset>
-                                            <legend>Term <%= index + 1 %></legend>
-                                            <input type="hidden" name="termIds[]" value="<%= term.term_id %>">
+                            <div class="term-section" id="termSection<%= year.id %>" style="display: <%= year.current ? 'block' : 'none' %>">
+                                <% year.terms.forEach(function(term) { %>
+                                    <fieldset>
+                                        <legend>Term / Semester</legend>
+                                        <input type="hidden" name="termIds[]" value="<%= term.term_id %>">
+                                        <div class="term-section-header">
+                                            <% if (term.current) { %>
+                                                <span class="current-term-indicator"></span>
+                                            <% } %>
+                                            <input type="text" name="termNames[]" value="<%= term.term_name %>" placeholder="Term / Semester Name" required>
+                                            <label>
+                                                <input type="radio" name="currentTerm" value="<%= term.term_id %>" <%= term.current ? 'checked' : '' %>>
+                                                Current
+                                            </label>
+                                        </div>
+                                        <div class="date-fields">
                                             <div>
-                                                <label>Term Name:</label>
-                                                <input type="text" name="termNames[]" value="<%= term.term_name %>">
-                                            </div>
-                                            <div>
-                                                <label>
-                                                    <input type="radio" name="currentTerm" value="<%= term.term_id %>" <%= term.current ? 'checked' : '' %>>
-                                                    Current
-                                                </label>
-                                            </div>
-                                            <div class="date-fields">
-                                                <div>
-                                                    <label>Start Date:</label>
-                                                    <input type="date" name="startDates[]" value="<%= new Date(term.start_date).toISOString().slice(0, 10) %>">
-                                                </div>
-                                                <div>
-                                                    <label>End Date:</label>
-                                                    <input type="date" name="endDates[]" value="<%= new Date(term.end_date).toISOString().slice(0, 10) %>">
-                                                </div>
-                                            </div>
-
-                                            <!-- Class section: Display all classes with checkboxes -->
-                                            <div class="classes-section">
-                                                <label>Classes:</label>
-                                                <% classes.forEach(function(cls) { %>
-                                                    <div>
-                                                        <input type="checkbox" name="termClasses[<%= term.term_id %>]" value="<%= cls.class_id %>" 
-                                                            <%= term.class_ids && term.class_ids.includes(cls.class_id) ? 'checked' : '' %>>
-                                                        <%= cls.class_name %>
-                                                    </div>
-                                                <% }); %>
-                                            </div>
-                                        </fieldset>
-                                    <% }); %>
-                                </div>
-
-                                <button type="submit" class="save-button">Save Changes</button>
-                            </form>
-
-                            <form action="/common/deleteSchoolYear" method="post" onsubmit="return confirm('Are you sure you want to delete this school year?');">
-                                <input type="hidden" name="yearId" value="<%= year.id %>">
-                                <button type="submit" class="delete-button">Delete</button>
-                            </form>
-                        </div>
-
-                        <hr> <!-- Divider between current year and the rest -->
-                        <% currentYearFound = true; %>
-                    <% } %>
-                <% }); %>
-
-                <!-- Now list the remaining school years below the line -->
-                <% schoolYears.forEach(function(year) { %>
-                    <% if (!year.current) { %>
-                        <div class="school-year-wrapper" id="yearWrapper<%= year.id %>">
-                            <form action="/common/updateSchoolYearAndTerms" method="post" class="school-year-form" onsubmit="return validateAndConfirmChanges('<%= year.year_label %>')">
-                                <input type="hidden" name="yearId" value="<%= year.id %>">
-                                <div class="school-year-header" onclick="toggleTerms('<%= year.id %>')">
-                                    <label>School Year:</label>
-                                    <input type="text" name="year_label" value="<%= year.year_label %>" required>
-                                    <label>
-                                        <input type="radio" name="currentYear" value="<%= year.id %>" onchange="moveToTop('<%= year.id %>')">
-                                        Current
-                                    </label>
-                                    <span class="arrow" id="arrow<%= year.id %>">&#9660;</span> <!-- Down Arrow -->
-                                </div>
-
-                                <div class="term-section" id="termSection<%= year.id %>" style="display: none;">
-                                    <% year.terms.forEach(function(term, index) { %>
-                                        <fieldset>
-                                            <legend>Term <%= index + 1 %></legend>
-                                            <input type="hidden" name="termIds[]" value="<%= term.term_id %>">
-                                            <div>
-                                                <label>Term Name:</label>
-                                                <input type="text" name="termNames[]" value="<%= term.term_name %>">
+                                                <label>Start Date:</label>
+                                                <input type="date" name="startDates[]" value="<%= new Date(term.start_date).toISOString().slice(0, 10) %>" required>
                                             </div>
                                             <div>
-                                                <label>
-                                                    <input type="radio" name="currentTerm" value="<%= term.term_id %>" <%= term.current ? 'checked' : '' %>>
-                                                    Current
-                                                </label>
+                                                <label>End Date:</label>
+                                                <input type="date" name="endDates[]" value="<%= new Date(term.end_date).toISOString().slice(0, 10) %>" required>
                                             </div>
-                                            <div class="date-fields">
-                                                <div>
-                                                    <label>Start Date:</label>
-                                                    <input type="date" name="startDates[]" value="<%= new Date(term.start_date).toISOString().slice(0, 10) %>">
-                                                </div>
-                                                <div>
-                                                    <label>End Date:</label>
-                                                    <input type="date" name="endDates[]" value="<%= new Date(term.end_date).toISOString().slice(0, 10) %>">
-                                                </div>
-                                            </div>
+                                        </div>
+                                    </fieldset>
+                                <% }); %>
+                            </div>
 
-                                          <!-- Class section: Display all classes with checkboxes -->
-                                            <div class="classes-section">
-                                                <label>Classes:</label>
-                                                <% classes.forEach(function(cls) { %>
-                                                    <div>
-                                                        <input type="checkbox" name="termClasses[<%= term.term_id %>]" value="<%= cls.class_id %>" 
-                                                            <%= term.class_ids && term.class_ids.includes(cls.class_id) ? 'checked' : '' %>>
-                                                        <%= cls.class_name %>
-                                                    </div>
-                                                <% }); %>
-                                            </div>
-                                        </fieldset>
-                                    <% }); %>
-                                </div>
+                            <button type="submit" class="save-button">Save Changes</button>
+                        </form>
 
-                                <button type="submit" class="save-button">Save Changes</button>
-                            </form>
-
-                            <form action="/common/deleteSchoolYear" method="post" onsubmit="return confirm('Are you sure you want to delete this school year?');">
-                                <input type="hidden" name="yearId" value="<%= year.id %>">
-                                <button type="submit" class="delete-button">Delete</button>
-                            </form>
-                        </div>
-                    <% } %>
+                        <form action="/common/deleteSchoolYear" method="post" onsubmit="return confirm('Are you sure you want to delete this school year?');">
+                            <input type="hidden" name="yearId" value="<%= year.id %>">
+                            <button type="submit" class="delete-button">Delete</button>
+                        </form>
+                    </div>
+                    <hr>
                 <% }); %>
             </div>
         </fieldset>
@@ -182,135 +184,38 @@
             }
         }
 
-        // Detect changes in any input fields (radio buttons, text inputs, dates, checkboxes) and enable the Save button
-        document.querySelectorAll('input[type="radio"], input[type="text"], input[type="date"], input[type="checkbox"]').forEach(function(input) {
-            input.addEventListener('change', function() {
-                const form = this.closest('form');
-                const saveButton = form.querySelector('.save-button');
-                saveButton.disabled = false; // Enable the save button when any input changes
-            });
-        });
-
-        // Confirmation dialog for changes and term validation
-        function validateAndConfirmChanges(yearLabel) {
-            const form = event.target;
+        // Validation to ensure the current term belongs to the selected current school year
+        function validateAndConfirmChanges(form) {
+            const currentYearSelected = form.querySelector('input[type="radio"][name="currentYear"]:checked');
             const currentTermSelected = form.querySelector('input[type="radio"][name="currentTerm"]:checked');
-            
-            // If no term is selected for a current year, show a message
-            if (!currentTermSelected) {
-                alert(`School year "${yearLabel}" cannot be set as current because no term is selected. Please select a term.`);
-                return false; // Prevent form submission
+
+            if (currentYearSelected) {
+                const currentYearId = parseInt(currentYearSelected.value, 10);
+
+                // Ensure that the selected current term belongs to the current year
+                if (currentTermSelected) {
+                    const termSection = document.getElementById(`termSection${currentYearId}`);
+                    if (!termSection) {
+                        alert(`The selected current term does not belong to the selected current school year. Please correct your selection.`);
+                        return false; // Prevent form submission
+                    }
+
+                    const selectedTermId = parseInt(currentTermSelected.value, 10);
+                    const validTermIds = Array.from(termSection.querySelectorAll('input[type="hidden"][name="termIds[]"]'))
+                                              .map(termInput => parseInt(termInput.value, 10));
+
+                    if (!validTermIds.includes(selectedTermId)) {
+                        alert(`The selected current term does not belong to the selected current school year. Please correct your selection.`);
+                        return false; // Prevent form submission
+                    }
+                } else {
+                    alert(`School year "${currentYearSelected.dataset.yearLabel}" is set as current, but no term is selected as current. Please select a term.`);
+                    return false; // Prevent form submission
+                }
             }
 
-            return confirm(`You are about to save changes to the school year: ${yearLabel}. Do you want to proceed?`);
-        }
-
-        // Function to move selected school year to the top
-        function moveToTop(yearId) {
-            const schoolYearContainer = document.getElementById('schoolYearContainer');
-            const yearWrapper = document.getElementById(`yearWrapper${yearId}`);
-
-            // Move the selected year to the top of the container
-            schoolYearContainer.prepend(yearWrapper);
-
-            // Optional: Scroll to the top of the page after moving
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return confirm(`You are about to save changes to the school year. Do you want to proceed?`);
         }
     </script>
-
-    <style>
-        /* Style for flash messages */
-        .flash-message {
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid transparent;
-            border-radius: 4px;
-        }
-        .flash-success {
-            background-color: #dff0d8;
-            color: #3c763d;
-        }
-        .flash-error {
-            background-color: #f2dede;
-            color: #a94442;
-        }
-
-      /* School year header styling */
-.school-year-header {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between; /* Ensure space between elements */
-    padding: 10px;
-}
-
-.school-year-header label {
-    margin-right: 10px; /* Add space between the label and radio button */
-    display: flex;
-    align-items: center;
-}
-
-.school-year-header input[type="radio"] {
-    margin-left: 5px; /* Add spacing between radio and label */
-}
-
-.arrow {
-    margin-left: auto; /* Push the arrow to the right end */
-    font-size: 18px;
-}
-
-/* Align term label properly within the term section */
-.term-section label {
-    display: inline-block;
-    margin-right: 10px;
-    width: 150px; /* Ensure label width consistency */
-}
-
-/* .save-button, .delete-button {
-    margin-top: 10px;
-} */
-
-
-        /* Button styling */
-        .save-button, .delete-button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: not-allowed;
-        }
-        .save-button:enabled, .delete-button:hover {
-            cursor: pointer;
-            background-color: #0056b3;
-        }
-
-        /* Hover state for delete button */
-        .delete-button {
-            background-color: #dc3545;
-            margin-top: 10px;
-        }
-        .delete-button:hover {
-            background-color: #c82333;
-        }
-
-        /* Link styling */
-        .create-link {
-            display: inline-block;
-            background-color: #28a745;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 4px;
-            text-decoration: none;
-        }
-        .create-link:hover {
-            background-color: #218838;
-        }
-
-        /* Divider styling */
-        hr {
-            border: 1px solid #ccc;
-            margin: 20px 0;
-        }
-    </style>
 </body>
+</html>

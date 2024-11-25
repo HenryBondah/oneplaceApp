@@ -1,15 +1,4 @@
 <header id="top-header">
-  <!-- <span class="siteName">
-    <img src="/images/1place.png" alt="Existing Logo" class="logo" />
-    <% if (session.logo) { %>
-      <img src="<%= session.logo %>" alt="Organization Logo" class="logo" />
-    <% } %>
-    <% if (session.organizationName) { %>
-      <a href="/common/orgDashboard" title="Go to dashboard"><%= session.organizationName %></a>
-    <% } else { %>
-      <a href="/" title="Return to home page">OnePlace</a>
-    <% } %>
-  </span> -->
   <span class="siteName">
     <img src="/images/1place.png" alt="Existing Logo" class="logo" />
     <% if (session.logo) { %>
@@ -45,7 +34,7 @@
               <li><a href="/common/createTest?organizationId=<%= session.organizationId %>&termId=<%= currentTerm ? currentTerm.term_id : '' %>">Create Test</a></li>
               <li><a href="/common/createEmployee">Manage Employee</a></li>
               <li><a href="/common/manageEventsAnnouncements">Manage Events & Announcements</a></li>
-              <li><a href="/enrollment/enroll">Enrollment</a></li>
+              <li><a href="/enrollment/manageEnrollment">Manage Enrollment</a></li>
             </ul>
           </li>
           <li class="nav-item">

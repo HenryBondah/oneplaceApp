@@ -133,75 +133,81 @@ const enrollmentController = {
         }
     },
 
-manageEnrollmentGet: async (req, res, db) => {
-    try {
-        const organizationId = req.session.organizationId;
-
-        // Fetch all enrollments along with classes and students
-        const enrollmentsResult = await db.query(`
-            SELECT e.enrollment_id, sy.year_label as school_year, sy.current as is_current_year, t.term_name as term, t.current as is_current_term
-            FROM enrollments e
-            INNER JOIN school_years sy ON e.school_year_id = sy.id
-            INNER JOIN terms t ON e.term_id = t.term_id
-            WHERE e.organization_id = $1
-            ORDER BY sy.current DESC, sy.year_label, t.term_name
-        `, [organizationId]);
-
-        const enrollments = enrollmentsResult.rows;
-
-        for (const enrollment of enrollments) {
-            // Fetch classes for the enrollment
-            const classesResult = await db.query(`
-                SELECT c.class_id, c.class_name
-                FROM enrolled_classes ec
-                INNER JOIN classes c ON ec.class_id = c.class_id
-                WHERE ec.enrollment_id = $1
-            `, [enrollment.enrollment_id]);
-
-            const classes = classesResult.rows;
-
-            for (const cls of classes) {
-                // Fetch all students for the organization
-                const allStudentsResult = await db.query(`
-                    SELECT student_id, first_name, last_name, class_id
-                    FROM students
-                    WHERE organization_id = $1
-                    ORDER BY last_name, first_name
-                `, [organizationId]);
-
-                const allStudents = allStudentsResult.rows;
-
-                // Fetch enrolled students for the specific class in the enrollment
-                const enrolledStudentsResult = await db.query(`
-                    SELECT s.student_id, s.first_name, s.last_name
-                    FROM enrolled_students es
-                    INNER JOIN students s ON es.student_id = s.student_id
-                    WHERE es.enrollment_id = $1 AND es.class_id = $2
-                    ORDER BY s.last_name, s.first_name
-                `, [enrollment.enrollment_id, cls.class_id]);
-
-                const enrolledStudents = enrolledStudentsResult.rows;
-
-                // Assign all students and enrolled students to the class
-                cls.all_students = allStudents.filter(student => student.class_id === cls.class_id);
-                cls.enrolled_students = enrolledStudents;
+    manageEnrollmentGet: async (req, res, db) => {
+        try {
+            const organizationId = req.session.organizationId;
+    
+            // Fetch all enrollments along with classes and students
+            const enrollmentsResult = await db.query(`
+                SELECT e.enrollment_id, sy.year_label as school_year, sy.current as is_current_year, t.term_name as term, t.current as is_current_term
+                FROM enrollments e
+                INNER JOIN school_years sy ON e.school_year_id = sy.id
+                INNER JOIN terms t ON e.term_id = t.term_id
+                WHERE e.organization_id = $1
+                ORDER BY sy.current DESC, sy.year_label, t.term_name
+            `, [organizationId]);
+    
+            const enrollments = enrollmentsResult.rows;
+    
+            for (const enrollment of enrollments) {
+                // Fetch classes for the enrollment
+                const classesResult = await db.query(`
+                    SELECT c.class_id, c.class_name
+                    FROM enrolled_classes ec
+                    INNER JOIN classes c ON ec.class_id = c.class_id
+                    WHERE ec.enrollment_id = $1
+                `, [enrollment.enrollment_id]);
+    
+                const classes = classesResult.rows;
+    
+                for (const cls of classes) {
+                    // Fetch all students for the organization
+                    const allStudentsResult = await db.query(`
+                        SELECT student_id, first_name, last_name, class_id
+                        FROM students
+                        WHERE organization_id = $1
+                        ORDER BY last_name, first_name
+                    `, [organizationId]);
+    
+                    const allStudents = allStudentsResult.rows;
+    
+                    // Fetch enrolled students for the specific class in the enrollment
+                    const enrolledStudentsResult = await db.query(`
+                        SELECT s.student_id, s.first_name, s.last_name
+                        FROM enrolled_students es
+                        INNER JOIN students s ON es.student_id = s.student_id
+                        WHERE es.enrollment_id = $1 AND es.class_id = $2
+                        ORDER BY s.last_name, s.first_name
+                    `, [enrollment.enrollment_id, cls.class_id]);
+    
+                    const enrolledStudents = enrolledStudentsResult.rows;
+    
+                    // Assign all students and enrolled students to the class
+                    cls.all_students = allStudents.filter(student => student.class_id === cls.class_id);
+                    cls.enrolled_students = enrolledStudents;
+                }
+    
+                enrollment.classes = classes;
             }
-
-            enrollment.classes = classes;
+    
+            // Check if there is no enrollment for the current semester
+            const currentSemester = enrollments.find(enrollment => enrollment.is_current_year && enrollment.is_current_term);
+            const noEnrollmentForCurrentSemester = !currentSemester;
+    
+            res.render('enrollment/manageEnrollment', {
+                title: 'Manage Enrollments',
+                enrollments,
+                noEnrollmentForCurrentSemester,
+                currentSemesterName: currentSemester ? `${currentSemester.school_year} - ${currentSemester.term}` : 'the current school year and term',
+                messages: req.flash()
+            });
+        } catch (error) {
+            console.error('Error fetching enrollments:', error);
+            req.flash('error', 'Failed to load enrollments.');
+            res.redirect('/');
         }
-
-        res.render('enrollment/manageEnrollment', {
-            title: 'Manage Enrollments',
-            enrollments,
-            messages: req.flash()
-        });
-    } catch (error) {
-        console.error('Error fetching enrollments:', error);
-        req.flash('error', 'Failed to load enrollments.');
-        res.redirect('/');
-    }
-},
-
+    },
+    
         
     modifyEnrollmentGet: async (req, res, db) => {
         const enrollmentId = req.params.enrollmentId;
