@@ -120,6 +120,20 @@ const printController = (db) => ({
                 return res.status(404).send('Term not found for the given term ID.');
             }
     
+            // Calculate the number of attendance days up to today
+            const startDate = new Date(term.start_date);
+            const endDate = new Date(term.end_date);
+            const today = new Date();
+    
+            // Only count up to today if today is within the term; otherwise, count up to the end of the term
+            let totalDays = 0;
+            let currentDate = new Date(startDate);
+    
+            while (currentDate <= endDate && currentDate <= today) {
+                totalDays++;
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+    
             // Fetch students and their subjects for the given term
             const studentsResult = await db.query(`
                 SELECT s.student_id, s.first_name, s.last_name, s.image_url, c.class_name
@@ -138,6 +152,21 @@ const printController = (db) => ({
     
             const teacherRemarksResult = await db.query('SELECT id, remark FROM teacher_remarks WHERE organization_id = $1', [organizationId]);
             const teacherRemarks = teacherRemarksResult.rows;
+    
+            // Fetch attendance records for each student
+            const attendanceResult = await db.query(`
+                SELECT student_id, COUNT(*) FILTER (WHERE status = 'Present') AS present_days
+                FROM attendance_records
+                WHERE class_id = $1 AND term_id = $2 AND organization_id = $3
+                GROUP BY student_id
+            `, [parsedClassId, parsedTermId, organizationId]);
+            const attendanceMap = {};
+            attendanceResult.rows.forEach(record => {
+                attendanceMap[record.student_id] = {
+                    presentDays: record.present_days,
+                    totalDays: totalDays // Use the calculated total days so far in the term
+                };
+            });
     
             // Fetch signature
             const reportSettingsResult = await db.query('SELECT signature_image_path FROM report_settings WHERE organization_id = $1', [organizationId]);
@@ -226,6 +255,9 @@ const printController = (db) => ({
                     last_name: student.last_name,
                     totalScoreSum: student.totalScoreSum
                 });
+    
+                // Add attendance details to the student
+                student.attendance = attendanceMap[student.student_id] || { presentDays: 0, totalDays: totalDays };
             }
     
             studentScores.sort((a, b) => b.totalScoreSum - a.totalScoreSum);
@@ -257,7 +289,8 @@ const printController = (db) => ({
             console.error('Error generating student report:', error);
             res.status(500).send('Failed to generate student report.');
         }
-    },    
+    },
+          
     
             
     
@@ -267,65 +300,56 @@ const printController = (db) => ({
         const { classId, termId } = req.query;
         const organizationId = req.session.organizationId;
     
-        // Validate that classId and termId are provided and are integers
-        if (!classId || isNaN(classId)) {
-            return res.status(400).send('Invalid or missing classId.');
-        }
-    
-        if (!termId || isNaN(termId)) {
-            return res.status(400).send('Invalid or missing termId.');
-        }
-    
-        if (!organizationId) {
-            return res.status(400).send('Organization ID is not set in session.');
+        // Validate input
+        if (!classId || isNaN(classId) || !termId || isNaN(termId)) {
+            return res.status(400).send('Invalid or missing classId or termId.');
         }
     
         try {
             const parsedClassId = parseInt(classId, 10);
             const parsedTermId = parseInt(termId, 10);
     
-            // Fetch status settings for the specific class and organization
+            // Fetch status settings for the specific class and term
             const statusResult = await db.query(`
                 SELECT * 
                 FROM status_settings 
-                WHERE organization_id = $1 AND class_id = $2 LIMIT 1
-            `, [organizationId, parsedClassId]);
+                WHERE organization_id = $1 AND class_id = $2 AND term_id = $3 LIMIT 1
+            `, [organizationId, parsedClassId, parsedTermId]);
             const statusSettings = statusResult.rows[0] || {};
     
-            // Fetch all the classes for the organization
-            const classesResult = await db.query(`
-                SELECT class_id, class_name 
-                FROM classes 
-                WHERE organization_id = $1
+            // Fetch enrolled classes for the given organization by joining `classes` with `enrolled_classes`
+            const enrolledClassesResult = await db.query(`
+                SELECT c.class_id, c.class_name
+                FROM enrolled_classes ec
+                JOIN classes c ON ec.class_id = c.class_id
+                WHERE c.organization_id = $1
             `, [organizationId]);
-            const classes = classesResult.rows || [];
     
-            // Fetch teacher remarks for the organization
+            const enrolledClasses = enrolledClassesResult.rows || [];
+    
+            // Fetch teacher remarks, score remarks, and signature image for the given term
             const teacherRemarksResult = await db.query(`
                 SELECT * 
                 FROM teacher_remarks 
-                WHERE organization_id = $1
-            `, [organizationId]);
+                WHERE organization_id = $1 AND term_id = $2
+            `, [organizationId, parsedTermId]);
             const teacherRemarks = teacherRemarksResult.rows || [];
     
-            // Fetch score remarks for the organization
             const scoreRemarksResult = await db.query(`
                 SELECT * 
                 FROM score_remarks 
-                WHERE organization_id = $1
-            `, [organizationId]);
+                WHERE organization_id = $1 AND term_id = $2
+            `, [organizationId, parsedTermId]);
             const scoreRemarks = scoreRemarksResult.rows || [];
     
-            // Fetch signature image path from report settings
             const reportSettingsResult = await db.query(`
                 SELECT signature_image_path 
                 FROM report_settings 
-                WHERE organization_id = $1
-            `, [organizationId]);
+                WHERE organization_id = $1 AND term_id = $2
+            `, [organizationId, parsedTermId]);
             const reportSettings = reportSettingsResult.rows[0];
             let signatureImageUrl = null;
     
-            // If a signature image exists, fetch it from S3
             if (reportSettings && reportSettings.signature_image_path) {
                 signatureImageUrl = await getFromS3(reportSettings.signature_image_path);
             }
@@ -336,7 +360,7 @@ const printController = (db) => ({
                 statusSettings,
                 teacherRemarks,
                 scoreRemarks,
-                classes,
+                enrolledClasses, // Ensure this is passed to the template
                 signatureImageUrl,
                 classId: parsedClassId,
                 termId: parsedTermId,
@@ -348,7 +372,7 @@ const printController = (db) => ({
             res.status(500).send('Failed to load report settings page.');
         }
     },
-    
+     
                     
     
 
@@ -378,52 +402,81 @@ const printController = (db) => ({
     
 
     savePromotionSettings: async (req, res) => {
-        const { cutOffPoint, promotedClass, repeatedClass, schoolReopenDate, activatePromotion } = req.body;
+        const { cutOffPoint, promotedClass, repeatedClass, schoolReopenDate, activatePromotion, applyAllClasses, selectedStatusClasses } = req.body;
         const organizationId = req.session.organizationId;
-        const { classId } = req.query;  // Get the classId from the query parameters
-    
+        const { classId, termId } = req.query;
+
         try {
             if (!organizationId) {
                 return res.status(400).send('Organization ID is not set in session.');
             }
-    
-            // If schoolReopenDate is an empty string, set it to null
+
+            let classesToApply = [];
+            if (applyAllClasses) {
+                const allClassesResult = await db.query('SELECT class_id FROM classes WHERE organization_id = $1 AND term_id = $2', [organizationId, termId]);
+                classesToApply = allClassesResult.rows.map(row => row.class_id);
+            } else if (Array.isArray(selectedStatusClasses)) {
+                classesToApply = selectedStatusClasses.map(classId => parseInt(classId));
+            } else {
+                classesToApply = [parseInt(classId)];
+            }
+
             const reopenDate = schoolReopenDate === "" ? null : schoolReopenDate;
-    
-            // Insert or update the status settings for the specific class
-            await db.query(`
-                INSERT INTO status_settings (organization_id, class_id, cut_off_point, promoted_class, repeated_class, school_reopen_date, activate_promotion)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
-                ON CONFLICT (organization_id, class_id)
-                DO UPDATE SET 
-                    cut_off_point = EXCLUDED.cut_off_point,
-                    promoted_class = EXCLUDED.promoted_class,
-                    repeated_class = EXCLUDED.repeated_class,
-                    school_reopen_date = EXCLUDED.school_reopen_date,
-                    activate_promotion = EXCLUDED.activate_promotion
-            `, [organizationId, classId, cutOffPoint, promotedClass, repeatedClass, reopenDate, activatePromotion === "on"]);
-    
-            res.redirect(`/print/reportSettings?classId=${classId}`);
+
+            for (const currentClassId of classesToApply) {
+                await db.query(`
+                    INSERT INTO status_settings (organization_id, class_id, term_id, cut_off_point, promoted_class, repeated_class, school_reopen_date, activate_promotion)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    ON CONFLICT (organization_id, class_id, term_id)
+                    DO UPDATE SET 
+                        cut_off_point = EXCLUDED.cut_off_point,
+                        promoted_class = EXCLUDED.promoted_class,
+                        repeated_class = EXCLUDED.repeated_class,
+                        school_reopen_date = EXCLUDED.school_reopen_date,
+                        activate_promotion = EXCLUDED.activate_promotion
+                `, [organizationId, currentClassId, termId, cutOffPoint, promotedClass, repeatedClass, reopenDate, activatePromotion === "on"]);
+            }
+
+            res.redirect(`/print/reportSettings?classId=${classId}&termId=${termId}`);
         } catch (error) {
             console.error('Error saving promotion settings:', error);
             res.status(500).send('Error saving promotion settings.');
         }
-    },
-    
-    
+    },    
 
     saveTeacherRemarks: async (req, res) => {
-        const { teacherRemarks } = req.body;
+        const { teacherRemarks, applyAllClasses, selectedTeacherRemarksClasses } = req.body;
         const organizationId = req.session.organizationId;
+        const { classId, termId } = req.query;
 
         try {
-            await db.query('INSERT INTO teacher_remarks (organization_id, remark) VALUES ($1, $2)', [organizationId, teacherRemarks]);
+            if (!organizationId) {
+                return res.status(400).send('Organization ID is not set in session.');
+            }
+
+            let classesToApply = [];
+            if (applyAllClasses) {
+                const allClassesResult = await db.query('SELECT class_id FROM classes WHERE organization_id = $1 AND term_id = $2', [organizationId, termId]);
+                classesToApply = allClassesResult.rows.map(row => row.class_id);
+            } else if (Array.isArray(selectedTeacherRemarksClasses)) {
+                classesToApply = selectedTeacherRemarksClasses.map(classId => parseInt(classId));
+            } else {
+                classesToApply = [parseInt(classId)];
+            }
+
+            for (const currentClassId of classesToApply) {
+                await db.query(`
+                    INSERT INTO teacher_remarks (organization_id, class_id, term_id, remark)
+                    VALUES ($1, $2, $3, $4)
+                `, [organizationId, currentClassId, termId, teacherRemarks]);
+            }
+
             req.flash('success_msg', 'Teacher remarks saved successfully.');
-            res.redirect('/print/reportSettings');
+            res.redirect(`/print/reportSettings?classId=${classId}&termId=${termId}`);
         } catch (error) {
             console.error('Error saving teacher remarks:', error);
             req.flash('error_msg', 'Failed to save teacher remarks.');
-            res.redirect('/print/reportSettings');
+            res.redirect(`/print/reportSettings?classId=${classId}&termId=${termId}`);
         }
     },
 
@@ -440,23 +493,40 @@ const printController = (db) => ({
     },
 
     saveScoreRemarks: async (req, res) => {
-        const { remark, from_percentage, to_percentage } = req.body;
+        const { remark, from_percentage, to_percentage, applyAllClasses, selectedScoreRemarksClasses } = req.body;
         const organizationId = req.session.organizationId;
+        const { classId, termId } = req.query;
 
         try {
-            await db.query(`
-                INSERT INTO score_remarks (organization_id, remark, from_percentage, to_percentage)
-                VALUES ($1, $2, $3, $4)
-                ON CONFLICT (organization_id, remark) DO UPDATE
-                SET from_percentage = EXCLUDED.from_percentage, to_percentage = EXCLUDED.to_percentage
-            `, [organizationId, remark, from_percentage, to_percentage]);
+            if (!organizationId) {
+                return res.status(400).send('Organization ID is not set in session.');
+            }
+
+            let classesToApply = [];
+            if (applyAllClasses) {
+                const allClassesResult = await db.query('SELECT class_id FROM classes WHERE organization_id = $1 AND term_id = $2', [organizationId, termId]);
+                classesToApply = allClassesResult.rows.map(row => row.class_id);
+            } else if (Array.isArray(selectedScoreRemarksClasses)) {
+                classesToApply = selectedScoreRemarksClasses.map(classId => parseInt(classId));
+            } else {
+                classesToApply = [parseInt(classId)];
+            }
+
+            for (const currentClassId of classesToApply) {
+                await db.query(`
+                    INSERT INTO score_remarks (organization_id, class_id, term_id, remark, from_percentage, to_percentage)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                    ON CONFLICT (organization_id, class_id, term_id, remark) DO UPDATE
+                    SET from_percentage = EXCLUDED.from_percentage, to_percentage = EXCLUDED.to_percentage
+                `, [organizationId, currentClassId, termId, remark, from_percentage, to_percentage]);
+            }
 
             req.flash('success_msg', 'Score remarks saved successfully.');
-            res.redirect('/print/reportSettings');
+            res.redirect(`/print/reportSettings?classId=${classId}&termId=${termId}`);
         } catch (error) {
             console.error('Error saving score remarks:', error);
             req.flash('error_msg', 'Failed to save score remarks.');
-            res.redirect('/print/reportSettings');
+            res.redirect(`/print/reportSettings?classId=${classId}&termId=${termId}`);
         }
     },
 
@@ -472,69 +542,69 @@ const printController = (db) => ({
         }
     },
 
-    uploadSignatureImage: async (req, res) => {
+uploadSignatureImage: async (req, res) => {
         const { file } = req;
         const organizationId = req.session.organizationId;
-    
+        const { classId, termId, applyAllClasses, selectedSignatureClasses } = req.body;
+
         if (!file) {
             req.flash('error_msg', 'No file uploaded.');
-            return res.redirect('/print/reportSettings');
+            return res.redirect(`/print/reportSettings?classId=${classId}&termId=${termId}`);
         }
-    
+
         try {
-            // Check if there's already an image in S3
-            const result = await db.query('SELECT signature_image_path FROM report_settings WHERE organization_id = $1', [organizationId]);
-            const currentImagePath = result.rows[0]?.signature_image_path;
-    
-            // If there's an existing image, delete it from S3
-            if (currentImagePath) {
-                await deleteFromS3(currentImagePath);
-            }
-    
-            // Generate a new key for the file in S3
-            const key = `signatures/${organizationId}/${Date.now()}_${file.originalname}`;
-    
-            // Upload the new image to S3
-            const uploadedKey = await uploadToS3(key, file);
-    
-            // Update the database with the new image path
-            if (result.rows.length > 0) {
-                await db.query('UPDATE report_settings SET signature_image_path = $1 WHERE organization_id = $2', [uploadedKey, organizationId]);
+            let classesToApply = [];
+            if (applyAllClasses) {
+                const allClassesResult = await db.query('SELECT class_id FROM classes WHERE organization_id = $1 AND term_id = $2', [organizationId, termId]);
+                classesToApply = allClassesResult.rows.map(row => row.class_id);
+            } else if (Array.isArray(selectedSignatureClasses)) {
+                classesToApply = selectedSignatureClasses.map(classId => parseInt(classId));
             } else {
-                await db.query('INSERT INTO report_settings (organization_id, signature_image_path) VALUES ($1, $2)', [organizationId, uploadedKey]);
+                classesToApply = [parseInt(classId)];
             }
-    
+
+            const key = `signatures/${organizationId}/${Date.now()}_${file.originalname}`;
+            const uploadedKey = await uploadToS3(key, file);
+
+            for (const currentClassId of classesToApply) {
+                await db.query(`
+                    INSERT INTO report_settings (organization_id, class_id, term_id, signature_image_path)
+                    VALUES ($1, $2, $3, $4)
+                    ON CONFLICT (organization_id, class_id, term_id)
+                    DO UPDATE SET signature_image_path = EXCLUDED.signature_image_path
+                `, [organizationId, currentClassId, termId, uploadedKey]);
+            }
+
             req.flash('success_msg', 'Signature image uploaded successfully.');
-            res.redirect('/print/reportSettings');
+            res.redirect(`/print/reportSettings?classId=${classId}&termId=${termId}`);
         } catch (error) {
             console.error('Error uploading signature image:', error);
             req.flash('error_msg', 'Failed to upload signature image.');
-            res.redirect('/print/reportSettings');
+            res.redirect(`/print/reportSettings?classId=${classId}&termId=${termId}`);
         }
     },
-                
+    
+    
     deleteSignatureImage: async (req, res) => {
         const organizationId = req.session.organizationId;
-    
+        const { classId, termId } = req.query;
+
         try {
-            // Get the current image path from the database
-            const result = await db.query('SELECT signature_image_path FROM report_settings WHERE organization_id = $1', [organizationId]);
+            const result = await db.query('SELECT signature_image_path FROM report_settings WHERE organization_id = $1 AND class_id = $2 AND term_id = $3', [organizationId, classId, termId]);
             const signatureImagePath = result.rows[0]?.signature_image_path;
-    
-            // If there is an image, delete it from S3
+
             if (signatureImagePath) {
                 await deleteFromS3(signatureImagePath);
             }
-    
-            // Remove the image path from the database
-            await db.query('UPDATE report_settings SET signature_image_path = NULL WHERE organization_id = $1', [organizationId]);
-    
+
+            await db.query('UPDATE report_settings SET signature_image_path = NULL WHERE organization_id = $1 AND class_id = $2 AND term_id = $3', [organizationId, classId, termId]);
+
             req.flash('success_msg', 'Signature image deleted successfully.');
-            res.redirect('/print/reportSettings');
+            res.redirect(`/print/reportSettings?classId=${classId}&termId=${termId}`);
         } catch (error) {
             console.error('Error deleting signature image:', error);
             req.flash('error_msg', 'Failed to delete signature image.');
-            res.redirect('/print/reportSettings');
+            res.redirect(`/print/reportSettings?classId=${classId}&termId=${termId}`);
         }
     }
 });

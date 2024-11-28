@@ -544,3 +544,21 @@ CREATE TABLE organization_dashboard (
     organization_id INT PRIMARY KEY REFERENCES organizations(organization_id),
     order_data JSON NOT NULL
 );
+ALTER TABLE category_scores
+ADD CONSTRAINT unique_category_score
+UNIQUE (student_id, class_id, subject_id, organization_id, category, term_id);
+
+ALTER TABLE teacher_remarks 
+ADD COLUMN term_id INTEGER,
+ADD CONSTRAINT teacher_remarks_unique UNIQUE (organization_id, class_id, term_id, remark);
+
+ALTER TABLE status_settings 
+ADD CONSTRAINT status_settings_unique UNIQUE (organization_id, class_id, term_id);
+
+ALTER TABLE score_remarks 
+ADD COLUMN term_id INTEGER,
+ADD CONSTRAINT score_remarks_unique UNIQUE (organization_id, class_id, term_id, remark);
+
+ALTER TABLE report_settings 
+ADD COLUMN term_id INTEGER,
+ADD CONSTRAINT report_settings_unique UNIQUE (organization_id, class_id, term_id);

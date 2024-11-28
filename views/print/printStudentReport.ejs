@@ -58,7 +58,7 @@
 
         .header img.logo,
         .header img.student-image {
-            width: 60px;
+            width: 55px;
             height: 60px;
             object-fit: cover;
             border-radius: 8px;
@@ -84,45 +84,64 @@
         .remarks {
             display: flex;
             justify-content: space-between;
-            margin-top: 20px;
-            width: 48%;
-            word-wrap: break-word;
-        }
-
-        .signature-info {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-            position: relative;
-            left: 100%;
-            top: 10px;
-            width: 48%;
-            text-align: right;
-        }
-
-        .signature-info img {
-            position: absolute;
-            top: -30px;
-            right: 10px;
+            align-items: center;
+            gap: 30px; /* Add space between Teacher's Remarks and Signature */
+            margin: 20px auto;
+            flex-wrap: wrap;
         }
 
         .remarks-container {
+            display: inline-block;
+            padding: 10px;
+            width: 100%;
+            max-width: 300px; /* Limit width for consistent layout */
             position: relative;
-            top: -10px;
+            left: 40px;
+            top: -20px;
         }
 
-        .remarks select {
-            width: 130%;
-            border: none;
-            background: transparent;
-            font-size: 12px;
-            appearance: none;
-            white-space: normal;  /* Allow text wrapping */
-            word-wrap: break-word;  /* Break long words */
-            line-height: 1.5;  /* Adjust line height for readability */
-            padding: 4px 0;
-            left: 10px;
+        .signature-info {
+            display: inline-block;
+            padding: 10px;
+            text-align: center;
             position: relative;
+            left: -50px;
+        }
+
+        .remarks-container select {
+            padding: 8px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            white-space: normal; /* Allow text to wrap to the next line */
+            max-width: 100%; /* Make sure select doesn't exceed its parent's width */
+            overflow: hidden;
+            text-overflow: ellipsis; /* Add ellipsis if the text overflows */
+            display: block;
+            line-height: 1.5; /* Adjust line height for better readability */
+            word-break: break-word; /* Ensure long text breaks properly */
+            width: 100%;
+        }
+
+        .remarks-container h3 {
+            font-size: 16px;
+            color: #333;
+            margin-top: 10px;
+        }
+
+        .signature-info h3 {
+            font-size: 16px;
+            color: #333;
+            margin-top: 10px;
+            position: relative;
+            top: 50px;
+        }
+
+        .signature-info img {
+            max-width: 100px;
+            display: block;
+            margin: 0 auto 10px auto;
+            position: relative;
+            top: -50px;
         }
 
         .promotion-table th, 
@@ -147,7 +166,7 @@
         @media print {
             @page {
                 size: A4 portrait;
-                margin: 20mm;
+                margin: 10mm;
             }
 
             body * {
@@ -160,7 +179,7 @@
 
             .student-report {
                 width: 100%; /* Maximize width usage for the report */
-                margin-top: 0; /* Remove any extra margins */
+                margin: 0; /* Remove any extra margins */
                 padding: 10mm; /* Add some padding to ensure content doesn't touch the edges */
                 page-break-after: always; /* Each report prints on a new page */
             }
@@ -177,15 +196,12 @@
         <a href="/print/reportSettings?classId=<%= classId %>&termId=<%= termId %>" class="btn btn-primary">Report Settings</a>
     </div>
     
-    
     <% if (students.length === 0) { %>
         <p>No student data available</p>
     <% } else { %>
         <% students.forEach((student, index) => { %>
-            <!-- <div class="student-report-background"> -->
-                <div class="student-report" id="report-<%= index %>">
-                    <div class="student-report-background">
-
+            <div class="student-report" id="report-<%= index %>">
+                <div class="student-report-background">
                     <div class="header">
                         <% if (session.logo) { %>
                             <img src="<%= session.logo %>" alt="Organization Logo" class="logo" />
@@ -269,7 +285,7 @@
                                 <td>Overall Percentage:</td>
                                 <td><%= student.overallPercentage %> %</td>
                                 <td>Attendance:</td>
-                                <td>20/50</td>
+                                <td><%= student.attendance.presentDays %>/<%= student.attendance.totalDays %></td>
                             </tr>
                             <% if (activatePromotion) { %>
                                 <tr>
@@ -289,7 +305,8 @@
                     
                     <div class="remarks">
                         <div class="remarks-container">
-                            <select id="teacherRemarks-<%= index %>" name="teacherRemarks-<%= index %>">
+                            <select id="teacherRemarks-<%= index %>" name="teacherRemarks-<%= index %>" onchange="adjustSelectWidth(this)">
+                                <option value="">Select Remarks</option> <!-- Default option -->
                                 <% teacherRemarks.forEach(function(remark) { %>
                                     <option value="<%= remark.remark %>" <%= remark.remark === student.teacherRemarks ? 'selected' : '' %>><%= remark.remark %></option>
                                 <% }); %>
@@ -326,6 +343,19 @@
                 classCell.innerHTML = repeatedClass;
             }
         }
+
+        function adjustSelectWidth(selectElement) {
+            selectElement.style.height = "auto"; 
+            const newHeight = selectElement.scrollHeight + 10; // Add an additional 10 pixels to height
+            selectElement.style.height = newHeight + "px";
+        }
+
+        // Adjust the initial width of each select
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.remarks-container select').forEach(select => {
+                adjustSelectWidth(select);
+            });
+        });
     </script>
 </body>
 </html>

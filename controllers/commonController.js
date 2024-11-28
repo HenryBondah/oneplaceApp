@@ -786,127 +786,160 @@ studentDetails: async (req, res, db) => {
     }
 },
                     
-    editStudentGet: async (req, res, db) => {
-        const studentId = req.query.studentId;
-    
-        if (!studentId) {
-            req.flash('error', 'Student ID is required.');
-            return res.redirect('/common/manageRecords'); // Redirect to an appropriate page
+editStudentGet: async (req, res, db) => {
+    const { studentId, termId, classId } = req.query;
+
+    if (!studentId || !termId || !classId) {
+        req.flash('error', 'Student ID, Term ID, and Class ID are required.');
+        return res.redirect('/common/manageRecords'); // Redirect to an appropriate page
+    }
+
+    try {
+        console.log('Fetching student details for:', { studentId, termId, classId });
+
+        // Fetch student details
+        const studentResult = await db.query(`
+            SELECT s.*, c.class_name, g.name AS grad_year_group_name
+            FROM students s
+            LEFT JOIN classes c ON s.class_id = c.class_id
+            LEFT JOIN graduation_year_groups g ON s.graduation_year_group_id = g.id
+            WHERE s.student_id = $1 AND s.organization_id = $2
+        `, [studentId, req.session.organizationId]);
+
+        if (studentResult.rows.length === 0) {
+            console.log('Student not found with ID:', studentId);
+            req.flash('error', 'Student not found.');
+            return res.redirect('/common/manageRecords');
         }
-    
-        try {
-            // Fetch student details
-            const studentResult = await db.query(`
-                SELECT s.*, c.class_name, g.name AS grad_year_group_name
-                FROM students s
-                LEFT JOIN classes c ON s.class_id = c.class_id
-                LEFT JOIN graduation_year_groups g ON s.graduation_year_group_id = g.id
-                WHERE s.student_id = $1 AND s.organization_id = $2
-            `, [studentId, req.session.organizationId]);
-    
-            if (studentResult.rows.length === 0) {
-                req.flash('error', 'Student not found.');
-                return res.redirect('/common/manageRecords');
-            }
-    
-            const student = studentResult.rows[0];
-    
-            // Fetch all classes and graduation year groups to populate dropdowns in the edit form
-            const classResult = await db.query('SELECT * FROM classes WHERE organization_id = $1 ORDER BY class_name ASC', [req.session.organizationId]);
-            const graduationYearGroupResult = await db.query('SELECT * FROM graduation_year_groups WHERE organization_id = $1 ORDER BY name ASC', [req.session.organizationId]);
-    
-            // Fetch guardians associated with the student
-            const guardiansResult = await db.query('SELECT * FROM guardians WHERE student_id = $1 AND organization_id = $2', [studentId, req.session.organizationId]);
-    
-            // Fetch subjects available for the student's class
-            const subjectResult = await db.query(`
-                SELECT subject_id, subject_name
-                FROM subjects
-                WHERE class_id = $1 AND organization_id = $2
-                ORDER BY subject_name ASC
-            `, [student.class_id, req.session.organizationId]);
-    
-            // Fetch subjects the student is enrolled in
-            const enrolledSubjectsResult = await db.query(`
-                SELECT subject_id
-                FROM student_subjects
-                WHERE student_id = $1 AND organization_id = $2
-            `, [studentId, req.session.organizationId]);
-    
-            const subjects = subjectResult.rows;
-            const enrolledSubjects = enrolledSubjectsResult.rows.map(row => row.subject_id);
-    
-            res.render('common/editStudent', {
-                title: 'Edit Student Details',
-                student,
-                classes: classResult.rows,
-                graduationYearGroups: graduationYearGroupResult.rows,
-                guardians: guardiansResult.rows,
-                subjects: subjects, // Pass the subjects to the template
-                enrolledSubjects: enrolledSubjects, // Pass the enrolled subjects to the template
-                messages: req.flash()
-            });
-        } catch (error) {
-            console.error('Error fetching student details:', error);
-            req.flash('error', 'Failed to load student details.');
-            res.redirect('/common/manageRecords');
-        }
-    },
+
+        const student = studentResult.rows[0];
+        console.log('Student details fetched:', student);
+
+        // Fetch all classes and graduation year groups to populate dropdowns in the edit form
+        const classResult = await db.query('SELECT * FROM classes WHERE organization_id = $1 ORDER BY class_name ASC', [req.session.organizationId]);
+        const graduationYearGroupResult = await db.query('SELECT * FROM graduation_year_groups WHERE organization_id = $1 ORDER BY name ASC', [req.session.organizationId]);
+
+        // Fetch guardians associated with the student
+        const guardiansResult = await db.query('SELECT * FROM guardians WHERE student_id = $1 AND organization_id = $2', [studentId, req.session.organizationId]);
+        console.log('Guardians fetched:', guardiansResult.rows);
+
+        // Fetch subjects available for the student's class
+        const subjectResult = await db.query(`
+            SELECT subject_id, subject_name
+            FROM subjects
+            WHERE class_id = $1 AND organization_id = $2
+            ORDER BY subject_name ASC
+        `, [student.class_id, req.session.organizationId]);
+        console.log('Subjects available for class:', subjectResult.rows);
+
+        // Fetch subjects the student is enrolled in
+        const enrolledSubjectsResult = await db.query(`
+            SELECT subject_id
+            FROM student_subjects
+            WHERE student_id = $1 AND organization_id = $2
+        `, [studentId, req.session.organizationId]);
+        console.log('Enrolled subjects fetched:', enrolledSubjectsResult.rows);
+
+        const subjects = subjectResult.rows;
+        const enrolledSubjects = enrolledSubjectsResult.rows.map(row => row.subject_id);
+        const guardians = guardiansResult.rows;
+
+        res.render('common/editStudent', {
+            title: 'Edit Student Details',
+            student,
+            classes: classResult.rows,
+            graduationYearGroups: graduationYearGroupResult.rows,
+            guardians,
+            subjects,
+            enrolledSubjects,
+            termId,
+            classId,
+            messages: req.flash()
+        });
+    } catch (error) {
+        console.error('Error fetching student details:', error);
+        req.flash('error', 'Failed to load student details.');
+        res.redirect('/common/manageRecords');
+    }
+},
+
+
                     
-    editStudentPost: async (req, res, db) => {
-        const { studentId } = req.params;
-        const { classId, firstName, lastName, dateOfBirth, height, hometown, gender, subjects = [], graduationYearGroupId, guardians } = req.body;
-        const file = req.file;
+editStudentPost: async (req, res, db) => {
+    const { studentId } = req.params;
+    const { classId, firstName, lastName, dateOfBirth, height, hometown, gender, subjects = [], graduationYearGroupId, guardians = [] } = req.body;
+    const file = req.file;
 
-        try {
-            let imageUrl = null;
-            if (file) {
-                imageUrl = await uploadToS3(file);
+    try {
+        // Step 1: Handle the student image
+        let imageUrl = null;
+        if (file) {
+            // Upload new image
+            imageUrl = await uploadToS3(file);
+            const studentResult = await db.query('SELECT image_url FROM students WHERE student_id = $1', [studentId]);
+            const oldImageUrl = studentResult.rows[0]?.image_url;
 
-                const studentResult = await db.query('SELECT image_url FROM students WHERE student_id = $1', [studentId]);
-                const student = studentResult.rows[0];
-                const oldImageUrl = student.image_url;
-
-                if (oldImageUrl && oldImageUrl !== 'profilePlaceholder.png') {
-                    const oldImageKey = path.basename(oldImageUrl); 
-                    await deleteFromS3(`images/${oldImageKey}`);
-                }
+            // Delete the old image if it is not the placeholder
+            if (oldImageUrl && oldImageUrl !== 'profilePlaceholder.png') {
+                const oldImageKey = path.basename(oldImageUrl);
+                await deleteFromS3(`images/${oldImageKey}`);
             }
-
-            await db.query(
-                `UPDATE students SET class_id = $1, first_name = $2, last_name = $3, date_of_birth = $4, height = $5, hometown = $6, gender = $7, image_url = $8, graduation_year_group_id = $9 WHERE student_id = $10 AND organization_id = $11`,
-                [classId, firstName, lastName, dateOfBirth, height, hometown, gender, imageUrl, graduationYearGroupId, studentId, req.session.organizationId]
-            );
-
-            await db.query('DELETE FROM student_subjects WHERE student_id = $1', [studentId]);
-
-            if (Array.isArray(subjects)) {
-                for (const subjectId of subjects) {
-                    await db.query('INSERT INTO student_subjects (student_id, subject_id) VALUES ($1, $2)', [studentId, subjectId]);
-                }
-            }
-
-            await db.query('DELETE FROM guardians WHERE student_id = $1', [studentId]);
-
-            if (Array.isArray(guardians)) {
-                for (const guardian of guardians) {
-                    if (guardian.firstName && guardian.lastName) {
-                        await db.query(
-                            'INSERT INTO guardians (first_name, last_name, address, phone, hometown, student_id) VALUES ($1, $2, $3, $4, $5, $6)',
-                            [guardian.firstName, guardian.lastName, guardian.address, guardian.phone, guardian.hometown, studentId]
-                        );
-                    }
-                }
-            }
-
-            req.flash('success', 'Student details updated successfully.');
-            res.redirect(`/common/studentDetails?studentId=${studentId}`);
-        } catch (error) {
-            console.error('Error updating student details:', error);
-            req.flash('error', 'Failed to update student details.');
-            res.redirect(`/common/editStudent?studentId=${studentId}`);
+        } else {
+            // Retain old image if none uploaded
+            const studentResult = await db.query('SELECT image_url FROM students WHERE student_id = $1', [studentId]);
+            imageUrl = studentResult.rows[0]?.image_url || 'profilePlaceholder.png';
         }
-    },
+
+        // Step 2: Update student details in the database
+        await db.query(
+            `UPDATE students SET class_id = $1, first_name = $2, last_name = $3, date_of_birth = $4, height = $5, hometown = $6, gender = $7, image_url = $8, graduation_year_group_id = $9 WHERE student_id = $10 AND organization_id = $11`,
+            [classId, firstName, lastName, dateOfBirth, height, hometown, gender, imageUrl, graduationYearGroupId, studentId, req.session.organizationId]
+        );
+
+        // Step 3: Handle enrolled subjects update
+        // Fetch existing subjects
+        const enrolledSubjectsResult = await db.query(`SELECT subject_id FROM student_subjects WHERE student_id = $1 AND organization_id = $2`, [studentId, req.session.organizationId]);
+        const enrolledSubjects = enrolledSubjectsResult.rows.map(row => row.subject_id);
+
+        // Calculate which subjects to add and which to delete
+        const subjectsToAdd = subjects.filter(subjectId => !enrolledSubjects.includes(subjectId));
+        const subjectsToDelete = enrolledSubjects.filter(subjectId => !subjects.includes(subjectId));
+
+        // Add new subjects
+        for (const subjectId of subjectsToAdd) {
+            await db.query(`INSERT INTO student_subjects (student_id, subject_id, organization_id) VALUES ($1, $2, $3)`, [studentId, subjectId, req.session.organizationId]);
+        }
+
+        // Delete unenrolled subjects
+        for (const subjectId of subjectsToDelete) {
+            await db.query(`DELETE FROM student_subjects WHERE student_id = $1 AND subject_id = $2 AND organization_id = $3`, [studentId, subjectId, req.session.organizationId]);
+        }
+
+        // Step 4: Handle guardians update
+        // Delete all existing guardians for the student
+        await db.query(`DELETE FROM guardians WHERE student_id = $1 AND organization_id = $2`, [studentId, req.session.organizationId]);
+
+        // Insert new guardians
+        if (Array.isArray(guardians)) {
+            for (const guardian of guardians) {
+                if (guardian.firstName && guardian.lastName) {
+                    await db.query(
+                        `INSERT INTO guardians (first_name, last_name, address, phone, hometown, student_id, organization_id) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                        [guardian.firstName, guardian.lastName, guardian.address, guardian.phone, guardian.hometown, studentId, req.session.organizationId]
+                    );
+                }
+            }
+        }
+
+        req.flash('success', 'Student details updated successfully.');
+        res.redirect(`/common/studentDetails?studentId=${studentId}&termId=${req.body.termId}&classId=${req.body.classId}`);
+    } catch (error) {
+        console.error('Error updating student details:', error);
+        req.flash('error', 'Failed to update student details.');
+        res.redirect(`/common/editStudent?studentId=${studentId}&termId=${req.body.termId}&classId=${req.body.classId}`);
+    }
+},
+
 
     deleteStudentImage: async (req, res, db) => {
         const { studentId } = req.params;
@@ -1028,16 +1061,23 @@ studentDetails: async (req, res, db) => {
             }
             const className = classResult.rows[0].class_name;
     
-            // Fetch term name
+            // Fetch term name and school year
             const termResult = await db.query(
-                'SELECT term_name FROM terms WHERE term_id = $1',
+                `SELECT t.term_name, sy.year_label 
+                 FROM terms t 
+                 JOIN school_years sy ON t.school_year_id = sy.id 
+                 WHERE t.term_id = $1`,
                 [termId]
             );
     
             if (termResult.rows.length === 0) {
                 return res.status(404).send('Term not found');
             }
+    
             const termName = termResult.rows[0].term_name;
+            const schoolYear = {
+                year_label: termResult.rows[0].year_label
+            };
     
             // Fetch students enrolled in the current term for this class
             const studentsResult = await db.query(`
@@ -1053,26 +1093,24 @@ studentDetails: async (req, res, db) => {
     
             // Fetch term dates for the class
             const termDatesResult = await db.query(`
-                SELECT DISTINCT t.start_date, t.end_date
-                FROM terms t
-                JOIN term_classes tc ON t.term_id = tc.term_id
-                WHERE tc.class_id = $1
-                ORDER BY t.start_date`, [classId]);
+                SELECT start_date, end_date
+                FROM terms
+                WHERE term_id = $1
+            `, [termId]);
     
+            if (termDatesResult.rows.length === 0) {
+                return res.status(404).send('Term not found');
+            }
+    
+            const { start_date, end_date } = termDatesResult.rows[0];
             const dates = [];
-            termDatesResult.rows.forEach(row => {
-                let currentDate = new Date(row.start_date);
-                const endDate = new Date(row.end_date);
-                const today = new Date().toISOString().split('T')[0];
+            let currentDate = new Date(start_date);
+            const today = new Date();
     
-                while (currentDate <= endDate) {
-                    const dateStr = currentDate.toISOString().split('T')[0];
-                    if (dateStr <= today) {
-                        dates.push(dateStr);
-                    }
-                    currentDate.setDate(currentDate.getDate() + 1);
-                }
-            });
+            while (currentDate <= end_date && currentDate <= today) {
+                dates.push(currentDate.toISOString().split('T')[0]);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
     
             const displayDates = dates.sort((a, b) => new Date(b) - new Date(a)).slice(0, 10).reverse();
     
@@ -1080,19 +1118,22 @@ studentDetails: async (req, res, db) => {
             const attendanceResult = await db.query(`
                 SELECT student_id, date, status, updated_at
                 FROM attendance_records
-                WHERE class_id = $1`, [classId]);
+                WHERE class_id = $1 AND term_id = $2 AND organization_id = $3
+            `, [classId, termId, organizationId]);
     
             const attendanceMap = {};
             const lastEditedMap = {};
     
             attendanceResult.rows.forEach(record => {
+                const dateKey = record.date.toISOString().split('T')[0];
                 if (!attendanceMap[record.student_id]) {
                     attendanceMap[record.student_id] = {};
                 }
-                attendanceMap[record.student_id][record.date.toISOString().split('T')[0]] = record.status;
+                attendanceMap[record.student_id][dateKey] = record.status;
     
-                // Add the last edited timestamp to the map
-                lastEditedMap[record.date.toISOString().split('T')[0]] = record.updated_at;
+                if (record.updated_at) {
+                    lastEditedMap[dateKey] = record.updated_at;
+                }
             });
     
             // Render the attendance collection page
@@ -1105,13 +1146,15 @@ studentDetails: async (req, res, db) => {
                 displayDates,
                 students,
                 attendanceMap,
-                lastEditedMap
+                lastEditedMap,
+                schoolYear
             });
         } catch (error) {
             console.error('Error fetching attendance data:', error);
             res.status(500).send('Error loading attendance records page');
         }
     },
+        
                         
     saveSingleAttendance: async (req, res, db) => {
         const { attendance, classId, termId, date } = req.body;
@@ -1350,7 +1393,7 @@ studentDetails: async (req, res, db) => {
         }
     },
        
-    assessment: async (req, res, db) => {
+    assessment: async function (req, res, db) {
         const { classId, subjectId } = req.query;
     
         if (!classId || !subjectId) {
@@ -1518,9 +1561,47 @@ studentDetails: async (req, res, db) => {
             res.status(500).send('Error fetching assessment data.');
         }
     },
-        
     
-    saveAllScores: async (req, res, db) => {
+    updateStudentPositions: async function (db, subjectId, organizationId, classId, termId) {
+        const updateQuery = `
+            WITH RankedScores AS (
+                SELECT
+                    student_id,
+                    subject_id,
+                    SUM(score) AS total_subject_score,
+                    RANK() OVER (PARTITION BY subject_id ORDER BY SUM(score) DESC) AS position
+                FROM assessment_results
+                WHERE subject_id = $1 AND organization_id = $2
+                GROUP BY student_id, subject_id
+            )
+            INSERT INTO student_positions (student_id, subject_id, organization_id, total_subject_score, position, class_id, term_id)
+            SELECT 
+                rs.student_id,
+                rs.subject_id,
+                $2,
+                rs.total_subject_score,
+                rs.position,
+                $3,
+                $4
+            FROM RankedScores rs
+            ON CONFLICT (student_id, subject_id) DO UPDATE
+            SET 
+                total_subject_score = EXCLUDED.total_subject_score,
+                position = EXCLUDED.position,
+                class_id = EXCLUDED.class_id,
+                term_id = EXCLUDED.term_id;
+        `;
+    
+        try {
+            await db.query(updateQuery, [subjectId, organizationId, classId, termId]);
+        } catch (error) {
+            console.error('Error updating student positions:', error);
+            throw error;
+        }
+    },
+    
+    
+    saveAllScores: async function (req, res, db) {
         const { subjectId, classId } = req.query;
         const { scores } = req.body;
     
@@ -1552,34 +1633,106 @@ studentDetails: async (req, res, db) => {
     
             // Insert or update scores for each student
             for (let studentId in scores) {
+                let totalScore = 0;
+                let maxTotalScore = 0; // Maximum possible score
+                const categoryScoresMap = {}; // To store total scores for each category
+    
                 for (let assessmentId in scores[studentId]) {
                     let score = scores[studentId][assessmentId];
                     if (score === null || score === "") continue;
     
+                    // Fetch the assessment weight, max score, and category for calculations
+                    const assessmentResult = await db.query(
+                        `SELECT weight, max_score, category FROM assessments WHERE assessment_id = $1`, [assessmentId]
+                    );
+    
+                    if (assessmentResult.rows.length > 0) {
+                        const { weight, max_score, category } = assessmentResult.rows[0];
+    
+                        totalScore += parseFloat(score);
+                        maxTotalScore += parseFloat(max_score);
+    
+                        // Insert or update the score in the assessment_results table
+                        await db.query(`
+                            INSERT INTO assessment_results (student_id, assessment_id, score, subject_id, term_id, organization_id, class_id, category)
+                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                            ON CONFLICT (student_id, assessment_id)
+                            DO UPDATE SET 
+                                score = EXCLUDED.score,
+                                term_id = EXCLUDED.term_id,
+                                subject_id = EXCLUDED.subject_id,
+                                organization_id = EXCLUDED.organization_id,
+                                class_id = EXCLUDED.class_id,
+                                category = EXCLUDED.category
+                        `, [
+                            studentId,
+                            assessmentId,
+                            score,
+                            subjectId,
+                            currentTermId,
+                            organizationId,
+                            classId,
+                            category
+                        ]);
+    
+                        // Update categoryScoresMap for each category
+                        if (!categoryScoresMap[category]) {
+                            categoryScoresMap[category] = 0;
+                        }
+                        categoryScoresMap[category] += parseFloat(score);
+                    }
+                }
+    
+                // Calculate total percentage based on the scores achieved vs. the maximum possible score
+                const totalPercentage = maxTotalScore > 0 ? (totalScore / maxTotalScore) * 100 : null;
+    
+                // Calculate grade
+                const grade = totalPercentage !== null ? this.calculateGrade(totalPercentage) : '-';
+    
+                // Save total_subject_score, total_percentage, and grade in assessment_results table
+                await db.query(`
+                    UPDATE assessment_results
+                    SET total_subject_score = $1,
+                        total_percentage = $2,
+                        grade = $3
+                    WHERE student_id = $4 AND subject_id = $5 AND term_id = $6 AND class_id = $7
+                `, [
+                    totalScore,
+                    totalPercentage,
+                    grade,
+                    studentId,
+                    subjectId,
+                    currentTermId,
+                    classId
+                ]);
+    
+                // Insert or update category scores in the category_scores table
+                for (let category in categoryScoresMap) {
+                    const totalCategoryScore = categoryScoresMap[category];
+    
                     await db.query(`
-                        INSERT INTO assessment_results (student_id, assessment_id, score, subject_id, term_id, organization_id, class_id)
+                        INSERT INTO category_scores (student_id, class_id, subject_id, organization_id, category, total_score, term_id)
                         VALUES ($1, $2, $3, $4, $5, $6, $7)
-                        ON CONFLICT (student_id, assessment_id)
+                        ON CONFLICT (student_id, class_id, subject_id, organization_id, category, term_id)
                         DO UPDATE SET 
-                            score = EXCLUDED.score,
-                            term_id = EXCLUDED.term_id,
-                            subject_id = EXCLUDED.subject_id,
-                            organization_id = EXCLUDED.organization_id,
-                            class_id = EXCLUDED.class_id
+                            total_score = EXCLUDED.total_score
                     `, [
                         studentId,
-                        assessmentId,
-                        score,
+                        classId,
                         subjectId,
-                        currentTermId,
                         organizationId,
-                        classId
+                        category,
+                        totalCategoryScore,
+                        currentTermId
                     ]);
                 }
             }
     
+            // Update student positions after scores are updated
+            await this.updateStudentPositions(db, subjectId, organizationId, classId, currentTermId);
+    
             await db.query('COMMIT');
-            req.flash('success', 'Scores saved successfully.');
+            req.flash('success', 'Scores and grades saved successfully.');
             res.status(200).json({ success: true, message: 'Scores saved successfully.' });
         } catch (error) {
             await db.query('ROLLBACK');
@@ -1587,42 +1740,21 @@ studentDetails: async (req, res, db) => {
             req.flash('error', 'An error occurred while saving scores. Please try again.');
             res.status(500).json({ error: 'An error occurred while saving scores. Please try again.' });
         }
+    }
+    ,
+    
+        
+    calculateGrade: function (totalPercentage) {
+        if (totalPercentage === "-" || isNaN(totalPercentage)) return "-";
+        if (totalPercentage >= 90) return 'A';
+        if (totalPercentage >= 80) return 'B';
+        if (totalPercentage >= 70) return 'C';
+        if (totalPercentage >= 60) return 'D';
+        return 'F';
     },
     
         
-        updateStudentPositions: async function (db, subjectId, organizationId) {
-        const updateQuery = `
-        WITH RankedScores AS (
-            SELECT
-                student_id,
-                subject_id,
-                SUM(score) AS total_subject_score,
-                RANK() OVER (PARTITION BY subject_id ORDER BY SUM(score) DESC) AS position
-            FROM assessment_results
-            WHERE subject_id = $1 AND organization_id = $2
-            GROUP BY student_id, subject_id
-        )
-        INSERT INTO student_positions (student_id, subject_id, organization_id, total_subject_score, position)
-        SELECT 
-            rs.student_id,
-            rs.subject_id,
-            $2,
-            rs.total_subject_score,
-            rs.position
-        FROM RankedScores rs
-        ON CONFLICT (student_id, subject_id) DO UPDATE
-        SET 
-            total_subject_score = EXCLUDED.total_subject_score,
-            position = EXCLUDED.position;
-        `;
-
-        try {
-            await db.query(updateQuery, [subjectId, organizationId]);
-        } catch (error) {
-            console.error('Error updating student positions:', error);
-            throw error;
-        }
-    },
+        
 
 calculateTotalPercentage: (scores, assessments) => {
     let totalWeightedScore = 0;
@@ -2985,22 +3117,24 @@ deleteSubject: async (req, res, db) => {
                 return res.redirect('/common/closeSchoolYear');
             }
     
-            // Fetch classes for this term
+            // Fetch all classes enrolled for the term
             const classesResult = await db.query(`
-                SELECT c.class_id, c.class_name
+                SELECT DISTINCT c.class_id, c.class_name
                 FROM classes c
-                INNER JOIN term_classes tc ON c.class_id = tc.class_id
-                WHERE tc.term_id = $1 AND c.organization_id = $2
+                INNER JOIN enrolled_classes ec ON c.class_id = ec.class_id
+                INNER JOIN enrollments e ON ec.enrollment_id = e.enrollment_id
+                WHERE e.term_id = $1 AND c.organization_id = $2
+                ORDER BY c.class_name ASC
             `, [termId, organizationId]);
     
             const classes = classesResult.rows;
     
             // Pass title, termId, and classes to the view
             res.render('common/termDetails', {
-                title: 'Term Details',  // Set the title here
+                title: 'Term Details',
                 term,
                 classes,
-                termId,  // Pass termId to the view
+                termId,
                 organizationId
             });
         } catch (error) {
@@ -3009,7 +3143,7 @@ deleteSubject: async (req, res, db) => {
             res.redirect('/common/closeSchoolYear');
         }
     },
-
+        
     closeGraduationYearGroup: async (req, res, db) => {
         try {
             const gradYearGroupsResult = await db.query('SELECT * FROM graduation_year_groups WHERE organization_id = $1 ORDER BY name', [req.session.organizationId]);

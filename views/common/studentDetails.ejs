@@ -72,7 +72,7 @@
         <div class="student-info">
             <p>Gender: <%= student.gender %></p>
             <p>Class: <%= student.class_name %></p>
-            <p> <%= gradYearGroupName %></p>
+            <p><%= gradYearGroupName %></p>
             <p>Date of Birth: <%= new Date(student.date_of_birth).toLocaleDateString() %></p>
             <p>Height: <%= student.height %> cm</p>
             <p>Hometown: <%= student.hometown %></p>
@@ -111,8 +111,10 @@
                             <td><%= subject.totalScore !== null && subject.totalScore !== undefined ? subject.totalScore.toFixed(2) : '-' %></td>
                             <td><%= subject.totalPercentage !== null && subject.totalPercentage !== undefined ? subject.totalPercentage.toFixed(2) : '-' %> %</td>
                             <td><%= subject.grade ? subject.grade : '-' %></td>
-                            <td><%= subject.position !== null && subject.position !== undefined ? subject.position + getOrdinalSuffix(subject.position) : '-' %></td>
-                        </tr>
+                            <td>
+                                <%= subject.position !== '-' ? subject.position + getOrdinalSuffix(subject.position) : '-' %>
+                            </td>
+                                                    </tr>
                     <% }) %>
                 </tbody>
             </table>
@@ -145,12 +147,11 @@
         </div>
         <hr>
         <div class="link-to-next-back">
-            <a href="/common/editStudent?studentId=<%= student.student_id %>" class="btn btn-primary">Modify Student Information</a>
+            <a href="/common/editStudent?studentId=<%= student.student_id %>&termId=<%= currentTerm %>&classId=<%= student.class_id %>" class="btn btn-primary">Modify Student Information</a>
         </div>
-    </main>
+            </main>
 </body>
 </html>
-
 <script>
     function getOrdinalSuffix(i) {
         const j = i % 10,

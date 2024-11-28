@@ -43,6 +43,7 @@
         <a href="/common/classDashboard?classId=<%= classId %>" class="back-link">Back to Class Dashboard</a>
     </div>
     <hr>
+    <h1>Current School Year: <%= schoolYear.year_label %></h1>
     <h1> Current Term: <%= termName %></h1>
     <h1>Attendance for <%= className %></h1>
     <hr>
@@ -53,7 +54,7 @@
                     <th class="student-name">Student Name</th>
                     <% displayDates.forEach(date => { %>
                         <th>
-                            <div class="date-header">
+                            <div class="date-header">i
                                 <%= new Date(date).toLocaleDateString() %>
                                 <div class="edit-save-link" data-date="<%= date %>" onclick="toggleEditSaveMode('<%= date %>')">Edit</div>
                                 <div class="cancel-link" data-date="<%= date %>" style="display: none;" onclick="cancelEditMode('<%= date %>')">Cancel</div>
@@ -96,25 +97,30 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const classId = '<%= classId %>';
-            fetch(`/common/getAttendanceForClass?classId=${classId}&termId=<%= termId %>`)
+            const termId = '<%= termId %>';
+
+            // Fetch the attendance data for the class
+            fetch(`/common/getAttendanceForClass?classId=${classId}&termId=${termId}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         const attendanceMap = {};
                         const lastEditedMap = {};
 
+                        // Populate the attendance data
                         data.attendance.forEach(record => {
                             if (!attendanceMap[record.student_id]) {
                                 attendanceMap[record.student_id] = {};
                             }
                             attendanceMap[record.student_id][record.date] = record.status;
 
-                            // Store last edited date and time
+                            // Store the last edited timestamp
                             if (record.updated_at) {
                                 lastEditedMap[record.date] = record.updated_at;
                             }
                         });
 
+                        // Update the DOM with the attendance data
                         const students = document.querySelectorAll('.attendance-sheet tbody tr');
                         students.forEach(student => {
                             const studentId = student.querySelector('td').dataset.studentId;
@@ -123,12 +129,12 @@
                                 const date = dateCheckbox.dataset.date;
                                 if (attendanceMap[studentId] && attendanceMap[studentId][date]) {
                                     dateCheckbox.checked = attendanceMap[studentId][date] === 'Present';
-                                    dateCheckbox.disabled = true;
+                                    dateCheckbox.disabled = true; // Initially, all checkboxes are disabled
                                 }
                             });
                         });
 
-                        // Set last edited date and time for each date column
+                        // Set the last edited timestamp for each date column
                         Object.keys(lastEditedMap).forEach(date => {
                             const lastEditedElement = document.getElementById(`last-edited-${date}`);
                             if (lastEditedElement) {
@@ -154,18 +160,18 @@
             } else if (link.textContent === 'Edit') {
                 saveOriginalStates(date, checkboxes);
                 checkboxes.forEach(checkbox => {
-                    checkbox.disabled = false;
+                    checkbox.disabled = false; // Enable checkboxes for editing
                 });
                 link.textContent = 'Save';
                 cancelLink.style.display = 'block';
             }
         }
 
-        // Function to handle saving attendance for a particular date
+        // Save attendance for a specific date
         function saveAttendanceForDate(date, checkboxes, link) {
             const attendanceData = {};
             const classId = '<%= classId %>';
-            const termId = '<%= termId %>'; // Ensure that termId is included
+            const termId = '<%= termId %>';
 
             checkboxes.forEach(checkbox => {
                 attendanceData[checkbox.dataset.studentId] = checkbox.checked ? 'Present' : 'Absent';
@@ -184,7 +190,7 @@
                     alert(`Attendance for ${date} saved successfully!`);
                     link.textContent = 'Edit';
                     checkboxes.forEach(checkbox => {
-                        checkbox.disabled = true;
+                        checkbox.disabled = true; // Disable checkboxes after saving
                     });
                     const cancelLink = document.querySelector(`.cancel-link[data-date='${date}']`);
                     cancelLink.style.display = 'none';
@@ -215,7 +221,7 @@
         function restoreOriginalStates(date, checkboxes) {
             checkboxes.forEach(checkbox => {
                 checkbox.checked = originalStates[date][checkbox.dataset.studentId];
-                checkbox.disabled = true;
+                checkbox.disabled = true; // Re-disable checkboxes
             });
         }
 
@@ -228,3 +234,4 @@
             cancelLink.style.display = 'none';
         }
     </script>
+</body>
