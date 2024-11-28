@@ -26,6 +26,24 @@
             color: inherit;
         }
 
+        /* Full-screen video section styling */
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .video-container video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: translate(-50%, -50%);
+        }
+
         /* Hero text over video with better styling */
         .hero-text-box {
             background: linear-gradient(135deg, #4f73ff, #1f38ff);
@@ -115,8 +133,8 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             overflow: hidden;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-            width: 30%;
-            min-width: 300px;
+            width: calc(33.33% - 40px);
+            min-width: 280px;
             text-align: center;
         }
 
@@ -160,6 +178,62 @@
             height: 100%;
             object-fit: cover;
             transform: translate(-50%, -50%);
+        }
+
+        /* Media Queries for Responsiveness */
+        @media (max-width: 768px) {
+            .hero-text-box {
+                padding: 40px 20px;
+                margin-top: 20px;
+                margin-bottom: 20px;
+            }
+
+            .hero-text-box h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero-text-box p {
+                font-size: 1.1rem;
+            }
+
+            .hero-text-box a button {
+                font-size: 0.9rem;
+            }
+
+            .feature {
+                width: calc(50% - 20px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-text-box {
+                padding: 20px 15px;
+            }
+
+            .hero-text-box h1 {
+                font-size: 2rem;
+            }
+
+            .hero-text-box p {
+                font-size: 1rem;
+            }
+
+            .hero-text-box a button {
+                font-size: 0.8rem;
+                padding: 10px 20px;
+            }
+
+            .feature {
+                width: 100%;
+            }
+
+            .info p {
+                font-size: 1rem;
+            }
+
+            .services h1 {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
