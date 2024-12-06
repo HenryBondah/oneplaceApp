@@ -54,7 +54,7 @@
                     <th class="student-name">Student Name</th>
                     <% displayDates.forEach(date => { %>
                         <th>
-                            <div class="date-header">i
+                            <div class="date-header">
                                 <%= new Date(date).toLocaleDateString() %>
                                 <div class="edit-save-link" data-date="<%= date %>" onclick="toggleEditSaveMode('<%= date %>')">Edit</div>
                                 <div class="cancel-link" data-date="<%= date %>" style="display: none;" onclick="cancelEditMode('<%= date %>')">Cancel</div>

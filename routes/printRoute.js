@@ -21,15 +21,16 @@ module.exports = (db) => {
     router.get('/printStudentReport', isAuthenticated, printController.printStudentReport);
     router.get('/reportSettings', isAuthenticated, printController.reportSettingsPage);
     router.post('/savePromotionSettings', isAuthenticated, printController.savePromotionSettings);
-    router.post('/saveTeacherRemarks', isAuthenticated, printController.saveTeacherRemarks);
     router.post('/saveScoreRemarks', isAuthenticated, printController.saveScoreRemarks);
+    router.post('/saveRemarks', isAuthenticated, printController.saveRemarks); // New route added
+
 
     // Use `upload.single()` with `multer.memoryStorage` to upload the file to S3
     router.post('/uploadSignatureImage', upload.single('signatureImage'), printController.uploadSignatureImage);
 
     // Deletion route for the signature image
     router.get('/deleteSignatureImage', isAuthenticated, printController.deleteSignatureImage);
-    router.get('/deleteTeacherRemark/:id', isAuthenticated, printController.deleteTeacherRemark);
+    router.get('/deleteRemark/:id', isAuthenticated, printController.deleteRemark);
     router.get('/deleteScoreRemark/:id', isAuthenticated, printController.deleteScoreRemark);
 
     return router;

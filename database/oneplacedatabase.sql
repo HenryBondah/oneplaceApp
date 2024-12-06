@@ -562,3 +562,22 @@ ADD CONSTRAINT score_remarks_unique UNIQUE (organization_id, class_id, term_id, 
 ALTER TABLE report_settings 
 ADD COLUMN term_id INTEGER,
 ADD CONSTRAINT report_settings_unique UNIQUE (organization_id, class_id, term_id);
+
+ALTER TABLE status_settings
+ADD UNIQUE (organization_id, class_id, term_id);
+
+ALTER TABLE teacher_remarks
+ADD CONSTRAINT unique_organization_class_term
+UNIQUE (organization_id, class_id, term_id);
+ALTER TABLE score_remarks
+ADD CONSTRAINT unique_score_remark UNIQUE (organization_id, class_id, term_id, remark);
+
+CREATE TABLE remarks (
+    id SERIAL PRIMARY KEY,
+    organization_id INTEGER NOT NULL,
+    remark TEXT NOT NULL,
+    remark_type VARCHAR(20) NOT NULL CHECK (remark_type IN ('teacher', 'conduct', 'interest', 'attitude')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE status_settings ADD COLUMN term_end_date DATE;

@@ -766,9 +766,13 @@ studentDetails: async (req, res, db) => {
         });
 
         const subjects = Array.from(subjectsMap.values());
-        const guardians = guardiansResult.rows;
 
-        const uniqueAssessments = [...new Set(subjects.flatMap(subject => subject.assessments.map(a => a.assessment_id)))];
+        // Calculate unique assessments for all subjects to use in the table headers
+        const uniqueAssessments = Array.from(new Set(assessmentsResult.rows.map(a => a.title))).map(title => {
+            return assessmentsResult.rows.find(a => a.title === title);
+        });
+
+        const guardians = guardiansResult.rows;
 
         res.render('common/studentDetails', {
             title: 'Student Details',

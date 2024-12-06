@@ -1,4 +1,3 @@
-/* Change Box Model */
 *,
 *:before,
 *:after {
@@ -423,47 +422,84 @@ form textarea {
 }
 
 /* Management tools dropdown */
+/* Dropdown and Arrow Styling */
+.submenu-toggle {
+  color: #1a73e8; /* Distinct color for main menu items */
+  font-weight: bold;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.3s ease;
+}
+
+.submenu-toggle:hover {
+  color: #0043a4; /* Highlight main menu item when hovering */
+}
+
+/* Specific styling for 'Management Tools', 'Settings', and 'Logout' links */
+.submenu-toggle.management {
+  color: #e60000; /* Bright red for 'Management Tools' */
+}
+
+.submenu-toggle.settings {
+  color: #007bff; /* Blue for 'Settings' */
+}
+
+.nav-item a.logout {
+  color: #ff6347; /* Distinct logout color */
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.nav-item a.logout:hover {
+  color: #c9302c; /* Darker red on hover for logout */
+}
+
+/* Arrow styling and animation */
+.submenu-toggle .arrow {
+  margin-left: 10px;
+  transition: transform 0.3s ease-in-out; /* Rotate arrow */
+}
+
+.arrow.open {
+  transform: rotate(180deg); /* Rotate arrow to indicate open state */
+}
+
+/* Submenu items */
 .submenu {
   display: none;
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  margin-top: 5px;
 }
 
 .submenu.show {
   display: block;
 }
 
+
+
 .management-links {
   list-style: none;
   padding: 0;
   margin: 0;
-  background-color: #f9f9f9;
-  border: 1px solid #ddd;
+}
+
+.management-links li {
+  border-bottom: 1px solid #ddd; /* Separate items with a border */
 }
 
 .management-links a {
   display: block;
   padding: 10px;
-  color: #333;
+  color: #555; /* Dark gray for submenu items */
   text-decoration: none;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .management-links a:hover {
-  background-color: #f0f0f0;
-}
-
-.submenu-toggle {
-  cursor: pointer;
-}
-
-.submenu-toggle .arrow {
-  margin-left: 10px;
-}
-
-.arrow {
-  transition: transform 0.3s ease;
-}
-
-.arrow.open {
-  transform: rotate(180deg);
+  background-color: #4f73ff;
+  color: #ffffff; /* White text on blue background when hovering */
 }
 
 /* Index page specific styles */
@@ -558,9 +594,14 @@ form textarea {
 
 /* Media queries */
 @media (max-width: 768px) {
+  
   header#top-header {
     flex-direction: row;
     align-items: center;
+  }
+
+  .siteName span {
+    display: none;
   }
 
   header#top-header .siteName {
@@ -655,6 +696,10 @@ form textarea {
   .hamburger.active .bar:nth-child(3) {
     transform: translateY(-8px) rotate(-45deg);
   }
+  .management-links a:hover {
+    background-color: #4f73ff;
+    color: #ffffff; /* White text on blue background when hovering */
+  }
 }
 
 @media (max-width: 500px) {
@@ -735,6 +780,10 @@ form textarea {
 @media (max-width: 1200px) and (min-width: 769px) {
   main {
     width: 100%;
+  }
+
+   .header-welcome {
+    display: none;
   }
 
   .info {

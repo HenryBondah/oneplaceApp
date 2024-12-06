@@ -345,7 +345,42 @@ const enrollmentController = {
             req.flash('error', 'Failed to modify enrollment.');
             res.redirect('/enrollment/modifyEnrollment/' + enrollmentId);
         }
-    }
+    },
+
+    
+    
+        searchUsers: async (req, res, db) => {
+            const query = req.query.query;
+    
+            if (!query) {
+                return res.status(400).json({ error: 'No search query provided.' });
+            }
+    
+            try {
+                const searchQuery = `
+                    SELECT s.student_id, s.first_name, s.last_name, s.image_url, c.class_name, c.class_id
+                    FROM students s
+                    LEFT JOIN classes c ON s.class_id = c.class_id
+                    WHERE (s.first_name ILIKE $1 OR s.last_name ILIKE $1 OR CONCAT(s.first_name, ' ', s.last_name) ILIKE $1)
+                    AND s.organization_id = $2
+                    ORDER BY s.first_name, s.last_name
+                `;
+    
+                const values = [`%${query}%`, req.session.organizationId];
+    
+                const result = await db.query(searchQuery, values);
+                const users = result.rows;
+    
+                res.status(200).json({ users });
+            } catch (error) {
+                console.error('Error fetching users for search:', error);
+                res.status(500).json({ error: 'Failed to fetch users.' });
+            }
+        },
+  
+
+      
+    
 };
 
 module.exports = enrollmentController;

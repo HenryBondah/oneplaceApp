@@ -12,5 +12,6 @@ module.exports = (db) => {
     router.get('/modifyEnrollment/:enrollmentId', isAuthenticated, (req, res) => enrollmentController.modifyEnrollmentGet(req, res, db));
     router.post('/modifyEnrollment/:enrollmentId', isAuthenticated, (req, res) => enrollmentController.modifyEnrollmentPost(req, res, db));
     router.post('/deleteEnrollment/:enrollmentId', isAuthenticated, (req, res) => enrollmentController.deleteEnrollment(req, res, db));
+    router.get('/searchUsers', isAuthenticated, (req, res) => enrollmentController.searchUsers(req, res, db));
     return router;
 };

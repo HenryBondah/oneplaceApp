@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Student Report</title>
@@ -52,7 +53,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 13px;
             text-align: center;
         }
 
@@ -64,13 +65,17 @@
             border-radius: 8px;
         }
 
-        .header h2, .header h3 {
+        .header h1,
+        .header h2,
+
+        .header h3 {
             margin: 0;
             text-align: center;
             white-space: nowrap;
         }
 
-        th, td {
+        th,
+        td {
             border: 1px solid #ddd;
             padding: 5px;
             text-align: left;
@@ -84,56 +89,93 @@
         .remarks {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            gap: 30px; /* Add space between Teacher's Remarks and Signature */
-            margin: 20px auto;
-            flex-wrap: wrap;
+            align-items: flex-start; /* Align remarks and signature to the top */
+            gap: 30px;
+            position: relative;
+            top: -20px;
+            /* margin: 20px auto; */
         }
 
         .remarks-container {
-            display: inline-block;
-            padding: 10px;
-            width: 100%;
-            max-width: 300px; /* Limit width for consistent layout */
+            display: flex;
+            flex-direction: column;
+            width: 80%;
+        }
+
+        .remark-line {
+            display: flex;
+            align-items: center; /* Align label, textarea, and arrow */
+            /* gap: 10px; */
             position: relative;
-            left: 40px;
-            top: -20px;
+        }
+
+        .remark-line label {
+            font-size: 14px;
+            color: #333;
+            white-space: nowrap;
+            min-width: 50px; /* Fixed width for labels */
+        }
+
+        .remark-line textarea {
+            flex-grow: 1;
+            border: none;
+            border-bottom: 1px dotted #333; /* Dotted underline for textarea */
+            font-size: 14px;
+            padding: 5px;
+            background: none;
+            outline: none;
+            width: calc(100% - 160px); /* Fill remaining space */
+            overflow-wrap: break-word; /* Allow text to wrap */
+            word-break: break-word;
+            resize: none; /* Disable manual resizing */
+            height: auto; /* Allow the height to adjust based on content */
+        }
+
+        .remark-arrow {
+            font-size: 14px;
+            cursor: pointer;
+            user-select: none; /* Prevent text selection */
+            padding: 0 5px;
+            transform: rotate(0deg);
+            transition: transform 0.3s ease;
+            font-family: Arial, sans-serif; /* Professional dropdown caret style */
+            position: relative;
+            top: 10px;
+        }
+
+        .remark-arrow.open {
+            transform: rotate(180deg);
+        }
+
+        .remark-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: calc(100% - 160px);
+            background-color: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .remark-dropdown-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .remark-dropdown-option:hover {
+            background-color: #f0f0f0;
         }
 
         .signature-info {
-            display: inline-block;
-            padding: 10px;
             text-align: center;
             position: relative;
-            left: -50px;
-        }
-
-        .remarks-container select {
-            padding: 8px;
-            font-size: 14px;
-            margin-bottom: 10px;
-            white-space: normal; /* Allow text to wrap to the next line */
-            max-width: 100%; /* Make sure select doesn't exceed its parent's width */
-            overflow: hidden;
-            text-overflow: ellipsis; /* Add ellipsis if the text overflows */
-            display: block;
-            line-height: 1.5; /* Adjust line height for better readability */
-            word-break: break-word; /* Ensure long text breaks properly */
-            width: 100%;
-        }
-
-        .remarks-container h3 {
-            font-size: 16px;
-            color: #333;
-            margin-top: 10px;
-        }
-
-        .signature-info h3 {
-            font-size: 16px;
-            color: #333;
-            margin-top: 10px;
-            position: relative;
-            top: 50px;
+            top: 80px;
+            right: 10px;
         }
 
         .signature-info img {
@@ -141,26 +183,42 @@
             display: block;
             margin: 0 auto 10px auto;
             position: relative;
-            top: -50px;
-        }
-
-        .promotion-table th, 
-        .promotion-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-            font-size: 12px;
+            top: 20px;
         }
 
         .promotion-table select {
-            width: 100px;
-            padding: 2px;
-            font-size: 12px;
-            margin: 0 auto;
-            display: block;
+            width: auto;
+            padding: 5px;
             border: none;
-            background: transparent;
-            appearance: none;
+            background: none;
+            font-size: 14px;
+            appearance: none; /* Remove default styles for select */
+        }
+
+        .grade-interpretation {
+            border: 1px solid #000;
+            font-size: 11px;
+            max-width: 600px;
+            margin: 5px auto;
+            line-height: 1.5;
+        }
+
+        .grade-interpretation h6 {
+            margin: 1px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .grade-interpretation-content {
+            display: flex;
+            flex-wrap: wrap;
+            /* gap: 10px; */
+            align-items: center;
+            justify-content: center;
+        }
+
+        .grade-interpretation-item {
+            display: inline-block;
         }
 
         @media print {
@@ -173,29 +231,39 @@
                 visibility: hidden; /* Hide everything during print */
             }
 
-            .student-report-background, .student-report-background * {
+            .student-report-background,
+            .student-report-background * {
                 visibility: visible; /* Show the background and report content */
             }
 
             .student-report {
                 width: 100%; /* Maximize width usage for the report */
                 margin: 0; /* Remove any extra margins */
-                padding: 10mm; /* Add some padding to ensure content doesn't touch the edges */
+                padding: 1mm; /* Add some padding to ensure content doesn't touch the edges */
                 page-break-after: always; /* Each report prints on a new page */
             }
 
             .actions {
                 display: none; /* Hide the print buttons */
             }
+
+            .school-info h2,
+            .school-info h1,
+            .school-info h3,
+            .school-info h4 {
+                font-size: inherit; /* Keep the original font size during printing */
+                margin: 0; /* Ensure no additional margin is added during print */
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="actions no-print">
         <button class="btn btn-primary" onclick="window.print()">Print Report</button>
         <a href="/print/reportSettings?classId=<%= classId %>&termId=<%= termId %>" class="btn btn-primary">Report Settings</a>
     </div>
-    
+
     <% if (students.length === 0) { %>
         <p>No student data available</p>
     <% } else { %>
@@ -205,18 +273,23 @@
                     <div class="header">
                         <% if (session.logo) { %>
                             <img src="<%= session.logo %>" alt="Organization Logo" class="logo" />
+                        <% } else { %>
+                            <img src="/images/default_logo.png" alt="Default Logo" class="logo" />
                         <% } %>
+
                         <div class="school-info">
-                            <h2><%= orgName %></h2>
+                            <h1><%= orgName %></h1>
                             <h3><%= orgAddress %></h3>
+                            <h3><%= email %> | <%= orgPhone %></h3>
                         </div>
+
                         <% if (student.image_url && student.image_url !== 'profilePlaceholder.png') { %>
                             <img src="<%= student.image_url %>?v=<%= new Date().getTime() %>" alt="Student Image" class="student-image">
                         <% } else { %>
                             <img src="/images/profilePlaceholder.png" alt="Placeholder Image" class="student-image">
                         <% } %>
                     </div>
-                    
+
                     <div class="info">
                         <table>
                             <tr>
@@ -228,20 +301,19 @@
                             <tr>
                                 <td>Student ID:</td>
                                 <td><%= student.student_id %></td>
-                                <td>Academic Year:</td>
-                                <td>2023-2024</td>
+                                <td>School Year:</td>
+                                <td><%= schoolYearLabel %></td>
                             </tr>
                             <tr>
                                 <td>Class:</td>
                                 <td><%= student.class_name %></td>
-                                <td>School Reopens:</td>
-                                <td><%= schoolReopenDate ? new Date(schoolReopenDate).toLocaleDateString() : 'TBA' %></td>
+                                <td>Position in Class:</td>
+                                <td><%= student.positionInClass %></td>
                             </tr>
                         </table>
                     </div>
-                    
                     <br>
-                    
+
                     <div class="subjects">
                         <table>
                             <thead>
@@ -258,7 +330,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <% student.subjects.forEach(subject => { %>
+                                <% (student.subjects || []).forEach(subject => { %>
                                     <tr>
                                         <td><%= subject.subject_name %></td>
                                         <td><%= subject.classAssessmentScore !== '-' ? parseFloat(subject.classAssessmentScore).toFixed(2) : '-' %></td>
@@ -274,88 +346,148 @@
                             </tbody>
                         </table>
                     </div>
-                    
+
                     <br>
-                    
+
                     <div class="attendance-info">
                         <table class="promotion-table">
                             <tr>
-                                <td>Position in Class:</td>
-                                <td><%= student.positionInClass %></td>
                                 <td>Overall Percentage:</td>
                                 <td><%= student.overallPercentage %> %</td>
                                 <td>Attendance:</td>
                                 <td><%= student.attendance.presentDays %>/<%= student.attendance.totalDays %></td>
+                                <td>Vacation Date:</td>
+                                <td><%= termEndDate %></td>
+                                <td>School Reopens:</td>
+                                <td><%= schoolReopenDate ? new Date(schoolReopenDate).toLocaleDateString() : 'TBA' %></td>
                             </tr>
                             <% if (activatePromotion) { %>
-                                <tr>
+                            <tr>
+                            
                                     <td>
                                         <select name="promotionStatus-<%= student.student_id %>" id="promotionStatus-<%= student.student_id %>" onchange="updateClass('<%= student.student_id %>')">
                                             <option value="Promoted" <%= student.promotionStatus === 'Promoted' ? 'selected' : '' %>>Promoted To:</option>
                                             <option value="Repeated" <%= student.promotionStatus === 'Repeated' ? 'selected' : '' %>>Repeated In:</option>
                                         </select>
                                     </td>
-                                    <td id="promotionClass-<%= student.student_id %>"><%= student.promotionClass %></td>
+                                    <td id="promotionClass-<%= student.student_id %>"><%= student.promotionClass %></td> 
+    
                                 </tr>
                             <% } %>
                         </table>
                     </div>
-                    
+
                     <br>
-                    
+
                     <div class="remarks">
                         <div class="remarks-container">
-                            <select id="teacherRemarks-<%= index %>" name="teacherRemarks-<%= index %>" onchange="adjustSelectWidth(this)">
-                                <option value="">Select Remarks</option> <!-- Default option -->
-                                <% teacherRemarks.forEach(function(remark) { %>
-                                    <option value="<%= remark.remark %>" <%= remark.remark === student.teacherRemarks ? 'selected' : '' %>><%= remark.remark %></option>
-                                <% }); %>
-                            </select>
-                            <h3>Teacher's Remarks</h3>
+                            <% const remarksLists = { ConductRemarks: conductRemarks, AttitudeRemarks: attitudeRemarks, InterestRemarks: interestRemarks, TeacherRemarks: teacherRemarks }; %>
+                            <% Object.keys(remarksLists).forEach((remarkType) => { %>
+                                <div class="remark-line">
+                                    <label for="<%= remarkType %>-<%= index %>"><%= remarkType.replace(/([a-z])([A-Z])/g, '$1 $2').replace('Remarks', ' Remarks') %>:</label>
+                                    <span class="remark-arrow" onclick="toggleDropdown('<%= remarkType %>', <%= index %>)">▼</span>
+
+                                    <textarea id="<%= remarkType %>-<%= index %>" name="<%= remarkType %>-<%= index %>" onfocus="this.select();"><%= student[remarkType] %></textarea>
+
+                                    <div class="remark-dropdown" id="dropdown-<%= remarkType %>-<%= index %>">
+                                        <% remarksLists[remarkType].forEach(function (remark) { %>
+                                            <div class="remark-dropdown-option" onclick="selectRemark('<%= remarkType %>', <%= index %>, '<%= remark.remark %>')">
+                                                <%= remark.remark %>
+                                            </div>
+                                        <% }); %>
+                                    </div>
+                                </div>
+                            <% }); %>
                         </div>
-                        
+
                         <div class="signature-info">
-                            <h3>Signature</h3>
                             <% if (signatureImageUrl) { %>
-                                <img src="<%= signatureImageUrl %>" alt="Signature Image" style="max-width: 100px; display: block; margin-bottom: 10px;">
+                                <img src="<%= signatureImageUrl %>" alt="Signature Image">
                             <% } else { %>
                                 <p>No signature available.</p>
                             <% } %>
+                            <h3>Signature</h3>
                         </div>
                     </div>
+
+                    <!-- Grade Interpretation Box -->                        
+                    <div class="grade-interpretation">
+                        <h6>Interpretation of Grades:</h6>
+
+                        <div class="grade-interpretation-content">
+                            <% scoreRemarks.forEach(function (remark) { %>
+                                <span class="grade-interpretation-item"><%= remark.fromPercentage %> to <%= remark.toPercentage %> = <%= remark.remark %>;</span>
+                            <% }); %>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         <% }); %>
     <% } %>
 
     <script>
+        // Automatically resize textarea fields to fit content
+        document.addEventListener('input', function (e) {
+            if (e.target.tagName === 'TEXTAREA') {
+                e.target.style.height = 'auto';
+                e.target.style.height = e.target.scrollHeight + 'px';
+            }
+        });
+
+        // Trigger resize for pre-filled textarea fields
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('textarea').forEach(function (textarea) {
+                textarea.style.height = 'auto';
+                textarea.style.height = textarea.scrollHeight + 'px';
+            });
+        });
+
+        // Toggle dropdown visibility
+        function toggleDropdown(remarkType, index) {
+            const dropdown = document.getElementById(`dropdown-${remarkType}-${index}`);
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            const arrow = document.querySelector(`[onclick="toggleDropdown('${remarkType}', ${index})"]`);
+            arrow.classList.toggle('open');
+        }
+
+        // Select a remark from dropdown
+        function selectRemark(remarkType, index, remark) {
+            const textarea = document.getElementById(`${remarkType}-${index}`);
+            textarea.value = remark;
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+            toggleDropdown(remarkType, index);
+        }
+
+        // Handle promotion status change
         function updateClass(studentId) {
             const statusSelect = document.getElementById('promotionStatus-' + studentId);
             const selectedStatus = statusSelect.value;
             const classCell = document.getElementById('promotionClass-' + studentId);
 
-            const promotedClass = '<%= promotedClass %>';
-            const repeatedClass = '<%= repeatedClass %>';
+            const promotedClassName = '<%= promotedClass %>';
+            const repeatedClassName = '<%= repeatedClass %>';
 
             if (selectedStatus === 'Promoted') {
-                classCell.innerHTML = promotedClass;
+                classCell.innerHTML = promotedClassName;
             } else if (selectedStatus === 'Repeated') {
-                classCell.innerHTML = repeatedClass;
+                classCell.innerHTML = repeatedClassName;
             }
         }
 
-        function adjustSelectWidth(selectElement) {
-            selectElement.style.height = "auto"; 
-            const newHeight = selectElement.scrollHeight + 10; // Add an additional 10 pixels to height
-            selectElement.style.height = newHeight + "px";
-        }
-
-        // Adjust the initial width of each select
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.remarks-container select').forEach(select => {
-                adjustSelectWidth(select);
-            });
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!e.target.matches('.remark-arrow, .remark-dropdown-option')) {
+                document.querySelectorAll('.remark-dropdown').forEach(function (dropdown) {
+                    dropdown.style.display = 'none';
+                });
+                document.querySelectorAll('.remark-arrow.open').forEach(function (arrow) {
+                    arrow.classList.remove('open');
+                });
+            }
         });
     </script>
 </body>
+
 </html>

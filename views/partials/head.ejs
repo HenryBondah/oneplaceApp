@@ -3,6 +3,14 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%- title %> | OnePlace</title>
+
+    <!-- Favicon Links -->
+    <link rel="icon" href="/images/favicon_io/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon_io/favicon-16x16.png">
+    <link rel="shortcut icon" href="/images/favicon_io/favicon.ico">
+
+    <!-- Stylesheets -->
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/index.css">
     <link rel="stylesheet" href="/css/orgDashboard.css">
@@ -22,13 +30,12 @@
     <link rel="stylesheet" href="/css/manageStudents.css">
     <link rel="stylesheet" href="/css/applicationList.css">
     <link rel="stylesheet" href="/css/addClassSubject.css">
-    <link rel="icon" href="/images/site/favicon.ico" type="image/x-icon">
-    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon_io/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon_io/favicon-16x16.png">
+
+    <!-- Preconnect to Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <!-- Dynamic font style -->
+
+    <!-- Dynamic Font Style -->
     <% if (session.fontStyle) { %>
         <link href="https://fonts.googleapis.com/css2?family=<%= session.fontStyle %>&display=swap" rel="stylesheet">
         <style>
@@ -38,6 +45,7 @@
         </style>
     <% } %>
 
+    <!-- JavaScript Files -->
     <script src="/js/script.js" defer></script>
     <script src="/js/index.js" defer></script>
     <script src="/js/orgDashboard.js" defer></script>
