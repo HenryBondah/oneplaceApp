@@ -3,7 +3,8 @@ const { s3Client } = require('../config/s3');
 const path = require('path');
 const organizationCache = {};
 const CACHE_DURATION = 10 * 60 * 1000; // Cache organization data for 10 minutes
-const { redisClient } = require('../config/redis'); // Ensure Redis is set up as described above
+const NodeCache = require("node-cache");
+const cache = new NodeCache({ stdTTL: 600 }); // Cache for 10 minutes
 
 
 // Helper functions for S3 actions
@@ -58,10 +59,9 @@ async function deleteFromS3(key) {
 // Helper function to fetch and cache organization details
 async function getCachedOrganizationDetails(organizationId, db) {
     const cacheKey = `org_${organizationId}`;
-    const now = Date.now();
-
-    if (organizationCache[cacheKey] && (now - organizationCache[cacheKey].timestamp) < CACHE_DURATION) {
-        return organizationCache[cacheKey].data;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+        return cachedData; // Data is already parsed
     }
 
     const organizationResult = await db.query(`
@@ -72,17 +72,20 @@ async function getCachedOrganizationDetails(organizationId, db) {
 
     const organization = organizationResult.rows[0];
     if (organization) {
-        organizationCache[cacheKey] = {
-            data: organization,
-            timestamp: now
-        };
+        cache.set(cacheKey, organization); // Cache the data
     }
 
     return organization;
 }
 
+
 const assignScoreRemark = async (percentage, organizationId, db) => {
-    // Ensure we are comparing percentage as numeric
+    const cacheKey = `remark_${organizationId}_${percentage}`;
+    const cachedRemark = cache.get(cacheKey);
+    if (cachedRemark) {
+        return cachedRemark; // Data is already parsed in Node-Cache
+    }
+
     const remarkResult = await db.query(`
         SELECT remark FROM score_remarks
         WHERE organization_id = $1
@@ -90,7 +93,10 @@ const assignScoreRemark = async (percentage, organizationId, db) => {
         LIMIT 1
     `, [organizationId, percentage]);
 
-    return remarkResult.rows[0] ? remarkResult.rows[0].remark : 'No Remarks';
+    const remark = remarkResult.rows[0] ? remarkResult.rows[0].remark : 'No Remarks';
+
+    cache.set(cacheKey, remark); // Cache the data
+    return remark;
 };
 
 const printController = (db) => ({
