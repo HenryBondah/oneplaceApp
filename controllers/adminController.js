@@ -14,6 +14,7 @@ const adminController = {
         }
     },
 
+
     holdOrganization: async (req, res) => {
         const { orgId } = req.body;
         try {
@@ -71,6 +72,18 @@ const adminController = {
         }
     },
 
+    superAdminSettings: async (req, res) => {
+        try {
+            const result = await db.query('SELECT * FROM organizations WHERE deleted = true');
+            const deletedAccounts = result.rows;
+            res.render('admin/superSettings', { title: 'Super Admin Settings', deletedAccounts, messages: req.flash() });
+        } catch (error) {
+            console.error('Error fetching deleted accounts:', error);
+            req.flash('error', 'Error fetching deleted accounts.');
+            res.render('admin/superSettings', { title: 'Super Admin Settings', deletedAccounts: [], messages: req.flash() });
+        }
+    },
+
     superAdminDashboard: async (req, res) => {
         try {
             const result = await db.query('SELECT * FROM organizations WHERE deleted = true');
@@ -82,6 +95,8 @@ const adminController = {
             res.render('admin/superDashboard', { title: 'Super Admin Dashboard', deletedAccounts: [], messages: req.flash() });
         }
     },
+
+
 
     restoreOrganization: async (req, res) => {
         const { orgId } = req.body;

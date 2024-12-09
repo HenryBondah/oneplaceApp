@@ -95,8 +95,9 @@
                     <div class="class-item">
                         <span><%= cls.class_name %></span>
                         <a href="/print/printStudentReport?classId=<%= cls.class_id %>&termId=<%= termId %>" class="btn">Generate Report</a>
-                    </div>
-                <% }); %>
+                        <a href="/print/meritSheetPage?classId=<%= cls.class_id %>&termId=<%= termId %>" class="btn">Generate Merit Sheet</a>
+                      </div>
+                                      <% }); %>
             <% } else { %>
                 <div class="class-item">No classes assigned for this term</div>
             <% } %>

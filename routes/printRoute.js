@@ -1,34 +1,35 @@
 const express = require('express');
 const router = express.Router();
 const { isAuthenticated } = require('../middleware/middleware');
-const path = require('path');
-
 const multer = require('multer');
 
-// Use memory storage instead of disk storage
-const storage = multer.memoryStorage();  // Files are kept in memory and not saved to disk
+// Use memory storage for file uploads (files stored in memory, not disk)
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 module.exports = (db) => {
     const printController = require('../controllers/printController')(db);
 
-    // Ensure controller methods are defined before using them in routes
+    // Ensure all controller methods are defined
     if (!printController || typeof printController.printStudentReport !== 'function') {
         throw new Error('printController is not properly initialized');
     }
 
-    // Route definitions
-    router.get('/printStudentReport', isAuthenticated, printController.printStudentReport);
-    router.get('/reportSettings', isAuthenticated, printController.reportSettingsPage);
-    router.post('/savePromotionSettings', isAuthenticated, printController.savePromotionSettings);
-    router.post('/saveScoreRemarks', isAuthenticated, printController.saveScoreRemarks);
-    router.post('/saveRemarks', isAuthenticated, printController.saveRemarks); // New route added
+    // Define routes
+    router.get('/printStudentReport', isAuthenticated, printController.printStudentReport); // Fetch student report
+    router.get('/reportSettings', isAuthenticated, printController.reportSettingsPage); // Render report settings page
+    router.post('/savePromotionSettings', isAuthenticated, printController.savePromotionSettings); // Save promotion settings
+    router.post('/saveScoreRemarks', isAuthenticated, printController.saveScoreRemarks); // Save score remarks
+    router.post('/saveRemarks', isAuthenticated, printController.saveRemarks); // Save remarks
+    router.get('/meritSheetPage', isAuthenticated, printController.meritSheetPage); // Render merit sheet page
 
+    // Fix the POST method for generateMeritSheet
+    router.post('/generateMeritSheet', isAuthenticated, printController.generateMeritSheet); // Generate merit sheet
 
-    // Use `upload.single()` with `multer.memoryStorage` to upload the file to S3
-    router.post('/uploadSignatureImage', upload.single('signatureImage'), printController.uploadSignatureImage);
+    // Route to upload a signature image using multer's memory storage
+    router.post('/uploadSignatureImage', isAuthenticated, upload.single('signatureImage'), printController.uploadSignatureImage);
 
-    // Deletion route for the signature image
+    // Routes for deleting signature image, remarks, and score remarks
     router.get('/deleteSignatureImage', isAuthenticated, printController.deleteSignatureImage);
     router.get('/deleteRemark/:id', isAuthenticated, printController.deleteRemark);
     router.get('/deleteScoreRemark/:id', isAuthenticated, printController.deleteScoreRemark);

@@ -15,7 +15,7 @@
     <% } %>
 
     <% if (session.organizationName) { %>
-      <h2><%= session.organizationName %></h2>
+      <h3><%= session.organizationName %></h3>
     <% } %>
   </span>
 
@@ -187,8 +187,8 @@
     }
 
     .search-bar-container {
-      margin-left: auto; /* Align to the right */
-      padding-left: 10px; /* Add padding to align with hamburger menu */
+      margin-left: auto; 
+      padding-left: 10px; 
     }
 
     .search-result-item {
@@ -197,11 +197,12 @@
 
     .search-results-dropdown {
       width: 100%;
-      display: block; /* Always visible on small screens */
+      display: block; 
     }
 
-    .siteName h2 {
-      display: none; /* Hide organization name on small screens */
+    .siteName h2,
+    .siteName h3 {
+      display: none; 
     }
   }
 </style>

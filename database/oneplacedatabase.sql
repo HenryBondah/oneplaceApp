@@ -333,14 +333,6 @@ CREATE TABLE IF NOT EXISTS status_settings (
     CONSTRAINT unique_org_class UNIQUE (organization_id, class_id)
 );
 
--- Teacher Remarks Table
-CREATE TABLE IF NOT EXISTS teacher_remarks (
-    id SERIAL PRIMARY KEY,
-    organization_id INT NOT NULL,
-    class_id INT REFERENCES classes(class_id) ON DELETE CASCADE,
-    remark TEXT NOT NULL,
-    CONSTRAINT unique_teacher_remarks UNIQUE (organization_id, class_id, remark)
-);
 
 -- Score Remarks Table
 CREATE TABLE IF NOT EXISTS score_remarks (
@@ -548,9 +540,6 @@ ALTER TABLE category_scores
 ADD CONSTRAINT unique_category_score
 UNIQUE (student_id, class_id, subject_id, organization_id, category, term_id);
 
-ALTER TABLE teacher_remarks 
-ADD COLUMN term_id INTEGER,
-ADD CONSTRAINT teacher_remarks_unique UNIQUE (organization_id, class_id, term_id, remark);
 
 ALTER TABLE status_settings 
 ADD CONSTRAINT status_settings_unique UNIQUE (organization_id, class_id, term_id);
@@ -566,11 +555,6 @@ ADD CONSTRAINT report_settings_unique UNIQUE (organization_id, class_id, term_id
 ALTER TABLE status_settings
 ADD UNIQUE (organization_id, class_id, term_id);
 
-ALTER TABLE teacher_remarks
-ADD CONSTRAINT unique_organization_class_term
-UNIQUE (organization_id, class_id, term_id);
-ALTER TABLE score_remarks
-ADD CONSTRAINT unique_score_remark UNIQUE (organization_id, class_id, term_id, remark);
 
 CREATE TABLE remarks (
     id SERIAL PRIMARY KEY,
@@ -581,3 +565,57 @@ CREATE TABLE remarks (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ALTER TABLE status_settings ADD COLUMN term_end_date DATE;
+
+
+
+
+
+ALTER TABLE organization_texts
+DROP CONSTRAINT organization_texts_organization_id_fkey,
+ADD CONSTRAINT organization_texts_organization_id_fkey
+FOREIGN KEY (organization_id)
+REFERENCES organizations (organization_id)
+ON DELETE CASCADE
+ON UPDATE CASCADE;
+
+ALTER TABLE organization_images
+DROP CONSTRAINT organization_images_organization_id_fkey,
+ADD CONSTRAINT organization_images_organization_id_fkey
+FOREIGN KEY (organization_id)
+REFERENCES organizations (organization_id)
+ON DELETE CASCADE;
+
+ALTER TABLE enrollments
+DROP CONSTRAINT enrollments_organization_id_fkey,
+ADD CONSTRAINT enrollments_organization_id_fkey
+FOREIGN KEY (organization_id)
+REFERENCES organizations (organization_id)
+ON DELETE CASCADE;
+
+ALTER TABLE slideshows
+DROP CONSTRAINT slideshows_organization_id_fkey,
+ADD CONSTRAINT slideshows_organization_id_fkey
+FOREIGN KEY (organization_id)
+REFERENCES organizations (organization_id)
+ON DELETE CASCADE;
+
+ALTER TABLE user_subjects
+DROP CONSTRAINT user_subjects_user_id_fkey,
+ADD CONSTRAINT user_subjects_user_id_fkey
+FOREIGN KEY (user_id)
+REFERENCES users (user_id)
+ON DELETE CASCADE;
+
+ALTER TABLE enrolled_classes
+DROP CONSTRAINT enrolled_classes_class_id_fkey,
+ADD CONSTRAINT enrolled_classes_class_id_fkey
+FOREIGN KEY (class_id)
+REFERENCES classes (class_id)
+ON DELETE CASCADE;
+
+ALTER TABLE enrolled_students
+DROP CONSTRAINT enrolled_students_class_id_fkey,
+ADD CONSTRAINT enrolled_students_class_id_fkey
+FOREIGN KEY (class_id)
+REFERENCES classes (class_id)
+ON DELETE CASCADE;

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+        }
+
+        h1, h2, h3 {
+            margin: 0;
+            text-align: center;
+        }
+
+        .note {
+            margin-bottom: 20px;
+            text-align: center;
+            color: #555;
+            font-size: 16px;
+        }
+
+        .form-section {
+            margin-bottom: 40px;
+        }
+
+        .subject-container {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .subject-header {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .assessment-container {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px;
+        }
+
+        td {
+            padding: 8px;
+            text-align: center;
+        }
+
+        .btn {
+            display: block;
+            width: fit-content;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .no-data {
+            text-align: center;
+            font-size: 16px;
+            color: #888;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            .print-section, .print-section * {
+                visibility: visible;
+            }
+
+            .print-section {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Form Section -->
+        <% if (!meritSheet || meritSheet.length === 0) { %>
+            <div class="form-section">
+                <div class="header">
+                    <% if (session.logo) { %>
+                        <img src="<%= session.logo %>" alt="School Logo">
+                    <% } %>
+                    <h1><%= orgName %></h1>
+                    <h2>School Year: <%= schoolYear %></h2>
+                    <h3>Term: <%= termName %> | Class: <%= className %></h3>
+                </div>
+                <div class="note">
+                    <p>Please select all the subjects and assessments you need for the merit sheet, then click "Generate Merit Sheet."</p>
+                </div>
+                <form action="/print/generateMeritSheet" method="POST">
+                    <input type="hidden" name="classId" value="<%= classId %>">
+                    <input type="hidden" name="termId" value="<%= termId %>">
+
+                    <% subjects.forEach(subject => { %>
+                        <div class="subject-container">
+                            <div class="subject-header">
+                                <input type="checkbox" name="selectedSubjects[]" value="<%= subject.subject_id %>">
+                                <label><%= subject.subject_name %></label>
+                            </div>
+                            <div class="assessment-container">
+                                <% if (subject.assessments.length > 0) { %>
+                                    <% subject.assessments.forEach(assessment => { %>
+                                        <div>
+                                            <input type="checkbox" name="selectedAssessments[]" value="<%= assessment.assessment_id %>">
+                                            <label><%= assessment.title %> (<%= assessment.weight %>%)</label>
+                                        </div>
+                                    <% }); %>
+                                <% } else { %>
+                                    <p>No assessments available.</p>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% }); %>
+                    <button type="submit" class="btn">Generate Merit Sheet</button>
+                </form>
+            </div>
+        <% } %>
+
+        <!-- Merit Sheet Section -->
+        <% if (meritSheet && meritSheet.length > 0) { %>
+            <div class="print-section">
+                <div class="header">
+                    <% if (session.logo) { %>
+                        <img src="<%= session.logo %>" alt="School Logo">
+                    <% } %>
+                    <h1><%= orgName %></h1>
+                    <h2>School Year: <%= schoolYear %></h2>
+                    <h3>Term: <%= termName %> | Class: <%= className %></h3>
+                    <h2>Class Order of Merit Sheet</h2>
+                </div>
+
+                <div class="merit-sheet">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>S/N</th>
+                                <th>Student ID</th>
+                                <th>Student Name</th>
+                                <% subjects.forEach(subject => { %>
+                                    <% subject.assessments.forEach(assessment => { %>
+                                        <th><%= subject.subject_name %> - <%= assessment.title %></th>
+                                        <th>Grade</th>
+                                    <% }); %>
+                                <% }); %>
+                                <th>Total Score</th>
+                                <th>Average</th>
+                                <th>Position</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% meritSheet.forEach((student, index) => { %>
+                                <tr>
+                                    <td><%= index + 1 %></td>
+                                    <td><%= student.studentId %></td>
+                                    <td><%= student.name %></td>
+                                    <% student.scores.forEach(subject => { %>
+                                        <% subject.assessments.forEach(assessment => { %>
+                                            <td>
+                                                <%= (assessment.score !== '-' && assessment.score !== null) 
+                                                    ? parseFloat(assessment.score).toFixed(2) 
+                                                    : '-' %>
+                                            </td>
+                                            <td><%= assessment.grade || '-' %></td>
+                                        <% }); %>
+                                    <% }); %>
+                                    <td><%= student.totalScore %></td>
+                                    <td><%= student.averageScore %></td>
+                                    <td><%= student.position %></td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="btn" onclick="window.print()">Print Report</button>
+            </div>
+        <% } %>
+    </div>
+</body>
+
+</html>

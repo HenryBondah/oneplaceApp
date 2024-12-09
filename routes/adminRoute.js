@@ -10,6 +10,7 @@ module.exports = (db) => {
     router.get('/superDashboard', adminController.superAdminDashboard);
     router.post('/restore', adminController.restoreOrganization);
     router.post('/permanentlyDelete', adminController.permanentlyDeleteOrganization);
+    router.get('/superSettings', adminController.superAdminSettings);
 
     return router;
 };
