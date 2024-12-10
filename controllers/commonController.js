@@ -799,7 +799,7 @@ editStudentGet: async (req, res, db) => {
     }
 
     try {
-        console.log('Fetching student details for:', { studentId, termId, classId });
+        // console.log('Fetching student details for:', { studentId, termId, classId });
 
         // Fetch student details
         const studentResult = await db.query(`
@@ -811,13 +811,13 @@ editStudentGet: async (req, res, db) => {
         `, [studentId, req.session.organizationId]);
 
         if (studentResult.rows.length === 0) {
-            console.log('Student not found with ID:', studentId);
+            // console.log('Student not found with ID:', studentId);
             req.flash('error', 'Student not found.');
             return res.redirect('/common/manageRecords');
         }
 
         const student = studentResult.rows[0];
-        console.log('Student details fetched:', student);
+        // console.log('Student details fetched:', student);
 
         // Fetch all classes and graduation year groups to populate dropdowns in the edit form
         const classResult = await db.query('SELECT * FROM classes WHERE organization_id = $1 ORDER BY class_name ASC', [req.session.organizationId]);
@@ -825,7 +825,7 @@ editStudentGet: async (req, res, db) => {
 
         // Fetch guardians associated with the student
         const guardiansResult = await db.query('SELECT * FROM guardians WHERE student_id = $1 AND organization_id = $2', [studentId, req.session.organizationId]);
-        console.log('Guardians fetched:', guardiansResult.rows);
+        // console.log('Guardians fetched:', guardiansResult.rows);
 
         // Fetch subjects available for the student's class
         const subjectResult = await db.query(`
@@ -842,7 +842,7 @@ editStudentGet: async (req, res, db) => {
             FROM student_subjects
             WHERE student_id = $1 AND organization_id = $2
         `, [studentId, req.session.organizationId]);
-        console.log('Enrolled subjects fetched:', enrolledSubjectsResult.rows);
+        // console.log('Enrolled subjects fetched:', enrolledSubjectsResult.rows);
 
         const subjects = subjectResult.rows;
         const enrolledSubjects = enrolledSubjectsResult.rows.map(row => row.subject_id);
@@ -2349,14 +2349,21 @@ createTestPost: async (req, res, db) => {
                 }
             }
     
+            // Add success flash message
+            req.flash(
+                'success',
+                'School year saved successfully. To make this the active current school year, select "Set as Current" beside the school year and one of its terms to activate it.'
+            );
+    
             // Redirect to the manageRecords page upon successful insertion
             res.redirect('/common/manageRecords');
-            
         } catch (error) {
             console.error('Error registering school year:', error);
-            res.status(500).send('Error registering school year');
+            req.flash('error', 'Error registering school year.');
+            res.redirect('/common/manageRecords');
         }
     },
+        
 
     registerSchoolYearGet: async (req, res, db) => { // Add this method
         try {
@@ -2454,22 +2461,25 @@ createTestPost: async (req, res, db) => {
                 return { ...schoolYear, terms };
             });
     
+            // Pass messages to the view
             res.render('common/manageRecords', {
                 title: 'Manage Records',
                 schoolYears,
-                classes: classesResult.rows, // All classes to display for selection
+                classes: classesResult.rows,
                 events: eventsResult.rows,
                 announcements: announcementsResult.rows,
                 messages: {
                     success: req.flash('success'),
-                    error: req.flash('error')
-                }
+                    error: req.flash('error'),
+                },
             });
         } catch (error) {
             console.error('Error fetching data:', error);
-            res.status(500).send('Error loading manage records page.');
+            req.flash('error', 'Error loading manage records page.');
+            res.redirect('/common/manageRecords');
         }
     },
+        
        
     updateSchoolYearAndTerms: async (req, res, db) => {
         const { yearId, year_label, currentYear, termIds, termNames, startDates, endDates, currentTerm, termClasses } = req.body;

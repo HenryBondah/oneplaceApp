@@ -11,10 +11,13 @@
         <% if (!schoolYear || !currentTerm) { %>
             <!-- Show the welcome message if no school year or term is set -->
             <div id="welcomeMessage" class="welcome-message">
-                <h1>welcome</h1>
-                <h3>One place is here to help! :)</h3>
-                <p>Start by creating and selecting a school year and a term.</p>
-                <a href="/common/manageRecords" class="start-link">Start here</a>
+                <h1>Welcome to One Place! 🎉</h1>
+                <h3>Your trusted partner for managing it all effortlessly. 😊</h3>
+                <p>Need to update your credentials? No problem! You can <a href="/account/update">update them</a> anytime to keep things up to date.</p>
+                <p>Personalize your organization with ease. <a href="/account/personalization">Customize</a> it to suit your preferences and unique needs.</p>
+                <p>Get started by setting up a school year and term. It's simple and intuitive!</p>
+                <a href="/common/manageRecords" class="start-link">Begin Your Journey Here</a>
+                
             </div>
         <% } else { %>
 
@@ -46,8 +49,8 @@
                                         </li>
                                     <% }); %>
                                 <% } else { %>
-                                    <li>No class here yet for the current term. Click <a href="/enrollment/manageEnrollment">here</a> to enroll class.</li>
-                                <% } %>
+                                    <li>No classes have been set up for this current term yet. <a href="/common/manageClassSubjectAndGradYr">Create</a> classes for your organization if you haven't done so already. Otherwise, click <a href="/enrollment/manageEnrollment">here</a> to enroll a classes.</li>
+                                    <% } %>
                             </ul>
                         </div>
 

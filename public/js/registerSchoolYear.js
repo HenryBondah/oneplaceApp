@@ -83,7 +83,7 @@ document.getElementById('registerSchoolYearForm').addEventListener('submit', fun
         terms: terms
     };
 
-    console.log('Payload to be sent:', payload);
+    // console.log('Payload to be sent:', payload);
 
     fetch('/common/registerSchoolYear', {
         method: 'POST',

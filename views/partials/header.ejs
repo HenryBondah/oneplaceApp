@@ -15,8 +15,10 @@
     <% } %>
 
     <% if (session.organizationName) { %>
+      <a href="/common/orgDashboard" title="Go to dashboard">
       <h3><%= session.organizationName %></h3>
-    <% } %>
+    </a>
+   <% } %>
   </span>
 
   <% if (session.firstName) { %>
